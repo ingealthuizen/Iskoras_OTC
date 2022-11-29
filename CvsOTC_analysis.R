@@ -124,13 +124,13 @@ TraitPCA<- VegComp2021_Traits%>%
   select(VH, LA, SLA, LT, LDMC)
 TraitPCA <- princomp(TraitPCA, cor= TRUE, scores=TRUE) #, Temperature = T_summer_longterm, Precipitation = P_annual_longterm
 
-PCAplot<- autoplot(TraitPCA, data = VegComp2021_Traits,  size = 4, fill= "Treatment.x", shape = "Habitat.x",
+PCAplot<- autoplot(TraitPCA, data = VegComp2021_Traits,  size = 4, fill= "Habitat.x", shape = "Treatment.x",
                    loadings = TRUE, loadings.colour = 'black', loadings.label.colour = "black", 
                    loadings.label = TRUE, loadings.label.size = 5, loadings.label.vjust = -.6, loadings.label.hjust = 0.9)+
   #stat_ellipse(aes( col = Habitat.x), size = 1) +
-  scale_fill_manual(values= c("#5ab4ac", "#d8b365"), name = "Treatment", labels = c("C", "OTC"))+ 
+  scale_fill_manual(values= c("#fc8d62", "#66c2a5", "#8da0cb"), name = "Habitat", labels = c("Palsa", "Thawslump", "Vegetated Pond"))+
+  scale_shape_manual(values= c(24, 21), name = "Treatment", labels = c("Control", "OTC"))+
   guides(fill=guide_legend(override.aes=list(shape=21)))+
-  scale_shape_manual(values= c(24, 22, 21), name = "Habitat", labels = c("Palsa", "Thawslump", "Vegetated Pond"))+
   theme_classic()
 PCAplot
 
@@ -144,20 +144,23 @@ NDVIdata<-read.csv2("VegetationData\\NDVI_Greenseeker.csv")%>%
          Year = format(as.Date(Date, format="%d/%m/%Y"),"%Y"))%>%
   filter(!grepl("water", Comment))%>% #filter out plots that were fully or partially under water
   gather(Measurement, NDVI, Value1:Value2)%>%
-  group_by(Date, Transect, Habitat, Treatment, PlotID)%>%
+  group_by(Year, Month, Transect, Habitat, Treatment, PlotID)%>%
   summarise(NDVI = mean(NDVI, na.rm=TRUE))%>%
   ungroup()
 
 NDVImean<- NDVIdata%>%
-  group_by(Date, Habitat, Treatment)%>%
+  group_by(Month, Habitat, Treatment)%>%
   summarise(NDVI.sd = sd(NDVI, na.rm = TRUE),
             NDVI.mean = mean(NDVI, na.rm=TRUE))%>%
   ungroup()
 
-ggplot(NDVImean, aes(as.factor(Date), NDVI.mean, color= Treatment)) +
-  geom_point(position = position_dodge(0.5)) +
-  geom_errorbar(aes(ymin=NDVI.mean-NDVI.sd, ymax=NDVI.mean+NDVI.sd), position = position_dodge(0.5), width=.2)+
-  facet_wrap(~Habitat)
+ggplot(NDVImean, aes(as.factor(Month), NDVI.mean, color= Habitat, shape= Treatment)) +
+  geom_point(position = position_dodge(0.8), size=2) +
+  geom_errorbar(aes(ymin=NDVI.mean-NDVI.sd, ymax=NDVI.mean+NDVI.sd), position = position_dodge(0.8), width=.2)+
+  scale_fill_manual(values= c("#fc8d62", "#66c2a5", "#8da0cb"), name = "Habitat", labels = c("Palsa", "Thawslump", "Vegetated Pond"))+
+  scale_shape_manual(values= c(17,19), name = "Treatment", labels = c("Control", "OTC"))+
+  facet_grid()+
+  theme_bw()
 
 
 #####################################################################################################################################
