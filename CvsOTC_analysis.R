@@ -3,7 +3,7 @@ setwd("C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\")
 library(tidyverse)
 library(ggplot2)
 library(RColorBrewer)
-library(readxl)
+#library(readxl)
 library(vegan)
 
 # VegetationData
@@ -36,12 +36,12 @@ plot_NMDS <- scores(Iskoras_NMDS, display = "sites") %>%
   mutate(Habitat = as.factor(Habitat))
 
 plot_nmds <- ggplot(plot_NMDS, aes(x = NMDS1, y = NMDS2)) +
-  geom_point(aes(fill= Treatment, shape = Habitat), size = 3, alpha = 0.8) +
-  stat_ellipse(aes(fill= Treatment, shape = Habitat, linetype = Treatment, col = Treatment), size = 1) +
-  scale_color_manual(values= c("#5ab4ac", "#d8b365"), name = "Treatment", labels = c("C", "OTC"))+ 
-  scale_fill_manual(values= c("#5ab4ac", "#d8b365"), name = "Treatment", labels = c("C", "OTC"))+ 
+  geom_point(aes(fill= Habitat, shape = Treatment), size = 3, alpha = 0.8) +
+  stat_ellipse(aes(linetype = Treatment, col = Habitat), size = 1) +
+  scale_color_manual(values= c("#fc8d62", "#66c2a5", "#8da0cb"), name = "Habitat", labels = c("Palsa", "Thawslump", "Vegetated Pond"))+   scale_fill_manual(values= c("#fc8d62", "#66c2a5", "#8da0cb"), name = "Habitat", labels = c("Palsa", "Thawslump", "Vegetated Pond"))+ 
   guides(fill=guide_legend(override.aes=list(shape=21)))+
-  scale_shape_manual(values= c(24, 22, 21), name = "Habitat", labels = c("Palsa", "Thawslump", "Vegetated Pond"))+
+  scale_shape_manual(values= c(24, 21), name = "Habitat", labels = c("Control", "OTC"))+
+  scale_linetype_manual(values= c("solid", "dashed"), name = "Habitat", labels = c("Control", "OTC"))+
   labs(title = "NMDS")+
   theme_classic()
 plot_nmds
@@ -57,11 +57,13 @@ Traitdata<- Traitdata_raw%>%
          LDMC3 = Dry_weight1/Wetweight_3,
          SLA = LA/Dry_weight1)%>% # use Dryweight 1 as that is total dry weight of multiple leaflets used for Leaf area scan
   gather(measurement, LDMC, LDMC1:LDMC3)%>%
-  group_by(SampleID, Species, Sample, Treatment, SampleLocation)%>%
+  group_by(SampleID, Species, Sample, Treatment, Habitat)%>%
   summarise_if(is.numeric, mean, na.rm = TRUE)%>% # calculate average LDMC per SampleID
   gather(measurement, LT, LT1:LT3)%>%
   summarise_if(is.numeric, mean, na.rm = TRUE)%>% #calculate average leaf thickness per SampleID
   ungroup()
+
+#### ! Can separate out M vs P, WG vs M for species!! Sample Location > new column habitat type
 
 Traitdata%>%
   select(Species, Treatment, VH, LA, LDMC, SLA, LT)%>%
@@ -97,7 +99,7 @@ library(FD)
 FD_Traits<-dbFD(TraitMatrix, SpeciesTreatmentMatrix, w.abun= TRUE, calc.CWM = TRUE)
 Iskoras_CWM<-FD_Traits$CWM%>%
   rownames_to_column(var = "PlotID_Treatment")%>%
-  rename(PlotID = PlotID_Treatment)%>%
+  mutate(PlotID = PlotID_Treatment)%>%
   mutate(Treatment = str_extract(PlotID, "[^_]+$"),
          Transect = substring(PlotID_Treatment, 1,1),
          Habitat = substring(PlotID_Treatment, 2,3),
@@ -120,16 +122,28 @@ TraitPCA<- VegComp2021_Traits%>%
   select(VH, LA, SLA, LT, LDMC)
 TraitPCA <- princomp(TraitPCA, cor= TRUE, scores=TRUE) #, Temperature = T_summer_longterm, Precipitation = P_annual_longterm
 
-PCAplot<- autoplot(TraitPCA, data = VegComp2021_Traits, fill= "Treatment", shape = "Habitat", size = 4,
+PCAplot<- autoplot(TraitPCA, data = VegComp2021_Traits,  size = 4, fill= "Treatment.x", shape = "Habitat.x",
                    loadings = TRUE, loadings.colour = 'black', loadings.label.colour = "black", 
                    loadings.label = TRUE, loadings.label.size = 5, loadings.label.vjust = -.6, loadings.label.hjust = 0.9)+
-  stat_ellipse(aes(linetype = Treatment, col = Treatment), size = 1) +
+  #stat_ellipse(aes( col = Habitat.x), size = 1) +
   scale_fill_manual(values= c("#5ab4ac", "#d8b365"), name = "Treatment", labels = c("C", "OTC"))+ 
   guides(fill=guide_legend(override.aes=list(shape=21)))+
   scale_shape_manual(values= c(24, 22, 21), name = "Habitat", labels = c("Palsa", "Thawslump", "Vegetated Pond"))+
   theme_classic()
 PCAplot
+
+# leaf thicknes in same direction as VH?
   
+plot_nmds <- ggplot(plot_NMDS, aes(x = NMDS1, y = NMDS2)) +
+  geom_point(aes(fill= Treatment, shape = Habitat), size = 3, alpha = 0.8) +
+  stat_ellipse(aes(fill= Treatment, shape = Habitat, linetype = Treatment, col = Treatment), size = 1) +
+  scale_color_manual(values= c("#5ab4ac", "#d8b365"), name = "Treatment", labels = c("C", "OTC"))+ 
+  scale_fill_manual(values= c("#5ab4ac", "#d8b365"), name = "Treatment", labels = c("C", "OTC"))+ 
+  guides(fill=guide_legend(override.aes=list(shape=21)))+
+  scale_shape_manual(values= c(24, 22, 21), name = "Habitat", labels = c("Palsa", "Thawslump", "Vegetated Pond"))+
+  labs(title = "NMDS")+
+  theme_classic()
+plot_nmds
 
 # NDVI data
 NDVIdata<-read.csv2("VegetationData\\NDVI_Greenseeker.csv")%>%
