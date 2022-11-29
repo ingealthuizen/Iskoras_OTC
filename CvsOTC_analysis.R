@@ -36,12 +36,12 @@ plot_NMDS <- scores(Iskoras_NMDS, display = "sites") %>%
   mutate(Habitat = as.factor(Habitat))
 
 plot_nmds <- ggplot(plot_NMDS, aes(x = NMDS1, y = NMDS2)) +
-  geom_point(aes(fill= Habitat, shape = Treatment), size = 3, alpha = 0.8) +
-  stat_ellipse(aes(linetype = Treatment, col = Habitat), size = 1) +
-  scale_color_manual(values= c("#fc8d62", "#66c2a5", "#8da0cb"), name = "Habitat", labels = c("Palsa", "Thawslump", "Vegetated Pond"))+   scale_fill_manual(values= c("#fc8d62", "#66c2a5", "#8da0cb"), name = "Habitat", labels = c("Palsa", "Thawslump", "Vegetated Pond"))+ 
+  geom_point(aes(fill= Treatment, shape = Habitat), size = 3, alpha = 0.8) +
+  stat_ellipse(aes(fill= Treatment, shape = Habitat, linetype = Treatment, col = Treatment), size = 1) +
+  scale_color_manual(values= c("#5ab4ac", "#d8b365"), name = "Treatment", labels = c("C", "OTC"))+ 
+  scale_fill_manual(values= c("#5ab4ac", "#d8b365"), name = "Treatment", labels = c("C", "OTC"))+ 
   guides(fill=guide_legend(override.aes=list(shape=21)))+
-  scale_shape_manual(values= c(24, 21), name = "Habitat", labels = c("Control", "OTC"))+
-  scale_linetype_manual(values= c("solid", "dashed"), name = "Habitat", labels = c("Control", "OTC"))+
+  scale_shape_manual(values= c(24, 22, 21), name = "Habitat", labels = c("Palsa", "Thawslump", "Vegetated Pond"))+
   labs(title = "NMDS")+
   theme_classic()
 plot_nmds
@@ -59,34 +59,35 @@ Traitdata<- Traitdata_raw%>%
   gather(measurement, LDMC, LDMC1:LDMC3)%>%
   group_by(SampleID, Species, Sample, Treatment, Habitat)%>%
   summarise_if(is.numeric, mean, na.rm = TRUE)%>% # calculate average LDMC per SampleID
+  group_by(SampleID, Species, Sample, Treatment, Habitat)%>%
   gather(measurement, LT, LT1:LT3)%>%
   summarise_if(is.numeric, mean, na.rm = TRUE)%>% #calculate average leaf thickness per SampleID
   ungroup()
 
-#### ! Can separate out M vs P, WG vs M for species!! Sample Location > new column habitat type
 
 Traitdata%>%
-  select(Species, Treatment, VH, LA, LDMC, SLA, LT)%>%
+  select(Species, Habitat, VH, LA, LDMC, SLA, LT)%>%
   gather(Trait, value, VH:LT)%>%
-  ggplot(aes(Treatment, value, fill=Treatment))+
+  ggplot(aes(Habitat, value, fill=Habitat))+
   geom_boxplot()+
   facet_wrap(Trait~Species, scales="free")
 
 SpeciesTraits<- Traitdata%>%
-  group_by(Species, Treatment)%>%
-  summarise_if(is.numeric, mean, na.rm = TRUE)%>% #calculate average traits per species and treatment
-  select(Species, Treatment, VH, LA, LDMC, SLA, LT)%>%
+  group_by(Species, Treatment, Habitat)%>%
+  summarise_if(is.numeric, mean, na.rm = TRUE)%>% #calculate average traits per species, treatment, habitat
+  select(Species, Treatment, Habitat, VH, LA, LDMC, SLA, LT)%>%
   ungroup()
 
 TraitMatrix<- SpeciesTraits%>%
-  unite(Species_Treatment, c("Species", "Treatment"))%>%
+  unite(Species_Treatment, c("Species", "Habitat", "Treatment"))%>%
+  filter(!Species_Treatment == "Bet.nan_P_C")%>% # remove Bet.nan control P values as not in vegetation data
   column_to_rownames(var="Species_Treatment")
 TraitMatrix[is.na(TraitMatrix)] <- 0 # replace NA with 0
 TraitMatrix<-as.matrix(TraitMatrix)
 
 SpeciesTreatmentMatrix<- VegComp2021%>%
   gather(Species, cover, And.pol:Eri.vag)%>%
-  unite(Species_Treatment, c("Species", "Treatment"))%>%
+  unite(Species_Treatment, c("Species","Habitat", "Treatment"))%>%
   select(PlotID, Species_Treatment, cover)%>%
   spread(Species_Treatment, cover)%>%
   column_to_rownames(var="PlotID")
@@ -134,20 +135,12 @@ PCAplot
 
 # leaf thicknes in same direction as VH?
   
-plot_nmds <- ggplot(plot_NMDS, aes(x = NMDS1, y = NMDS2)) +
-  geom_point(aes(fill= Treatment, shape = Habitat), size = 3, alpha = 0.8) +
-  stat_ellipse(aes(fill= Treatment, shape = Habitat, linetype = Treatment, col = Treatment), size = 1) +
-  scale_color_manual(values= c("#5ab4ac", "#d8b365"), name = "Treatment", labels = c("C", "OTC"))+ 
-  scale_fill_manual(values= c("#5ab4ac", "#d8b365"), name = "Treatment", labels = c("C", "OTC"))+ 
-  guides(fill=guide_legend(override.aes=list(shape=21)))+
-  scale_shape_manual(values= c(24, 22, 21), name = "Habitat", labels = c("Palsa", "Thawslump", "Vegetated Pond"))+
-  labs(title = "NMDS")+
-  theme_classic()
-plot_nmds
-
 # NDVI data
+# group by month and year!
 NDVIdata<-read.csv2("VegetationData\\NDVI_Greenseeker.csv")%>%
-  mutate(Date = as.Date(Date, "%d.%m.%Y"))%>%
+  mutate(Date = as.Date(Date, "%d.%m.%Y"),
+         Month = format(as.Date(Date, format="%d/%m/%Y"),"%m"),
+         Year = format(as.Date(Date, format="%d/%m/%Y"),"%Y"))%>%
   filter(!grepl("water", Comment))%>% #filter out plots that were fully or partially under water
   gather(Measurement, NDVI, Value1:Value2)%>%
   group_by(Date, Transect, Habitat, Treatment, PlotID)%>%
@@ -161,8 +154,8 @@ NDVImean<- NDVIdata%>%
   ungroup()
 
 ggplot(NDVImean, aes(as.factor(Date), NDVI.mean, color= Treatment)) +
-  geom_point() +
-  geom_errorbar(aes(ymin=NDVI.mean-NDVI.sd, ymax=NDVI.mean+NDVI.sd), width=.2)+
+  geom_point(position = position_dodge(0.5)) +
+  geom_errorbar(aes(ymin=NDVI.mean-NDVI.sd, ymax=NDVI.mean+NDVI.sd), position = position_dodge(0.5), width=.2)+
   facet_wrap(~Habitat)
 
 
