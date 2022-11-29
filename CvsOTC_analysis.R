@@ -36,12 +36,13 @@ plot_NMDS <- scores(Iskoras_NMDS, display = "sites") %>%
   mutate(Habitat = as.factor(Habitat))
 
 plot_nmds <- ggplot(plot_NMDS, aes(x = NMDS1, y = NMDS2)) +
-  geom_point(aes(fill= Treatment, shape = Habitat), size = 3, alpha = 0.8) +
-  stat_ellipse(aes(fill= Treatment, shape = Habitat, linetype = Treatment, col = Treatment), size = 1) +
-  scale_color_manual(values= c("#5ab4ac", "#d8b365"), name = "Treatment", labels = c("C", "OTC"))+ 
-  scale_fill_manual(values= c("#5ab4ac", "#d8b365"), name = "Treatment", labels = c("C", "OTC"))+ 
+  geom_point(aes(fill= Habitat, shape = Treatment), size = 3, alpha = 0.8) +
+  stat_ellipse(aes(linetype = Treatment, col = Habitat), size = 1) +
+  scale_color_manual(values= c("#fc8d62", "#66c2a5", "#8da0cb"), name = "Habitat", labels = c("Palsa", "Thawslump", "Vegetated Pond"))+
+  scale_fill_manual(values= c("#fc8d62", "#66c2a5", "#8da0cb"), name = "Habitat", labels = c("Palsa", "Thawslump", "Vegetated Pond"))+ 
+  scale_shape_manual(values= c(24, 21), name = "Treatment", labels = c("Control", "OTC"))+
+  scale_linetype_manual(values= c("solid", "dashed"), name = "Treatment", labels = c("Control", "OTC"))+
   guides(fill=guide_legend(override.aes=list(shape=21)))+
-  scale_shape_manual(values= c(24, 22, 21), name = "Habitat", labels = c("Palsa", "Thawslump", "Vegetated Pond"))+
   labs(title = "NMDS")+
   theme_classic()
 plot_nmds
@@ -64,7 +65,6 @@ Traitdata<- Traitdata_raw%>%
   summarise_if(is.numeric, mean, na.rm = TRUE)%>% #calculate average leaf thickness per SampleID
   ungroup()
 
-
 Traitdata%>%
   select(Species, Habitat, VH, LA, LDMC, SLA, LT)%>%
   gather(Trait, value, VH:LT)%>%
@@ -73,21 +73,22 @@ Traitdata%>%
   facet_wrap(Trait~Species, scales="free")
 
 SpeciesTraits<- Traitdata%>%
-  group_by(Species, Treatment, Habitat)%>%
+  group_by(Species, Treatment)%>%
   summarise_if(is.numeric, mean, na.rm = TRUE)%>% #calculate average traits per species, treatment, habitat
-  select(Species, Treatment, Habitat, VH, LA, LDMC, SLA, LT)%>%
+  select(Species, Treatment, VH, LA, LDMC, SLA, LT)%>%
   ungroup()
 
 TraitMatrix<- SpeciesTraits%>%
-  unite(Species_Treatment, c("Species", "Habitat", "Treatment"))%>%
+  unite(Species_Treatment, c("Species", "Treatment"))%>%
   filter(!Species_Treatment == "Bet.nan_P_C")%>% # remove Bet.nan control P values as not in vegetation data
   column_to_rownames(var="Species_Treatment")
+
 TraitMatrix[is.na(TraitMatrix)] <- 0 # replace NA with 0
 TraitMatrix<-as.matrix(TraitMatrix)
 
 SpeciesTreatmentMatrix<- VegComp2021%>%
   gather(Species, cover, And.pol:Eri.vag)%>%
-  unite(Species_Treatment, c("Species","Habitat", "Treatment"))%>%
+  unite(Species_Treatment, c("Species", "Treatment"))%>%
   select(PlotID, Species_Treatment, cover)%>%
   spread(Species_Treatment, cover)%>%
   column_to_rownames(var="PlotID")
