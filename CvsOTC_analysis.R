@@ -164,17 +164,26 @@ ggplot(NDVImean, aes(as.factor(Month), NDVI.mean, color= Habitat, shape= Treatme
 
 ####################################################################################################################################
 ####### Abiotic conditions (TOMST loggers)
-TOMSTdata<-read.csv("Climate\\TOMST\\TOMSTdata_processed.csv")
+TomstData<-read.csv("AnalysisR\\TOMSTdata_SMcalculated.csv")
 
 ### calculate mean temp for habitat and treatments
-TomstLoggerData_mean<-TomstLoggerData%>%
+TomstData<-TomstData%>%
   filter(Treatment %in% c("C", "OTC"))%>%
-  gather(Climate_variable, value, SoilTemperature:RawSoilmoisture)%>%
-  group_by(Habitat, Treatment, Date, Climate_variable)%>%
+  select(PlotID:LoggerID, Date, Date_Time, SoilTemperature:RawSoilmoisture, Soilmoisture_calculated)%>%
+  mutate(Date = as.Date(Date))
+
+TomstData_Mean<-TomstData%>%
+  gather(Climate_variable, value, SoilTemperature:Soilmoisture_calculated)%>%
+  group_by(Habitat,Treatment, Date, Climate_variable)%>%
   summarise_at(vars(value), list(Min = min, Mean = mean, Max = max, Sd = sd))
 
-ggplot(TomstLoggerData_mean, aes(Date, Mean, col= Treatment))+
+# Select 1 year 15-09-2020 to 15-09-2021
+TomstData_Mean%>%
+  filter(Date > "2021-06-01" & Date <"2021-10-01")%>%
+  filter(Climate_variable %in% c("SoilTemperature", "Soilmoisture_calculated"))%>%
+  ggplot(aes(Date, Mean, col= Treatment))+
   geom_line()+
+  geom_ribbon(aes(ymin = Mean-Sd, ymax = Mean+Sd, fill = Treatment), alpha=0.3) +
   facet_grid(Climate_variable~Habitat, scales="free")
 
 
