@@ -86,9 +86,6 @@ TomstLoggerData2<-TomstLoggerData%>%
 #write_csv(TomstLoggerData, "C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\Climate\\TOMST\\TOMSTdata_processed.csv")
 
 
-
-
-
 # check data 
 TomstLoggerData %>% 
   filter(Treatment %in% c("C", "OTC"))%>%
@@ -111,19 +108,6 @@ TomstLoggerData %>%
   geom_line() +
   facet_grid(Transect~ Treatment, scales = "free") +
   theme_classic()
-
-
-### calculate mean temp for habitat and treatments
-TomstLoggerData_mean<-TomstLoggerData%>%
-  filter(Treatment %in% c("C", "OTC"))%>%
-  gather(Climate_variable, value, SoilTemperature:RawSoilmoisture)%>%
-  group_by(Habitat, Treatment, Date, Climate_variable)%>%
-  summarise_at(vars(value), list(Min = min, Mean = mean, Max = max, Sd = sd))
-
-ggplot(TomstLoggerData_mean, aes(Date, Mean, col= Treatment))+
-  geom_line()+
-  facet_grid(Climate_variable~Habitat, scales="free")
-
 
 
 #######
