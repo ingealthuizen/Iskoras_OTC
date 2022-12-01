@@ -187,6 +187,13 @@ TomstData_MeanTransect%>%
   geom_ribbon(aes(ymin = Mean-Sd, ymax = Mean+Sd, fill = Treatment), alpha=0.3) +
   facet_grid(Transect~Habitat, scales="free")
 
+TomstData_MeanTransect%>%
+  filter(Date > "2022-06-01" & Date <"2022-09-01")%>%
+  filter(Climate_variable %in% c("Soilmoisture_calculated"))%>%
+  ggplot(aes(Date, Mean, col= Treatment))+
+  geom_line()+
+  geom_ribbon(aes(ymin = Mean-Sd, ymax = Mean+Sd, fill = Treatment), alpha=0.3) +
+  facet_grid(Transect~Habitat, scales="free")
 
 # Summary per Habitat
 TomstData_MeanHabitat<-TomstData%>%
