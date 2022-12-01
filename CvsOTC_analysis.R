@@ -173,13 +173,13 @@ TomstData<-TomstData%>%
   mutate(Date = as.Date(Date))
 
 # Summary Per Transect and Habitat
-TomstData_MeanTransect<-TomstData%>%
+TomstData_MeanDailyTransect<-TomstData%>%
   gather(Climate_variable, value, SoilTemperature:Soilmoisture_calculated)%>%
   group_by(Habitat,Treatment, Transect, Date, Climate_variable)%>%
   summarise_at(vars(value), list(Min = min, Mean = mean, Max = max, Sd = sd))
 
 # plot summer period
-TomstData_MeanTransect%>%
+TomstData_MeanDailyTransect%>%
   filter(Date > "2022-06-01" & Date <"2022-09-01")%>%
   filter(Climate_variable %in% c("SoilTemperature"))%>%
   ggplot(aes(Date, Mean, col= Treatment))+
@@ -187,7 +187,7 @@ TomstData_MeanTransect%>%
   geom_ribbon(aes(ymin = Mean-Sd, ymax = Mean+Sd, fill = Treatment), alpha=0.3) +
   facet_grid(Transect~Habitat, scales="free")
 
-TomstData_MeanTransect%>%
+TomstData_MeanDailyTransect%>%
   filter(Date > "2022-06-01" & Date <"2022-09-01")%>%
   filter(Climate_variable %in% c("Soilmoisture_calculated"))%>%
   ggplot(aes(Date, Mean, col= Treatment))+
@@ -196,13 +196,13 @@ TomstData_MeanTransect%>%
   facet_grid(Transect~Habitat, scales="free")
 
 # Summary per Habitat
-TomstData_MeanHabitat<-TomstData%>%
+TomstData_MeanDailyHabitat<-TomstData%>%
   gather(Climate_variable, value, SoilTemperature:Soilmoisture_calculated)%>%
   group_by(Habitat,Treatment, Date, Climate_variable)%>%
   summarise_at(vars(value), list(Min = min, Mean = mean, Max = max, Sd = sd))
 
 # plot summer period
-TomstData_MeanHabitat%>%
+TomstData_MeanDailyHabitat%>%
   filter(Date > "2022-06-01" & Date <"2022-09-01")%>%
   filter(Climate_variable %in% c("SoilTemperature", "Soilmoisture_calculated"))%>%
   ggplot(aes(Date, Mean, col= Treatment))+
