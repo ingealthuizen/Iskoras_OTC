@@ -78,30 +78,37 @@ soilmoist_correct <- function(rawsoilmoist, soil_temp, soilclass){
   return(volmoistcorr)
 }
 
-TomstLoggerData2<-TomstLoggerData%>%
-  mutate(Soilmoisture = soilmoist_correct(RawSoilmoisture, SoilTemperature, "peat"))
+TomstData_SoilMoistureCorrect<-TomstLoggerData%>%
+  mutate(Soilmoisture_calculated = soilmoist_correct(RawSoilmoisture, SoilTemperature, "peat"))
 
 
 # Save clean file
-#write_csv(TomstLoggerData, "C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\Climate\\TOMST\\TOMSTdata_processed.csv")
+#write_csv(TomstData_SoilMoistureCorrect, "C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\AnalysisR\\TOMSTdata_SMcalculated.csv")
 
 
 # check data 
-TomstLoggerData %>% 
+TomstData_SoilMoistureCorrect %>% 
+  filter(Treatment %in% c("C", "OTC"))%>%
+  ggplot(aes(x = Date_Time, y = RawSoilmoisture, colour = as.factor(Habitat))) +
+  geom_line() +
+  facet_grid(Transect~ Treatment, scales = "free") +
+  theme_classic()
+
+TomstData_SoilMoistureCorrect %>% 
   filter(Treatment %in% c("C", "OTC"))%>%
   ggplot(aes(x = Date_Time, y = SoilTemperature, colour = as.factor(Habitat))) +
   geom_line() +
   facet_grid(Transect~ Treatment, scales = "free") +
   theme_classic()
 
-TomstLoggerData %>%
+TomstData_SoilMoistureCorrect %>%
   filter(Treatment %in% c("C", "OTC"))%>%
   ggplot(aes(x = Date_Time, y = GroundTemperature, colour = as.factor(Habitat))) +
   geom_line() +
   facet_grid(Transect~ Treatment, scales = "free") +
   theme_classic()
 
-TomstLoggerData %>% 
+TomstData_SoilMoistureCorrect %>% 
   filter(Treatment %in% c("C", "OTC"))%>%
   filter(Date == "2022-03-31")%>%
   ggplot(aes(x = Date_Time, y = AirTemperature, colour = as.factor(Habitat))) +
