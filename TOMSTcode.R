@@ -21,7 +21,8 @@ temp <- map_df(set_names(files), function(file) {
 data <- temp %>% 
   # rename column names
   rename("ID" = "V1", "Date_Time" = "V2", "Time_zone" = "V3", "SoilTemperature" = "V4", "GroundTemperature" = "V5", "AirTemperature" = "V6", "RawSoilmoisture" = "V7", "Shake" = "V8", "ErrorFlag" = "V9") %>% 
-  mutate(Date_Time = ymd_hm(Date_Time)) %>% 
+  mutate(Date_Time = as.POSIXct(Date_Time, format="%Y.%m.%d %H:%M"),
+         Date = as.Date(Date_Time)) %>% 
   # Soil moisture calibration
   #mutate(SoilMoisture = a * RawSoilmoisture^2 + b * RawSoilmoisture + c) %>% 
   # get logger ID -> not needed anymore, have whole filename now!!!
@@ -31,8 +32,7 @@ data <- temp %>%
 
 # bind data to tomstID location
 TomstLoggerData<- left_join(TomstID, data, by= "LoggerID")%>%
-  mutate(Date = as.Date(Date_Time),
-         LoggerID = as.factor(LoggerID))%>%
+  mutate( LoggerID = as.factor(LoggerID))%>%
   filter(Date > "2020-06-25")%>% # remove all data from before installation of loggers in field
   filter(SoilTemperature > -30)%>% # filter 1 bad measurement from 4S_C logger
   filter(SoilTemperature < 80) # filter out bad measurements from 3WG_C logger
@@ -79,11 +79,11 @@ soilmoist_correct <- function(rawsoilmoist, soil_temp, soilclass){
 }
 
 TomstData_SoilMoistureCorrect<-TomstLoggerData%>%
-  mutate(Soilmoisture_calculated = soilmoist_correct(RawSoilmoisture, SoilTemperature, "peat"))
+  mutate(Soilmoisture_Volumetric = soilmoist_correct(RawSoilmoisture, SoilTemperature, "peat"))
 
 
 # Save clean file
-#write_csv(TomstData_SoilMoistureCorrect, "C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\AnalysisR\\TOMSTdata_SMcalculated.csv")
+write_csv(TomstData_SoilMoistureCorrect, "C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\AnalysisR\\TOMSTdata_SMcalculated.csv")
 
 
 # check data 
