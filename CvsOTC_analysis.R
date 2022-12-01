@@ -162,6 +162,21 @@ ggplot(NDVImean, aes(as.factor(Month), NDVI.mean, color= Habitat, shape= Treatme
   facet_grid()+
   theme_bw()
 
+####################################################################################################################################
+####### Abiotic conditions (TOMST loggers)
+TOMSTdata<-read.csv("Climate\\TOMST\\TOMSTdata_processed.csv")
+
+### calculate mean temp for habitat and treatments
+TomstLoggerData_mean<-TomstLoggerData%>%
+  filter(Treatment %in% c("C", "OTC"))%>%
+  gather(Climate_variable, value, SoilTemperature:RawSoilmoisture)%>%
+  group_by(Habitat, Treatment, Date, Climate_variable)%>%
+  summarise_at(vars(value), list(Min = min, Mean = mean, Max = max, Sd = sd))
+
+ggplot(TomstLoggerData_mean, aes(Date, Mean, col= Treatment))+
+  geom_line()+
+  facet_grid(Climate_variable~Habitat, scales="free")
+
 
 #####################################################################################################################################
 ####### Cflux data
