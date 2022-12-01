@@ -79,6 +79,7 @@ soilmoist_correct <- function(rawsoilmoist, soil_temp, soilclass){
 }
 
 TomstData_SoilMoistureCorrect<-TomstLoggerData%>%
+  select(-V10)%>%
   mutate(Soilmoisture_Volumetric = soilmoist_correct(RawSoilmoisture, SoilTemperature, "peat"))
 
 
