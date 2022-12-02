@@ -169,12 +169,44 @@ TomstData<-read.csv("AnalysisR\\TOMSTdata_SMcalculated.csv")
 ### calculate mean temp for habitat and treatments
 TomstData<-TomstData%>%
   filter(Treatment %in% c("C", "OTC"))%>%
-  select(PlotID:LoggerID, Date, Date_Time, SoilTemperature:RawSoilmoisture, Soilmoisture_calculated)%>%
-  mutate(Date = as.Date(Date))
+  select(PlotID:LoggerID, Date, Date_Time, SoilTemperature:RawSoilmoisture, Soilmoisture_Volumetric)%>%
+  mutate(Date = as.Date(Date),
+         DateTime = as.POSIXct(strptime(Date_Time, tz = "UTC", "%Y-%m-%dT%H:%M:%SZ")),
+         Hour = hour(DateTime))
+
+# summary Hourly per Transect and Habitat
+TomstData_MeanHourlyTransect<-TomstData%>%
+  gather(Climate_variable, value, SoilTemperature:Soilmoisture_Volumetric)%>%
+  group_by(Habitat, Treatment, Transect, Date, Hour, Climate_variable)%>%
+  summarise_at(vars(value), list(Min = min, Mean = mean, Max = max, Sd = sd))
+
+TomstData_MeanHourlyTransect%>%
+  filter(Date == "2021-07-01")%>%
+  filter(Climate_variable %in% c("SoilTemperature"))%>%
+  ggplot(aes(Hour, Mean, col= Treatment))+
+  geom_line()+
+  geom_ribbon(aes(ymin = Mean-Sd, ymax = Mean+Sd, fill = Treatment), alpha=0.3) +
+  facet_grid(Transect~Habitat, scales="free")
+
+# summary Hourly per Habitat
+TomstData_MeanHourlyHabitat<-TomstData%>%
+  gather(Climate_variable, value, SoilTemperature:Soilmoisture_Volumetric)%>%
+  group_by(Habitat, Treatment, Date, Hour, Climate_variable)%>%
+  summarise_at(vars(value), list(Min = min, Mean = mean, Max = max, Sd = sd))
+
+# plot summerdays hourly
+TomstData_MeanHourlyHabitat%>%
+  filter(Date == "2021-07-01")%>%
+  filter(Climate_variable %in% c("AirTemperature", "GroundTemperature", "SoilTemperature", "Soilmoisture_Volumetric"))%>%
+  ggplot(aes(Hour, Mean, col= Treatment))+
+  geom_line()+
+  geom_ribbon(aes(ymin = Mean-Sd, ymax = Mean+Sd, fill = Treatment), alpha=0.3) +
+  facet_grid(Climate_variable~Habitat, scales="free")
+
 
 # Summary Per Transect and Habitat
 TomstData_MeanDailyTransect<-TomstData%>%
-  gather(Climate_variable, value, SoilTemperature:Soilmoisture_calculated)%>%
+  gather(Climate_variable, value, SoilTemperature:Soilmoisture_Volumetric)%>%
   group_by(Habitat,Treatment, Transect, Date, Climate_variable)%>%
   summarise_at(vars(value), list(Min = min, Mean = mean, Max = max, Sd = sd))
 
@@ -189,7 +221,7 @@ TomstData_MeanDailyTransect%>%
 
 TomstData_MeanDailyTransect%>%
   filter(Date > "2022-06-01" & Date <"2022-09-01")%>%
-  filter(Climate_variable %in% c("Soilmoisture_calculated"))%>%
+  filter(Climate_variable %in% c("Soilmoisture_Volumetric"))%>%
   ggplot(aes(Date, Mean, col= Treatment))+
   geom_line()+
   geom_ribbon(aes(ymin = Mean-Sd, ymax = Mean+Sd, fill = Treatment), alpha=0.3) +
@@ -197,14 +229,14 @@ TomstData_MeanDailyTransect%>%
 
 # Summary per Habitat
 TomstData_MeanDailyHabitat<-TomstData%>%
-  gather(Climate_variable, value, SoilTemperature:Soilmoisture_calculated)%>%
+  gather(Climate_variable, value, SoilTemperature:Soilmoisture_Volumetric)%>%
   group_by(Habitat,Treatment, Date, Climate_variable)%>%
   summarise_at(vars(value), list(Min = min, Mean = mean, Max = max, Sd = sd))
 
 # plot summer period
 TomstData_MeanDailyHabitat%>%
   filter(Date > "2022-06-01" & Date <"2022-09-01")%>%
-  filter(Climate_variable %in% c("SoilTemperature", "Soilmoisture_calculated"))%>%
+  filter(Climate_variable %in% c("SoilTemperature", "Soilmoisture_Volumetric"))%>%
   ggplot(aes(Date, Mean, col= Treatment))+
   geom_line()+
   geom_ribbon(aes(ymin = Mean-Sd, ymax = Mean+Sd, fill = Treatment), alpha=0.3) +
