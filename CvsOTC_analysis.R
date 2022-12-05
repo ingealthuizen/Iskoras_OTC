@@ -180,6 +180,7 @@ TomstData_MeanHourlyTransect<-TomstData%>%
   group_by(Habitat, Treatment, Transect, Date, Hour, Climate_variable)%>%
   summarise_at(vars(value), list(Min = min, Mean = mean, Max = max, Sd = sd))
 
+# Plot SoilTemperature 
 TomstData_MeanHourlyTransect%>%
   filter(Date == "2021-07-01")%>%
   filter(Climate_variable %in% c("SoilTemperature"))%>%
@@ -187,6 +188,25 @@ TomstData_MeanHourlyTransect%>%
   geom_line()+
   geom_ribbon(aes(ymin = Mean-Sd, ymax = Mean+Sd, fill = Treatment), alpha=0.3) +
   facet_grid(Transect~Habitat, scales="free")
+
+# Plot AirTemperature 
+TomstData_MeanHourlyTransect%>%
+  filter(Date == "2021-07-01")%>%
+  filter(Climate_variable %in% c("AirTemperature"))%>%
+  ggplot(aes(Hour, Mean, col= Treatment))+
+  geom_line()+
+  geom_ribbon(aes(ymin = Mean-Sd, ymax = Mean+Sd, fill = Treatment), alpha=0.3) +
+  facet_grid(Transect~Habitat, scales="free")
+
+# Plot Soilmoisture
+TomstData_MeanHourlyTransect%>%
+  filter(Date == "2021-07-01")%>%
+  filter(Climate_variable %in% c("Soilmoisture_Volumetric"))%>%
+  ggplot(aes(Hour, Mean, col= Treatment))+
+  geom_line()+
+  geom_ribbon(aes(ymin = Mean-Sd, ymax = Mean+Sd, fill = Treatment), alpha=0.3) +
+  facet_grid(Transect~Habitat, scales="free")
+
 
 # summary Hourly per Habitat
 TomstData_MeanHourlyHabitat<-TomstData%>%
@@ -203,8 +223,8 @@ TomstData_MeanHourlyHabitat%>%
   geom_ribbon(aes(ymin = Mean-Sd, ymax = Mean+Sd, fill = Treatment), alpha=0.3) +
   facet_grid(Climate_variable~Habitat, scales="free")
 
-
-# Summary Per Transect and Habitat
+##### DAILY
+# Summary Daily Per Transect and Habitat
 TomstData_MeanDailyTransect<-TomstData%>%
   gather(Climate_variable, value, SoilTemperature:Soilmoisture_Volumetric)%>%
   group_by(Habitat,Treatment, Transect, Date, Climate_variable)%>%
@@ -214,6 +234,14 @@ TomstData_MeanDailyTransect<-TomstData%>%
 TomstData_MeanDailyTransect%>%
   filter(Date > "2022-06-01" & Date <"2022-09-01")%>%
   filter(Climate_variable %in% c("SoilTemperature"))%>%
+  ggplot(aes(Date, Mean, col= Treatment))+
+  geom_line()+
+  geom_ribbon(aes(ymin = Mean-Sd, ymax = Mean+Sd, fill = Treatment), alpha=0.3) +
+  facet_grid(Transect~Habitat, scales="free")
+
+TomstData_MeanDailyTransect%>%
+  filter(Date > "2022-06-01" & Date <"2022-09-01")%>%
+  filter(Climate_variable %in% c("AirTemperature"))%>%
   ggplot(aes(Date, Mean, col= Treatment))+
   geom_line()+
   geom_ribbon(aes(ymin = Mean-Sd, ymax = Mean+Sd, fill = Treatment), alpha=0.3) +
@@ -235,11 +263,11 @@ TomstData_MeanDailyHabitat<-TomstData%>%
 
 # plot summer period
 TomstData_MeanDailyHabitat%>%
-  filter(Date > "2022-06-01" & Date <"2022-09-01")%>%
-  filter(Climate_variable %in% c("SoilTemperature", "Soilmoisture_Volumetric"))%>%
+  #filter(Date > "2022-06-01" & Date <"2022-09-01")%>%
+  filter(Climate_variable %in% c("AirTemperature", "SoilTemperature", "Soilmoisture_Volumetric"))%>%
   ggplot(aes(Date, Mean, col= Treatment))+
   geom_line()+
-  geom_ribbon(aes(ymin = Mean-Sd, ymax = Mean+Sd, fill = Treatment), alpha=0.3) +
+  #geom_ribbon(aes(ymin = Mean-Sd, ymax = Mean+Sd, fill = Treatment), alpha=0.3) +
   facet_grid(Climate_variable~Habitat, scales="free")
 
 #####################################################################################################################################
