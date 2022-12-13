@@ -312,9 +312,10 @@ SR_FluxEnv2020<- left_join(SRenvdata2020, SR2020_CO2, by= c("PlotID", "Date"))%>
   mutate(Date = as.Date(Date, "%d.%m.%Y"))
 
 
+
 # load HMR output, collar volume taken into account 
 SR2021_CO2<-read.csv("SR2021_CO2_HMRoutput.csv")%>%
-  separate(Series, sep = "_", into = c("Plot", "Treatment", "Date", "info"))%>%
+  separate(PlotID, sep = "_", into = c("Plot", "Treatment"))%>%
   mutate(Transect = substring(Plot,1,1),
          Habitat = substring(Plot, 2,3))%>%
   unite(PlotID, Plot:Treatment, remove =FALSE )%>%
