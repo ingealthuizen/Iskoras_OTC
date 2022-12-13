@@ -270,10 +270,11 @@ TomstData_MeanDailyHabitat%>%
   #geom_ribbon(aes(ymin = Mean-Sd, ymax = Mean+Sd, fill = Treatment), alpha=0.3) +
   facet_grid(Climate_variable~Habitat, scales="free")
 
+
 #####################################################################################################################################
 ####### Cflux data
-setwd("C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\Cflux\\")
 # SR 2021 data
+library(here)
 library(tidyverse)
 library(ggplot2)
 
@@ -290,6 +291,7 @@ SR2020_CO2<-read.csv("SR2020_CO2_HMRoutput.csv")%>%
   separate(Series, sep = "_", into = c("Plot", "Treatment", "Date", "comment"))%>%
   mutate(Transect = substring(Plot,1,1),
          Habitat = substring(Plot, 2,3))%>%
+  mutate(Date = as.Date(Date, "%Y-%m-%d"))%>%
   unite(PlotID, Plot:Treatment, remove =FALSE )%>%
   select(PlotID, Date, f0, LR.f0, Method)%>%
   rename(CO2.f0 = f0, CO2.LR = LR.f0, Method.CO2 = Method)%>%
@@ -303,14 +305,21 @@ SRenvdata1507020<-read.csv2("2020\\SRmetadata_15072020.csv")
 SRenvdata17072020<-read.csv2("2020\\SRmetadata_17072020.csv")
 
 SRenvdata2020<-rbind(SRenvdata1507020, SRenvdata17072020, SRenvdata11082020, SRenvdata08092020, SRenvdata04102020 )%>%
-  mutate(Habitat = recode(Habitat, WGA = "WG", WGB = "WG", "WG "= "WG"))
+  mutate(Habitat = recode(Habitat, WGA = "WG", WGB = "WG", "WG "= "WG"))%>%
+  mutate(Date = as.Date(Date, "%d.%m.%Y"))
 #write.csv(SRenvdata2020, "SRenvdata2020.csv")
 
 # match fluxdata and envdata
 SR_FluxEnv2020<- left_join(SRenvdata2020, SR2020_CO2, by= c("PlotID", "Date"))%>%
   group_by(Date, PlotID)%>%
-  mutate(Date = as.Date(Date, "%d.%m.%Y"))
+  mutate(Month = format(as.Date(Date, format="%d/%m/%Y"),"%m"),
+         Year = format(as.Date(Date, format="%d/%m/%Y"),"%Y"))%>%
+  #filter(Comment != "redo")%>%
+  filter(CO2.f0 > 0) # remove negative values
 
+ggplot(SR_FluxEnv2020, aes(Month, CO2.f0, fill=Treatment))+
+  geom_boxplot()+
+  facet_grid(~Habitat)
 
 
 # load HMR output, collar volume taken into account 
@@ -318,21 +327,15 @@ SR2021_CO2<-read.csv("SR2021_CO2_HMRoutput.csv")%>%
   separate(PlotID, sep = "_", into = c("Plot", "Treatment"))%>%
   mutate(Transect = substring(Plot,1,1),
          Habitat = substring(Plot, 2,3))%>%
-  unite(PlotID, Plot:Treatment, remove =FALSE )%>%
-  select(PlotID, Date, f0, LR.f0, Method)%>%
-  rename(CO2.f0 = f0, CO2.LR = LR.f0, Method.CO2 = Method)%>%
-  rowid_to_column(var='FluxID')
+  unite(PlotID, Plot:Treatment, remove =FALSE )
 
-SR2021_CH4<-read.csv("SR2021_CH4_HMRoutput.csv", sep = ";", dec = ".")%>%
-  separate(Series, sep = "_", into = c("Plot", "Treatment", "Date", "H2O"))%>%
+SR2021_CH4<-read.csv("SR2021_CH4_HMRoutput.csv")%>%
+  separate(PlotID, sep = "_", into = c("Plot", "Treatment"))%>%
   mutate(Transect = substring(Plot,1,1),
          Habitat = substring(Plot, 2,3))%>%
-  unite(PlotID, Plot:Treatment, remove =FALSE )%>%
-  select(PlotID, Date, f0, LR.f0, Method)%>%
-  rename(CH4.f0 = f0, CH4.LR = LR.f0, Method.CH4 = Method)%>%
-  rowid_to_column(var='FluxID')
+  unite(PlotID, Plot:Treatment, remove =FALSE )
 
-SR2021_CO2CH4<- inner_join(SR2021_CO2, SR2021_CH4, by= c("Date","PlotID", "FluxID"))%>%
+SR2021_CO2CH4<- inner_join(SR2021_CO2, SR2021_CH4, by= c("Date","PlotID", "X"))%>%
   mutate(Date = as.Date(Date, "%Y-%m-%d"))
 
 ### environmental metadata SR ####
@@ -351,12 +354,12 @@ SRenvdata2021<- rbind(SRenvdata04062021, SRenvdata30062021, SRenvdata22072021, S
 #write.csv(SRenvdata2021, "SRenvdata2021.csv")
 
 # match fluxdata and envdata
-SR_FluxEnv<- left_join(SRenvdata2021, SR2021_CO2CH4, by= c("PlotID", "Date"))%>%
+SR2021_FluxEnv<- left_join(SRenvdata2021, SR2021_CO2CH4, by= c("PlotID", "Date"))%>%
   group_by(Date, PlotID)%>%
   distinct(CO2.f0, .keep_all = TRUE)%>%
   filter(CH4.f0<1000) ## clean data SR CH4   filter(f0<1000)
 
-SR_FluxEnv%>%
+SR2021_FluxEnv%>%
   gather(GHG, flux, c("CO2.f0", "CH4.f0"))%>%
   ggplot(aes(as.factor(Date), flux, fill=Treatment))+
   geom_boxplot()+
