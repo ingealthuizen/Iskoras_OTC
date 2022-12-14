@@ -326,7 +326,9 @@ SRenvdata08092020<-read.csv2("2020\\SRmetadata_08092020.csv")
 SRenvdata11082020<-read.csv2("2020\\SRmetadata_11082020.csv")
 SRenvdata1507020<-read.csv2("2020\\SRmetadata_15072020.csv")
 SRenvdata17072020<-read.csv2("2020\\SRmetadata_17072020.csv")
-SRenvdata2020<-rbind(SRenvdata1507020, SRenvdata17072020, SRenvdata11082020, SRenvdata08092020, SRenvdata04102020 )
+SRenvdata2020<-rbind(SRenvdata1507020, SRenvdata17072020, SRenvdata11082020, SRenvdata08092020, SRenvdata04102020 )%>%
+  mutate(Date = as.Date(Date, "%d.%m.%Y"))%>%
+  mutate(Habitat = recode(Habitat, WGA = "WG", WGB = "WG", "WG "= "WG"))
 
 SRenvdata04062021<-read.csv2("2021\\SRmetadata_04062021.csv")
 SRenvdata19082021<-read.csv2("2021\\SRmetadata_19082021.csv")
@@ -336,14 +338,13 @@ SRenvdata21082021<-read.csv2("2021\\SRmetadata_21082021.csv")
 SRenvdata22072021<-read.csv2("2021\\SRmetadata_22072021.csv")
 SRenvdata30062021<-read.csv2("2021\\SRmetadata_30062021.csv")
 SRenvdata2021<- rbind(SRenvdata04062021, SRenvdata30062021, SRenvdata22072021, SRenvdata19082021, SRenvdata19082021_2, SRenvdata21082021, SRenvdata12092021)%>%
-  mutate(Date = recode(Date, "19.08.2021" = "18.08.2021", "21.08.2021" = "18.08.2021")) #match envdata to flux data
-  
-SRenvdata_20202021<- rbind(SRenvdata2020, SRenvdata2021)%>%
+  mutate(Date = recode(Date, "19.08.2021" = "18.08.2021", "21.08.2021" = "18.08.2021"))%>% #match envdata to flux data
   mutate(Date = as.Date(Date, "%d.%m.%Y"))%>%
   mutate(Habitat = recode(Habitat, WGA = "WG", WGB = "WG", "WG "= "WG"))
 
-
-# match fluxdata and envdata
+SRenvdata_20202021<- rbind(SRenvdata2020, SRenvdata2021)
+  
+# match CO2 fluxdata and envdata
 SR_CO2_FluxEnv<- left_join(SRenvdata_20202021, SR20202021_CO2, by= c("Date", "PlotID", "Transect" , "Habitat", "Treatment"))%>%
   mutate(Month = format(as.Date(Date, format="%d/%m/%Y"),"%m"),
          Year = format(as.Date(Date, format="%d/%m/%Y"),"%Y"))
@@ -357,42 +358,34 @@ SR_CO2_FluxEnv_clean<-SR_CO2_FluxEnv%>%
 ggplot(SR_CO2_FluxEnv_clean, aes(as.factor(Date), CO2.f0, fill=Treatment))+
   geom_boxplot()+
   geom_vline(xintercept = 4.5)+
-  facet_grid(~Habitat)
+  facet_grid(~Habitat)+
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
 
 
+# match CH4 fluxdata and envdata
+SR_CH4_FluxEnv<- left_join(SRenvdata2021, SR2021_CH4, by= c("Date", "PlotID", "Transect" , "Habitat", "Treatment"))%>%
+  mutate(Date = as.Date(Date, "%d.%m.%Y"),
+         Month = format(as.Date(Date, format="%d/%m/%Y"),"%m"),
+         Year = format(as.Date(Date, format="%d/%m/%Y"),"%Y"),
+         Habitat = recode(Habitat, WGA = "WG", WGB = "WG", "WG "= "WG"))
+## TOO MANY ENTRIES!
 
+SR_CH4_FluxEnv_clean<-SR_CH4_FluxEnv%>%
+  filter(Habitat != "W")%>%
+  filter(CH4.f0 < 1000) # remove extreme values
 
-#SR2021_CO2CH4<- inner_join(SR2021_CO2, SR2021_CH4, by= c("Date","PlotID", "X"))%>%
-#  mutate(Date = as.Date(Date, "%Y-%m-%d"))
-
-### environmental metadata SR ####
-
-
-# match fluxdata and envdata
-SR2021_FluxEnv<- left_join(SRenvdata2021, SR2021_CO2CH4, by= c("PlotID", "Date"))%>%
-  group_by(Date, PlotID)%>%
-  distinct(CO2.f0, .keep_all = TRUE)%>%
-  filter(CH4.f0<1000) ## clean data SR CH4   filter(f0<1000)
-
-SR2021_FluxEnv%>%
-  gather(GHG, flux, c("CO2.f0", "CH4.f0"))%>%
-  ggplot(aes(as.factor(Date), flux, fill=Treatment))+
+ggplot(SR_CH4_FluxEnv_clean, aes(as.factor(Date), CH4.f0, fill=Treatment))+
   geom_boxplot()+
-  facet_grid(GHG~Habitat, scales = "free")
-  
-SR_FluxEnv%>%
-  gather(GHG, flux, c("CO2.f0", "CH4.f0"))%>%
-  ggplot(aes(SoilTemp1, flux, color=Treatment))+
-  geom_point()+
-  stat_smooth(method = "lm")+
-  facet_grid(GHG~Habitat, scales = "free")
+  facet_grid(~Habitat)+
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
 
-### Use environmental data to predict fluxes, see Konsta paper on tundra
-### V = 2.5 L, A = 0.0625 m2, CH4 in ppb, C02 in ppm
+
+### ? Use environmental data to predict fluxes, see Konsta paper on tundra
+
 
 ##### NET ECOSYSTEM EXCHANGE 
+# NEE chamber  V = 2.5 L, A = 0.0625 m2, CH4 in ppb, C02 in ppm
 
-# NEE chamber
 NEE2021_CO2<-read.csv("2021\\HMRoutput_NEE2021_CO2.csv")%>%
   separate(Series, sep = "_", into = c("PlotID", "Treatment", "Cover", "Date", "FluxID"))%>%
   mutate(Transect = substring(PlotID,1,1),
