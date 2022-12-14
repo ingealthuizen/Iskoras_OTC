@@ -381,7 +381,13 @@ ggplot(SR_CH4_FluxEnv_clean, aes(as.factor(Date), CH4.f0, fill=Treatment))+
 
 
 ### ? Use environmental data to predict fluxes, see Konsta paper on tundra
+ggplot(SR_CO2_FluxEnv_clean, aes(SoilTemp1, CO2.f0, col=Treatment, shape =Treatment))+
+  geom_point(size =1)+
+  facet_grid(~Habitat)
 
+ggplot(SR_CH4_FluxEnv_clean, aes(SoilTemp1, CH4.f0, col=Treatment, shape =Treatment))+
+  geom_point(size =1)+
+  facet_grid(~Habitat)
 
 ##### NET ECOSYSTEM EXCHANGE 
 # NEE chamber  V = 2.5 L, A = 0.0625 m2, CH4 in ppb, C02 in ppm
@@ -391,7 +397,7 @@ NEE2021_CO2<-read.csv("2021\\HMRoutput_NEE2021_CO2.csv")%>%
   mutate(Transect = substring(PlotID,1,1),
          Habitat = substring(PlotID, 2,3))%>%
   unite(PlotID, PlotID:Treatment, remove =FALSE )%>%
-  select(PlotID, Date, f0, LR.f0, Method, FluxID, Cover)%>%
+  select(PlotID, Transect, Habitat, Treatment, Date, f0, LR.f0, Method, FluxID, Cover)%>%
   rename(CO2.f0 = f0, CO2.LR = LR.f0, Method.CO2 = Method)
 
 NEE2021_CH4<-read.csv("2021\\HMRoutput_NEE2021_CH4.csv")%>%
@@ -399,11 +405,11 @@ NEE2021_CH4<-read.csv("2021\\HMRoutput_NEE2021_CH4.csv")%>%
   mutate(Transect = substring(PlotID,1,1),
          Habitat = substring(PlotID, 2,3))%>%
   unite(PlotID, PlotID:Treatment, remove =FALSE )%>%
-  select(PlotID, Date, f0, LR.f0, Method, FluxID, Cover)%>%
+  select(PlotID, Transect, Habitat, Treatment, Date, f0, LR.f0, Method, FluxID, Cover)%>%
   rename(CH4.f0 = f0, CH4.LR = LR.f0, Method.CH4 = Method)
 
 
-NEE2021_CO2CH4<- inner_join(NEE2021_CO2, NEE2021_CH4, by= c("Date","PlotID", "FluxID", "Cover"))
+NEE2021_CO2CH4<- inner_join(NEE2021_CO2, NEE2021_CH4, by= c("Date","PlotID","Transect", "Habitat", "Treatment", "FluxID", "Cover"))
 
 ## read in metadata
 NEEenvdata03062021<-read.csv2("2021\\NEEmetadata_03062021.csv")
@@ -420,16 +426,22 @@ NEEenvdata21082021<-read.csv2("2021\\NEEmetadata_21082021.csv")
 NEEenvdata11092021<-read.csv2("2021\\NEEmetadata_11092021.csv")
 NEEenvdata12092021<-read.csv2("2021\\NEEmetadata_12092021.csv")
 
-NEEenvdata2021<- rbind(NEEenvdata03062021, NEEenvdata04062021, NEEenvdata02072021,NEEenvdata03072021, NEEenvdata20072021, NEEenvdata21072021, NEEenvdata23072021, NEEenvdata17082021, NEEenvdata18082021, NEEenvdata21082021, NEEenvdata11092021, NEEenvdata12092021)
+NEEenvdata2021<- rbind(NEEenvdata03062021, NEEenvdata04062021, NEEenvdata02072021,NEEenvdata03072021, NEEenvdata20072021, NEEenvdata21072021, NEEenvdata23072021, NEEenvdata17082021, NEEenvdata18082021, NEEenvdata21082021, NEEenvdata11092021, NEEenvdata12092021)%>%
+  mutate(FluxID = as.character(FluxID))
 
 #!!!! CHECK PAR for NEE measurements 02072021, PAR sensor wrong 
 
 # link Environmental data and fluxdata
-NEE_FluxEnv2021<- left_join(NEEenvdata2021, NEE2021_CO2CH4, by= c("PlotID", "Date", "Cover"))%>%
-  group_by(Date, PlotID, Cover)%>%
-  distinct(CO2.f0, .keep_all = TRUE)%>%
-  mutate(Date = as.Date(Date, "%d.%m.%Y"))%>%
-  mutate(month = lubridate::month(Date))%>%
+NEE_FluxEnv2021<- left_join(NEEenvdata2021, NEE2021_CO2CH4, 
+                            by= c("FluxID", "Date", "PlotID", "Transect", "Habitat", "Treatment", "Cover"))%>%
+  mutate(plotDate = recode(Date, "03.06.2021" = "04.06.2021", 
+                           "02.07.2021" = "03.07.2021", 
+                           "20.07.2021" = "23.07.2021", "21.07.2021" = "23.07.2021", 
+                           "17.08.2021" = "21.08.2021", "18.08.2021" = "21.08.2021", 
+                           "11.09.2021" = "12.09.2021"))%>%
+  mutate(plotDate = as.Date(plotDate, "%d.%m.%Y"),
+         Date = as.Date(Date, "%d.%m.%Y"),
+         Month = format(as.Date(Date, format="%d/%m/%Y"),"%m"))%>%
   filter(Treatment %in% c("C", "OTC"))%>%
   filter(Habitat %in% c("S", "P", "M", "WG"))%>%
   filter(CH4.f0< 1000)%>%
@@ -438,16 +450,45 @@ NEE_FluxEnv2021<- left_join(NEEenvdata2021, NEE2021_CO2CH4, by= c("PlotID", "Dat
 # RECO measurements
 NEE_FluxEnv2021%>%
   filter(Cover == "RECO")%>%
-  gather(GHG, flux, c("CO2.f0", "CH4.f0"))%>%
-  ggplot(aes(as.factor(month), flux, fill=Treatment))+
+  ggplot(aes(as.factor(plotDate), CO2.f0, fill=Treatment))+
   geom_boxplot()+
-  facet_grid(GHG~Habitat, scales = "free")
+  facet_grid(~Habitat, scales = "free")+
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+NEE_FluxEnv2021%>%
+  filter(Cover == "RECO")%>%
+  ggplot(aes(as.factor(plotDate), CH4.f0, fill=Treatment))+
+  geom_boxplot()+
+  facet_grid(~Habitat, scales = "free")+
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+NEE_FluxEnv2021%>%
+  filter(Cover == "RECO")%>%
+  ggplot(aes(SoilTemp1, CO2.f0, col=Treatment, shape =Treatment))+
+  geom_point(size =1)+
+  facet_grid(~Habitat, scales = "free")
+
+NEE_FluxEnv2021%>%
+  filter(Cover == "RECO")%>%
+  ggplot(aes(SoilTemp1, CH4.f0, col=Treatment, shape =Treatment))+
+  geom_point(size =1)+
+  facet_grid(~Habitat, scales = "free")
+
+
 
 # NEE measurements
 NEE_FluxEnv2021%>%
   filter(Cover != "RECO")%>%
-  gather(GHG, flux, c("CO2.f0", "CH4.f0"))%>%
-  ggplot(aes(as.factor(month), flux, fill=Treatment))+
+  ggplot(aes(as.factor(plotDate), CO2.f0, fill=Treatment))+
   geom_boxplot()+
-  facet_grid(GHG~Habitat, scales = "free")
+  facet_grid(~Habitat, scales = "free")+
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+NEE_FluxEnv2021%>%
+  filter(Cover != "RECO")%>%
+  ggplot(aes(as.factor(plotDate), CH4.f0, fill=Treatment))+
+  geom_boxplot()+
+  facet_grid(~Habitat, scales = "free")+
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
 
