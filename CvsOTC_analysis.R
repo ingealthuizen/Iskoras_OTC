@@ -66,6 +66,14 @@ Traitdata<- Traitdata_raw%>%
   ungroup()
 
 Traitdata%>%
+  select(Species,Treatment, Habitat, VH, LA, LDMC, SLA, LT)%>%
+  gather(Trait, value, VH:LT)%>%
+  ggplot(aes(Species, value, fill=Treatment))+
+  geom_boxplot()+
+  facet_grid(Trait~Habitat, scales="free")+
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+Traitdata%>%
   select(Species, Habitat, VH, LA, LDMC, SLA, LT)%>%
   gather(Trait, value, VH:LT)%>%
   ggplot(aes(Habitat, value, fill=Habitat))+
@@ -166,6 +174,7 @@ ggplot(NDVImean, aes(as.factor(Month), NDVI.mean, color= Habitat, shape= Treatme
 ####### Abiotic conditions (TOMST loggers)
 TomstData<-read.csv("AnalysisR\\TOMSTdata_SMcalculated.csv")
 
+#
 ### calculate mean temp for habitat and treatments
 TomstData<-TomstData%>%
   filter(Treatment %in% c("C", "OTC"))%>%
