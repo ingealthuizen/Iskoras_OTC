@@ -2,12 +2,14 @@
 # load TOMSTloggerID information
 library(tidyverse)
 library(lubridate)
+library(here)
 
-TomstID<-read.csv2("C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\Climate\\TOMST\\TOMSTloggerID.csv")%>%
+
+TomstID<-read.csv2("Climate\\TOMST\\TOMSTloggerID.csv")%>%
   select(-X)
 
 ### Read in tomst logger files
-files <- dir(path = "C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\Climate\\TOMST\\TOMSTdata_04102022", 
+files <- dir(path = "Climate\\TOMST\\TOMSTdata_04102022", 
              pattern = "^data.*\\.csv$", full.names = TRUE, recursive = TRUE)
 
 # Function to read in data
@@ -82,6 +84,9 @@ TomstData_SoilMoistureCorrect<-TomstLoggerData%>%
   select(-V10)%>%
   mutate(Soilmoisture_Volumetric = soilmoist_correct(RawSoilmoisture, SoilTemperature, "peat"))
 
+
+# 
+#Soil_moisture = (( 0.000000123 * I(Raw_moisture^2) ) - (0.000144644 * Raw_moisture) + 0.202927906 ) * 100,
 
 # Save clean file
 write_csv(TomstData_SoilMoistureCorrect, "C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\AnalysisR\\TOMSTdata_SMcalculated.csv")
