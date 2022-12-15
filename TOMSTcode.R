@@ -119,6 +119,8 @@ TomstData_Cleant<-TomstData_SoilMoistureCorrect%>%
   filter(SoilTemperature > -30)%>% # filter 1 bad measurement from 4S_C logger
   filter(SoilTemperature < 80) # filter out bad measurements from 3WG_C logger
 
+# correct for high soilmoisture values? rescale saturated moisture to 1?
+
 # Save file
 #write_csv(TomstData_SoilMoistureCorrect, "C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\AnalysisR\\TOMSTdata_SMcalculated.csv")
 
