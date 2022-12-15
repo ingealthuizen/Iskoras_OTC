@@ -81,15 +81,6 @@ TomstData_SoilMoistureCorrect<-TomstLoggerData%>%
   select(-V10)%>%
   mutate(Soilmoisture_Volumetric = soilmoist_correct(RawSoilmoisture, SoilTemperature, "peat"))
 
-
-# Save file
-#write_csv(TomstData_SoilMoistureCorrect, "C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\AnalysisR\\TOMSTdata_SMcalculated.csv")
-
-
-#Data Cleaning
-#filter(SoilTemperature > -30)%>% # filter 1 bad measurement from 4S_C logger
-#  filter(SoilTemperature < 80) # filter out bad measurements from 3WG_C logger
-
 # check data 
 TomstData_SoilMoistureCorrect %>% 
   filter(Treatment %in% c("C", "OTC"))%>%
@@ -119,4 +110,15 @@ TomstData_SoilMoistureCorrect %>%
   geom_line() +
   facet_grid(Transect~ Treatment, scales = "free") +
   theme_classic()
+
+
+####################################################################################################################################
+
+#Data Cleaning
+TomstData_Cleant<-TomstData_SoilMoistureCorrect%>%
+  filter(SoilTemperature > -30)%>% # filter 1 bad measurement from 4S_C logger
+  filter(SoilTemperature < 80) # filter out bad measurements from 3WG_C logger
+
+# Save file
+#write_csv(TomstData_SoilMoistureCorrect, "C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\AnalysisR\\TOMSTdata_SMcalculated.csv")
 
