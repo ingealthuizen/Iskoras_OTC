@@ -2,8 +2,8 @@
 # load TOMSTloggerID information
 library(tidyverse)
 library(lubridate)
-library(here)
-
+#library(here)
+setwd("C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\")
 
 TomstID<-read.csv2("Climate\\TOMST\\TOMSTloggerID.csv")%>%
   select(-X)
@@ -35,11 +35,8 @@ data <- temp %>%
 # bind data to tomstID location
 TomstLoggerData<- left_join(TomstID, data, by= "LoggerID")%>%
   mutate( LoggerID = as.factor(LoggerID))%>%
-  filter(Date > "2020-06-25")%>% # remove all data from before installation of loggers in field
-  filter(SoilTemperature > -30)%>% # filter 1 bad measurement from 4S_C logger
-  filter(SoilTemperature < 80) # filter out bad measurements from 3WG_C logger
-
-
+  filter(Date > "2020-06-25") # remove all data from before installation of loggers in field
+  
 ### SOilmoisture correction
 #based on appendix A of Wild 2019 (https://www-sciencedirect-com.pva.uib.no/science/article/pii/S0168192318304118#sec0095) and https://www.tomst.com/tms/tacr/TMS3calibr1-11.xlsm
 
@@ -85,17 +82,18 @@ TomstData_SoilMoistureCorrect<-TomstLoggerData%>%
   mutate(Soilmoisture_Volumetric = soilmoist_correct(RawSoilmoisture, SoilTemperature, "peat"))
 
 
-# 
-#Soil_moisture = (( 0.000000123 * I(Raw_moisture^2) ) - (0.000144644 * Raw_moisture) + 0.202927906 ) * 100,
+# Save file
+#write_csv(TomstData_SoilMoistureCorrect, "C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\AnalysisR\\TOMSTdata_SMcalculated.csv")
 
-# Save clean file
-write_csv(TomstData_SoilMoistureCorrect, "C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\AnalysisR\\TOMSTdata_SMcalculated.csv")
 
+#Data Cleaning
+#filter(SoilTemperature > -30)%>% # filter 1 bad measurement from 4S_C logger
+#  filter(SoilTemperature < 80) # filter out bad measurements from 3WG_C logger
 
 # check data 
 TomstData_SoilMoistureCorrect %>% 
   filter(Treatment %in% c("C", "OTC"))%>%
-  ggplot(aes(x = Date_Time, y = RawSoilmoisture, colour = as.factor(Habitat))) +
+  ggplot(aes(x = Date_Time, y = Soilmoisture_Volumetric, colour = as.factor(Habitat))) +
   geom_line() +
   facet_grid(Transect~ Treatment, scales = "free") +
   theme_classic()
