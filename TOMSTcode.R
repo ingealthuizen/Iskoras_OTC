@@ -119,6 +119,47 @@ TomstData_Clean<-TomstData_SoilMoistureCorrect%>%
   filter(SoilTemperature > -30)%>% # filter bad measurements from 3WGB_C logger
   filter(SoilTemperature < 80) # filter out bad measurements from 3WGB_C logger
 
+# summary
+summer_microclimate2020<-TomstData_Clean%>%
+  filter(Treatment != "DEEP")%>%
+  filter(PlotID != "2P_OTC_DISCONTINUED")%>%
+  filter(Date > "2020-06-30" & Date < "2020-09-01")%>%
+  select(PlotID, Habitat, Treatment, SoilTemperature, GroundTemperature, AirTemperature, Soilmoisture_Volumetric)%>%
+  group_by(PlotID, Habitat, Treatment)%>%
+    summarise_if(is.numeric, mean, na.rm = TRUE)%>%
+  gather(microclimate, value, SoilTemperature:Soilmoisture_Volumetric)
+
+ggplot(summer_microclimate2020, aes(Habitat, value, fill= Treatment))+
+  geom_boxplot()+
+  facet_wrap(~microclimate)
+  
+summer_microclimate2021<-TomstData_Clean%>%
+  filter(Treatment != "DEEP")%>%
+  filter(PlotID != "2P_OTC_DISCONTINUED")%>%
+  filter(Date > "2021-06-30" & Date < "2021-09-01" )%>%
+  select(PlotID, Habitat, Treatment, SoilTemperature, GroundTemperature, AirTemperature, Soilmoisture_Volumetric)%>%
+  group_by(PlotID, Habitat, Treatment)%>%
+  summarise_if(is.numeric, mean, na.rm = TRUE)%>%
+  gather(microclimate, value, SoilTemperature:Soilmoisture_Volumetric)
+
+ggplot(summer_microclimate2021, aes(Habitat, value, fill= Treatment))+
+  geom_boxplot()+
+  facet_wrap(~microclimate)
+
+winter_microclimate2020<-TomstData_Clean%>%
+  filter(Treatment != "DEEP")%>%
+  filter(PlotID != "2P_OTC_DISCONTINUED")%>%
+  filter(Date > "2020-11-01" & Date < "2021-04-01" )%>%
+  select(PlotID, Habitat, Treatment, SoilTemperature, GroundTemperature, AirTemperature, Soilmoisture_Volumetric)%>%
+  group_by(PlotID, Habitat, Treatment)%>%
+  summarise_if(is.numeric, mean, na.rm = TRUE)%>%
+  gather(microclimate, value, SoilTemperature:Soilmoisture_Volumetric)
+
+ggplot(winter_microclimate2020, aes(Habitat, value, fill= Treatment))+
+  geom_boxplot()+
+  facet_wrap(~microclimate)
+
+
 # correct for high soilmoisture values? rescale saturated moisture to 1?
 
 # Save file
