@@ -131,7 +131,7 @@ summer_microclimate2020<-TomstData_Clean%>%
 
 ggplot(summer_microclimate2020, aes(Habitat, value, fill= Treatment))+
   geom_boxplot()+
-  facet_wrap(~microclimate)
+  facet_wrap(~microclimate, scales= "free")
   
 summer_microclimate2021<-TomstData_Clean%>%
   filter(Treatment != "DEEP")%>%
@@ -144,7 +144,7 @@ summer_microclimate2021<-TomstData_Clean%>%
 
 ggplot(summer_microclimate2021, aes(Habitat, value, fill= Treatment))+
   geom_boxplot()+
-  facet_wrap(~microclimate)
+  facet_wrap(~microclimate, scales= "free")
 
 winter_microclimate2020<-TomstData_Clean%>%
   filter(Treatment != "DEEP")%>%
@@ -157,7 +157,7 @@ winter_microclimate2020<-TomstData_Clean%>%
 
 ggplot(winter_microclimate2020, aes(Habitat, value, fill= Treatment))+
   geom_boxplot()+
-  facet_wrap(~microclimate)
+  facet_wrap(~microclimate, scales = "free")
 
 
 # correct for high soilmoisture values? rescale saturated moisture to 1?
