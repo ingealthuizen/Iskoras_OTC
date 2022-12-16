@@ -115,9 +115,9 @@ TomstData_SoilMoistureCorrect %>%
 ####################################################################################################################################
 
 #Data Cleaning
-TomstData_Cleant<-TomstData_SoilMoistureCorrect%>%
-  filter(SoilTemperature > -30)%>% # filter 1 bad measurement from 4S_C logger
-  filter(SoilTemperature < 80) # filter out bad measurements from 3WG_C logger
+TomstData_Clean<-TomstData_SoilMoistureCorrect%>%
+  filter(SoilTemperature > -30)%>% # filter bad measurements from 3WGB_C logger
+  filter(SoilTemperature < 80) # filter out bad measurements from 3WGB_C logger
 
 # correct for high soilmoisture values? rescale saturated moisture to 1?
 
