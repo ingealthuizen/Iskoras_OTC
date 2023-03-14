@@ -3,13 +3,10 @@
 library(tidyverse)
 library(lubridate)
 #library(here)
-setwd("C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\")
-
-TomstID<-read.csv2("Climate\\TOMST\\TOMSTloggerID.csv")%>%
-  select(-X)
+setwd("C:\\Users\\ialt\\OneDrive - NORCE\\PET_SOilmoisture\\")
 
 ### Read in tomst logger files
-files <- dir(path = "Climate\\TOMST\\TOMSTdata_04102022", 
+files <- dir(path = "TOMST", 
              pattern = "^data.*\\.csv$", full.names = TRUE, recursive = TRUE)
 
 # Function to read in data
@@ -31,11 +28,6 @@ data <- temp %>%
   mutate(
     LoggerID = gsub(".*data_([^_]+)[_].*", "\\1", File), 
     LoggerID = as.integer(LoggerID)) 
-
-# bind data to tomstID location
-TomstLoggerData<- left_join(TomstID, data, by= "LoggerID")%>%
-  mutate( LoggerID = as.factor(LoggerID))%>%
-  filter(Date > "2020-06-25") # remove all data from before installation of loggers in field
 
 ### SOilmoisture correction
 #based on appendix A of Wild 2019 (https://www-sciencedirect-com.pva.uib.no/science/article/pii/S0168192318304118#sec0095) and https://www.tomst.com/tms/tacr/TMS3calibr1-11.xlsm
@@ -77,36 +69,23 @@ soilmoist_correct <- function(rawsoilmoist, soil_temp, soilclass){
   return(volmoistcorr)
 }
 
-TomstData_SoilMoistureCorrect<-TomstLoggerData%>%
+TomstData_SoilMoistureCorrect<-data%>%
   select(-V10)%>%
-  mutate(Soilmoisture_Volumetric = soilmoist_correct(RawSoilmoisture, SoilTemperature, "peat"))
+  mutate(Soilmoisture_Volumetric = soilmoist_correct(RawSoilmoisture, SoilTemperature, "sandy_loam_A"))
 
 # check data 
-TomstData_SoilMoistureCorrect %>% 
-  filter(Treatment %in% c("C", "OTC"))%>%
-  ggplot(aes(x = Date_Time, y = Soilmoisture_Volumetric, colour = as.factor(Habitat))) +
+TomstData_SoilMoistureCorrect<-TomstData_SoilMoistureCorrect %>%
+  filter(Soilmoisture_Volumetric > 0.1)%>%
+  filter(Date > "2022-11-10")
+
+TomstData_SoilMoistureCorrect%>%
+  ggplot(aes(x = Date_Time, y = Soilmoisture_Volumetric, colour = as.factor(LoggerID))) +
   geom_line() +
-  facet_grid(Transect~ Treatment, scales = "free") +
   theme_classic()
 
 TomstData_SoilMoistureCorrect %>% 
-  filter(Treatment %in% c("C", "OTC"))%>%
-  ggplot(aes(x = Date_Time, y = SoilTemperature, colour = as.factor(Habitat))) +
+  ggplot(aes(x = Date_Time, y = SoilTemperature, colour = as.factor(LoggerID))) +
   geom_line() +
-  facet_grid(Transect~ Treatment, scales = "free") +
   theme_classic()
 
-TomstData_SoilMoistureCorrect %>%
-  filter(Treatment %in% c("C", "OTC"))%>%
-  ggplot(aes(x = Date_Time, y = GroundTemperature, colour = as.factor(Habitat))) +
-  geom_line() +
-  facet_grid(Transect~ Treatment, scales = "free") +
-  theme_classic()
-
-TomstData_SoilMoistureCorrect %>% 
-  filter(Treatment %in% c("C", "OTC"))%>%
-  filter(Date == "2022-03-31")%>%
-  ggplot(aes(x = Date_Time, y = AirTemperature, colour = as.factor(Habitat))) +
-  geom_line() +
-  facet_grid(Transect~ Treatment, scales = "free") +
-  theme_classic()
+#write.csv(TomstData_SoilMoistureCorrect, "C:\\Users\\ialt\\OneDrive - NORCE\\PET_SOilmoisture\\fieldtrial_Bergen.csv")
