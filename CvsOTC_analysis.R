@@ -40,7 +40,7 @@ plot_nmds <- ggplot(plot_NMDS, aes(x = NMDS1, y = NMDS2)) +
   stat_ellipse(aes(linetype = Treatment, col = Habitat), size = 1) +
   scale_color_manual(values= c("#fc8d62", "#66c2a5", "#8da0cb"), name = "Habitat", labels = c("Palsa", "Thawslump", "Vegetated Pond"))+
   scale_fill_manual(values= c("#fc8d62", "#66c2a5", "#8da0cb"), name = "Habitat", labels = c("Palsa", "Thawslump", "Vegetated Pond"))+ 
-  scale_shape_manual(values= c(24, 21), name = "Treatment", labels = c("Control", "OTC"))+
+  scale_shape_manual(values= c(21, 24), name = "Treatment", labels = c("Control", "OTC"))+
   scale_linetype_manual(values= c("solid", "dashed"), name = "Treatment", labels = c("Control", "OTC"))+
   guides(fill=guide_legend(override.aes=list(shape=21)))+
   labs(title = "NMDS")+
@@ -78,8 +78,24 @@ Traitdata%>%
   gather(Trait, value, VH:LT)%>%
   ggplot(aes(Habitat, value, fill=Habitat))+
   geom_boxplot()+
-  facet_wrap(Trait~Species, scales="free")
+  facet_grid(Trait~Species, scales="free")
 
+hist(Traitdata$VH)
+hist(Traitdata$LA)
+hist(Traitdata$LDMC)
+hist(Traitdata$SLA)
+hist(Traitdata$LT)
+
+library(glmmTMB)
+library(DHARMa)
+
+# What distribution to use?
+m1 <- glmmTMB(SLA ~ Treatment + (1|Species), family= gaussian(link = "identity"), data=Traitdata)
+summary(m1)
+plotQQunif(m1)
+plotResiduals(m1)
+
+# Mean trait data per species
 SpeciesTraits<- Traitdata%>%
   group_by(Species, Treatment)%>%
   summarise_if(is.numeric, mean, na.rm = TRUE)%>% #calculate average traits per species, treatment, habitat
@@ -137,7 +153,7 @@ PCAplot<- autoplot(TraitPCA, data = VegComp2021_Traits,  size = 4, fill= "Habita
                    loadings.label = TRUE, loadings.label.size = 5, loadings.label.vjust = -.6, loadings.label.hjust = 0.9)+
   #stat_ellipse(aes( col = Habitat.x), size = 1) +
   scale_fill_manual(values= c("#fc8d62", "#66c2a5", "#8da0cb"), name = "Habitat", labels = c("Palsa", "Thawslump", "Vegetated Pond"))+
-  scale_shape_manual(values= c(24, 21), name = "Treatment", labels = c("Control", "OTC"))+
+  scale_shape_manual(values= c(21, 24), name = "Treatment", labels = c("Control", "OTC"))+
   guides(fill=guide_legend(override.aes=list(shape=21)))+
   theme_classic()
 PCAplot
