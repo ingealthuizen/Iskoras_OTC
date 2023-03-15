@@ -6,23 +6,23 @@ library(RColorBrewer)
 #library(readxl)
 library(vegan)
 
-# VegetationData
+# Vegetation Composition Data
 VegComposition<-read.csv2("VegetationData\\Vegetation_plot_visual.csv")
 
-# Moss species in different plots would be better!
+# Select 2021 vegetation data as this is most recent
 VegComp2021<- VegComposition%>%
   filter(Year==2021)%>%
-  filter(Habitat != "S")
+  filter(Habitat != "S") # Remove Soil palsas from vegetation analysis no vascular species
 
+# Create a vegetation cover matrix
 VegMatrix<- VegComp2021%>%
   select(PlotID:moss)%>%
   column_to_rownames(var="PlotID")
 
-VegMatrix[is.na(VegMatrix)] <- 0 # replace NA with 0
-VegMatrix<-VegMatrix%>%
-  filter_all(any_vars(. != 0))
+VegMatrix[is.na(VegMatrix)] <- 0 # replace NA with 0 cover value
 VegMatrix<-as.matrix(VegMatrix)
 
+# NMDS analysis with Bray-Curtis distance which is not affected by number of null values between samples like Euclidean distance
 Iskoras_NMDS<-metaMDS(VegMatrix, distance="bray")
 stressplot(Iskoras_NMDS)
 
@@ -46,6 +46,15 @@ plot_nmds <- ggplot(plot_NMDS, aes(x = NMDS1, y = NMDS2)) +
   labs(title = "NMDS")+
   theme_classic()
 plot_nmds
+
+Iskoras_env <-VegComp2021%>%
+  select(Habitat, Treatment, Transect)
+
+### analysis of dissimilarites a.k.a. non-parametric
+### permutational anova
+adonis2(VegMatrix ~ Habitat * Treatment, strata = Iskoras_env$Transect, data=Iskoras_env, perm=999 )
+
+#Significant differences between Habitat, minor significance for Treatment and Habitat:treatment interaction 
 
 
 #### TRAIT DATA
