@@ -16,7 +16,7 @@ VegComp2021<- VegComposition%>%
 
 # Create a vegetation cover matrix
 VegMatrix<- VegComp2021%>%
-  select(PlotID:moss)%>%
+  select(PlotID:Sphagnum.sp)%>%
   column_to_rownames(var="PlotID")
 
 VegMatrix[is.na(VegMatrix)] <- 0 # replace NA with 0 cover value
@@ -25,6 +25,31 @@ VegMatrix<-as.matrix(VegMatrix)
 # NMDS analysis with Bray-Curtis distance which is not affected by number of null values between samples like Euclidean distance
 Iskoras_NMDS<-metaMDS(VegMatrix, distance="bray")
 stressplot(Iskoras_NMDS)
+
+#extact NMDS scores for plots and species
+data.scores <- scores(Iskoras_NMDS) #Using the scores function from vegan to extract the site scores and convert to a data.frame
+data.scores.sites <- as.data.frame(data.scores$sites)
+data.scores.sites$sitename <- rownames(data.scores.sites)  # create a column of site names, from the rownames of data.scores
+data.scores.sites$Treatment <- VegComp2021$Treatment#  add the treatment variable 
+data.scores.sites$Habitat <- VegComp2021$Habitat #  add Habitat variable
+data.scores.sites<-data.scores.sites%>%
+  mutate(Habitat =recode(Habitat, M = "Thawslump", P= "Palsa", WG= "Vegetated Pond")) # recode Habitat
+
+species.scores <- as.data.frame(data.scores$species)
+species.scores$species <- rownames(species.scores)
+
+ggplot() + 
+  geom_text(data=species.scores, aes(x=NMDS1, y=NMDS2, label= species), alpha=0.9) +  # add the species labels
+  geom_point(data=data.scores.sites, aes(x=NMDS1, y=NMDS2, shape=Treatment, fill= Habitat), size=3) + # add the point markers
+  stat_ellipse(data=data.scores.sites, aes(x=NMDS1, y=NMDS2, linetype = Treatment, col = Habitat), linewidth = 1) +
+  scale_color_manual(values= c("#fc8d62", "#66c2a5", "#8da0cb"), name = "Habitat")+
+  scale_fill_manual(values= c("#fc8d62", "#66c2a5", "#8da0cb"), name = "Habitat")+ 
+  scale_shape_manual(values= c(21, 24), name = "Treatment", labels = c("Control", "OTC"))+
+  scale_linetype_manual(values= c("solid", "dashed"), name = "Treatment", labels = c("Control", "OTC"))+
+  guides(fill=guide_legend(override.aes=list(shape=21)))+
+  labs(title = "NMDS")+
+  theme_classic()
+
 
 #plot NMDS
 plot_NMDS <- scores(Iskoras_NMDS, display = "sites") %>% 
@@ -35,6 +60,7 @@ plot_NMDS <- scores(Iskoras_NMDS, display = "sites") %>%
   full_join(VegComp2021, by = "PlotID")%>%
   mutate(Habitat = as.factor(Habitat))
 
+# https://chrischizinski.github.io/rstats/vegan-ggplot2/ 
 plot_nmds <- ggplot(plot_NMDS, aes(x = NMDS1, y = NMDS2)) +
   geom_point(aes(fill= Habitat, shape = Treatment), size = 3, alpha = 0.8) +
   stat_ellipse(aes(linetype = Treatment, col = Habitat), size = 1) +
@@ -53,7 +79,6 @@ Iskoras_env <-VegComp2021%>%
 ### analysis of dissimilarites a.k.a. non-parametric
 ### permutational anova
 adonis2(VegMatrix ~ Habitat * Treatment, strata = Iskoras_env$Transect, data=Iskoras_env, perm=999 )
-
 #Significant differences between Habitat, minor significance for Treatment and Habitat:treatment interaction 
 
 
@@ -148,7 +173,7 @@ plotResiduals(m1)
 SpeciesTraits<- Traitdata%>%
   group_by(Species, Treatment)%>%
   summarise_if(is.numeric, mean, na.rm = TRUE)%>% #calculate average traits per species, treatment, habitat
-  select(Species, Treatment, VH, LA, LDMC, SLA, LT)%>%
+  select(Species, Treatment, VH, LA, LDMC1, SLA, LT)%>%
   ungroup()
 
 TraitMatrix<- SpeciesTraits%>%
@@ -194,7 +219,7 @@ library(devtools)
 library(factoextra)
 
 TraitPCA<- VegComp2021_Traits%>%
-  select(VH, LA, SLA, LT, LDMC)
+  select(VH, LA, SLA, LT, LDMC1)
 TraitPCA <- princomp(TraitPCA, cor= TRUE, scores=TRUE) #, Temperature = T_summer_longterm, Precipitation = P_annual_longterm
 
 PCAplot<- autoplot(TraitPCA, data = VegComp2021_Traits,  size = 4, fill= "Habitat", shape = "Treatment",
