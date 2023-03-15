@@ -57,43 +57,83 @@ Traitdata<- Traitdata_raw%>%
          LDMC2 = Dry_weight2/Wetweight_2,
          LDMC3 = Dry_weight3/Wetweight_3,
          SLA = LA/Dry_weight1)%>% # use Dryweight 1 as that is leaf used for Leaf area scan
-  gather(measurement, LDMC, LDMC1:LDMC3)%>%
-  group_by(SampleID, Species, Sample, Treatment, Habitat)%>%
-  summarise_if(is.numeric, mean, na.rm = TRUE)%>% # calculate average LDMC per SampleID
+  #gather(measurement, LDMC, LDMC1:LDMC3)%>%
+  #group_by(SampleID, Species, Sample, Treatment, Habitat)%>%
+  #summarise_if(is.numeric, mean, na.rm = TRUE)%>% # calculate average LDMC per SampleID
   group_by(SampleID, Species, Sample, Treatment, Habitat)%>%
   gather(measurement, LT, LT1:LT3)%>%
   summarise_if(is.numeric, mean, na.rm = TRUE)%>% #calculate average leaf thickness per SampleID
   ungroup()
 
 Traitdata%>%
-  select(Species,Treatment, Habitat, VH, LA, LDMC, SLA, LT)%>%
+  select(Species,Treatment, Habitat, VH, LA, LDMC1, SLA, LT)%>%
   gather(Trait, value, VH:LT)%>%
-  ggplot(aes(Habitat, value, fill=Treatment))+
+  ggplot(aes(Species, value, fill=Treatment))+
   geom_boxplot()+
   facet_grid(Trait~Habitat, scales="free")+
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
 
 Traitdata%>%
-  select(Species, Habitat, VH, LA, LDMC, SLA, LT)%>%
+  select(Species, Habitat, VH, LA, LDMC1, SLA, LT)%>%
   gather(Trait, value, VH:LT)%>%
   ggplot(aes(Habitat, value, fill=Habitat))+
   geom_boxplot()+
   facet_grid(Trait~Species, scales="free")
 
-hist(Traitdata$VH)
-hist(Traitdata$LA)
-hist(Traitdata$LDMC)
-hist(Traitdata$SLA)
-hist(Traitdata$LT)
 
 library(glmmTMB)
 library(DHARMa)
 
 # What distribution to use?
-m1 <- glmmTMB(SLA ~ Treatment + (1|Species), family= gaussian(link = "identity"), data=Traitdata)
+Traitmodel<- Traitdata%>%
+  filter(!Species %in% c("Arc.alp", "Eri.vag"))%>%
+  mutate(VHlog = log(VH),
+         LAlog = log(SLA),
+         LDMC1log = log(LDMC1),
+         SLAlog = log(SLA),
+         LTlog = log(LT))%>%
+  filter(Habitat != "WG")
+
+
+hist(log(Traitmodel$VH))
+hist(log(Traitmodel$LA))
+hist(log(Traitmodel$LDMC1))
+hist(log(Traitmodel$SLA))
+hist(log(Traitmodel$LT))
+
+# Not sure how to parameterize model to test OTC treatment effect on Traits across 
+m1 <- glmmTMB(VHlog ~ Habitat * Treatment + (1|Species ), family= gaussian(link = "identity"), data=Traitmodel)
 summary(m1)
 plotQQunif(m1)
 plotResiduals(m1)
+
+m2 <- glmmTMB(VHlog ~ Treatment + Species:Treatment + (1|Habitat ), family= gaussian(link = "identity"), data=Traitmodel)
+summary(m2)
+plotQQunif(m2)
+plotResiduals(m2)
+
+
+
+m1 <- glmmTMB(LAlog ~ Habitat * Treatment + (1|Species ), family= gaussian(link = "identity"), data=Traitmodel)
+summary(m1)
+plotQQunif(m1)
+plotResiduals(m1)
+
+m1 <- glmmTMB(LDMC1log ~ Habitat * Treatment + (1|Species ), family= gaussian(link = "identity"), data=Traitmodel)
+summary(m1)
+plotQQunif(m1)
+plotResiduals(m1)
+
+m1 <- glmmTMB(LTlog ~ Habitat * Treatment + (1|Species ), family= gaussian(link = "identity"), data=Traitmodel)
+summary(m1)
+plotQQunif(m1)
+plotResiduals(m1)
+
+m1 <- glmmTMB(SLAlog ~ Habitat * Treatment + (1|Species ), family= gaussian(link = "identity"), data=Traitmodel)
+summary(m1)
+plotQQunif(m1)
+plotResiduals(m1)
+
 
 # Mean trait data per species
 SpeciesTraits<- Traitdata%>%
@@ -172,7 +212,7 @@ palsaPCA<- autoplot(TraitPCA_P, data = Vegetation_P,  size = 4, fill= "Habitat",
                    loadings.label = TRUE, loadings.label.size = 5, loadings.label.vjust = -.6, loadings.label.hjust = 0.9)+
   #stat_ellipse(aes( col = Habitat.x), size = 1) +
   scale_fill_manual(values= c("#fc8d62"), name = "Habitat", labels = c("Palsa"))+
-  scale_shape_manual(values= c(24, 21), name = "Treatment", labels = c("Control", "OTC"))+
+  scale_shape_manual(values= c(21, 24), name = "Treatment", labels = c("Control", "OTC"))+
   guides(fill=guide_legend(override.aes=list(shape=21)))+
   theme_classic()
 palsaPCA
@@ -192,7 +232,7 @@ thawslumpPCA<- autoplot(TraitPCA_M, data = Vegetation_M,  size = 4, fill= "Habit
                     loadings.label = TRUE, loadings.label.size = 5, loadings.label.vjust = -.6, loadings.label.hjust = 0.9)+
   #stat_ellipse(aes( col = Habitat.x), size = 1) +
   scale_fill_manual(values= c("#66c2a5"), name = "Habitat", labels = c("Thawslump"))+
-  scale_shape_manual(values= c(24, 21), name = "Treatment", labels = c("Control", "OTC"))+
+  scale_shape_manual(values= c(21, 24), name = "Treatment", labels = c("Control", "OTC"))+
   guides(fill=guide_legend(override.aes=list(shape=21)))+
   theme_classic()
 thawslumpPCA
@@ -212,12 +252,13 @@ VegetatedpondPCA<- autoplot(TraitPCA_WG, data = Vegetation_WG,  size = 4, fill= 
                         loadings.label = TRUE, loadings.label.size = 5, loadings.label.vjust = -.6, loadings.label.hjust = 0.9)+
   #stat_ellipse(aes( col = Habitat.x), size = 1) +
   scale_fill_manual(values= c("#8da0cb"), name = "Habitat", labels = c("Vegetated Pond"))+
-  scale_shape_manual(values= c(24, 21), name = "Treatment", labels = c("Control", "OTC"))+
+  scale_shape_manual(values= c(21, 24), name = "Treatment", labels = c("Control", "OTC"))+
   guides(fill=guide_legend(override.aes=list(shape=21)))+
   theme_classic()
 VegetatedpondPCA
 
-
+library(cowplot)
+plot_grid(PCAplot, palsaPCA, thawslumpPCA, VegetatedpondPCA, labels= c("A", "B", "C", "D"))
 
 # leaf thicknes in same direction as VH?
   
