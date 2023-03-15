@@ -39,9 +39,9 @@ species.scores <- as.data.frame(data.scores$species)
 species.scores$species <- rownames(species.scores)
 
 ggplot() + 
-  geom_text(data=species.scores, aes(x=NMDS1, y=NMDS2, label= species), alpha=0.9) +  # add the species labels
   geom_point(data=data.scores.sites, aes(x=NMDS1, y=NMDS2, shape=Treatment, fill= Habitat), size=3) + # add the point markers
   stat_ellipse(data=data.scores.sites, aes(x=NMDS1, y=NMDS2, linetype = Treatment, col = Habitat), linewidth = 1) +
+  geom_text(data=species.scores, aes(x=NMDS1, y=NMDS2, label= species), alpha=0.9) +  # add the species labels
   scale_color_manual(values= c("#fc8d62", "#66c2a5", "#8da0cb"), name = "Habitat")+
   scale_fill_manual(values= c("#fc8d62", "#66c2a5", "#8da0cb"), name = "Habitat")+ 
   scale_shape_manual(values= c(21, 24), name = "Treatment", labels = c("Control", "OTC"))+
@@ -50,36 +50,13 @@ ggplot() +
   labs(title = "NMDS")+
   theme_classic()
 
-
-#plot NMDS
-plot_NMDS <- scores(Iskoras_NMDS, display = "sites") %>% 
-  as.data.frame() %>% 
-  rownames_to_column("site") %>% 
-  mutate(PlotID = site)%>%
-  select(-site)%>%
-  full_join(VegComp2021, by = "PlotID")%>%
-  mutate(Habitat = as.factor(Habitat))
-
-# https://chrischizinski.github.io/rstats/vegan-ggplot2/ 
-plot_nmds <- ggplot(plot_NMDS, aes(x = NMDS1, y = NMDS2)) +
-  geom_point(aes(fill= Habitat, shape = Treatment), size = 3, alpha = 0.8) +
-  stat_ellipse(aes(linetype = Treatment, col = Habitat), size = 1) +
-  scale_color_manual(values= c("#fc8d62", "#66c2a5", "#8da0cb"), name = "Habitat", labels = c("Palsa", "Thawslump", "Vegetated Pond"))+
-  scale_fill_manual(values= c("#fc8d62", "#66c2a5", "#8da0cb"), name = "Habitat", labels = c("Palsa", "Thawslump", "Vegetated Pond"))+ 
-  scale_shape_manual(values= c(21, 24), name = "Treatment", labels = c("Control", "OTC"))+
-  scale_linetype_manual(values= c("solid", "dashed"), name = "Treatment", labels = c("Control", "OTC"))+
-  guides(fill=guide_legend(override.aes=list(shape=21)))+
-  labs(title = "NMDS")+
-  theme_classic()
-plot_nmds
-
 Iskoras_env <-VegComp2021%>%
   select(Habitat, Treatment, Transect)
 
 ### analysis of dissimilarites a.k.a. non-parametric
 ### permutational anova
 adonis2(VegMatrix ~ Habitat * Treatment, strata = Iskoras_env$Transect, data=Iskoras_env, perm=999 )
-#Significant differences between Habitat, minor significance for Treatment and Habitat:treatment interaction 
+#Significant differences between Habitat, minor significance for Treatment  
 
 
 #### TRAIT DATA
