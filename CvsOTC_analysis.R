@@ -190,15 +190,24 @@ CWMtraits%>%
   geom_errorbar(aes(ymin=mean-se, ymax=mean+se), position=position_dodge(width = 0.5), width=.2)+
   facet_wrap(~Trait, scales = "free")
 
+#%>%
+#  unite(Species_Habitat_Treatment, c("Species", "Habitat", "Treatment"))%>%
+#  filter(!Species_Habitat_Treatment == "Bet.nan_P_C")%>% # remove Bet.nan control P values as not in vegetation data
+#  column_to_rownames(var="Species_Habitat_Treatment")
 
+
+VegComp2021_Traits<- left_join(VegComp2021, CWMtraits, by = c("PlotID", "Habitat", "Treatment"))%>%
+  spread(Trait, CWM)%>%
+  rename(LT = "LT1", LDMC = "LDMC1")
 
 #PCA
 library(ggfortify)
 library(devtools)
 library(factoextra)
 
+# Not sure about LT measurments
 TraitPCA<- VegComp2021_Traits%>%
-  select(VH, LA, SLA, LT, LDMC1)
+  select(VH, LA, SLA, LDMC)
 TraitPCA <- princomp(TraitPCA, cor= TRUE, scores=TRUE) #, Temperature = T_summer_longterm, Precipitation = P_annual_longterm
 
 PCAplot<- autoplot(TraitPCA, data = VegComp2021_Traits,  size = 4, fill= "Habitat", shape = "Treatment",
@@ -216,7 +225,7 @@ Vegetation_P<- VegComp2021_Traits%>%
 
 Trait_P<- VegComp2021_Traits%>%
   filter(Habitat == "P")%>%
-  select(VH, LA, SLA, LT, LDMC)
+  select(VH, LA, SLA, LDMC)
 
 TraitPCA_P <- princomp(Trait_P, cor= TRUE, scores=TRUE) #, Temperature = T_summer_longterm, Precipitation = P_annual_longterm
 
@@ -228,7 +237,6 @@ palsaPCA<- autoplot(TraitPCA_P, data = Vegetation_P,  size = 4, fill= "Habitat",
   scale_shape_manual(values= c(21, 24), name = "Treatment", labels = c("Control", "OTC"))+
   guides(fill=guide_legend(override.aes=list(shape=21)))+
   theme_classic()
-palsaPCA
 
 
 Vegetation_M<- VegComp2021_Traits%>%
@@ -236,7 +244,7 @@ Vegetation_M<- VegComp2021_Traits%>%
 
 Trait_M<- VegComp2021_Traits%>%
   filter(Habitat == "M")%>%
-  select(VH, LA, SLA, LT, LDMC)
+  select(VH, LA, SLA, LDMC)
 
 TraitPCA_M <- princomp(Trait_M, cor= TRUE, scores=TRUE) #, Temperature = T_summer_longterm, Precipitation = P_annual_longterm
 
@@ -248,7 +256,6 @@ thawslumpPCA<- autoplot(TraitPCA_M, data = Vegetation_M,  size = 4, fill= "Habit
   scale_shape_manual(values= c(21, 24), name = "Treatment", labels = c("Control", "OTC"))+
   guides(fill=guide_legend(override.aes=list(shape=21)))+
   theme_classic()
-thawslumpPCA
 
 
 Vegetation_WG<- VegComp2021_Traits%>%
@@ -256,7 +263,7 @@ Vegetation_WG<- VegComp2021_Traits%>%
 
 Trait_WG<- VegComp2021_Traits%>%
   filter(Habitat == "WG")%>%
-  select(VH, LA, SLA, LT, LDMC)
+  select(VH, LA, SLA, LDMC)
 
 TraitPCA_WG <- princomp(Trait_WG, cor= TRUE, scores=TRUE) #, Temperature = T_summer_longterm, Precipitation = P_annual_longterm
 
@@ -268,13 +275,14 @@ VegetatedpondPCA<- autoplot(TraitPCA_WG, data = Vegetation_WG,  size = 4, fill= 
   scale_shape_manual(values= c(21, 24), name = "Treatment", labels = c("Control", "OTC"))+
   guides(fill=guide_legend(override.aes=list(shape=21)))+
   theme_classic()
-VegetatedpondPCA
+
 
 library(cowplot)
 plot_grid(PCAplot, palsaPCA, thawslumpPCA, VegetatedpondPCA, labels= c("A", "B", "C", "D"))
 
 # leaf thicknes in same direction as VH?
   
+
 # NDVI data
 # group by month and year!
 NDVIdata<-read.csv2("VegetationData\\NDVI_Greenseeker.csv")%>%
