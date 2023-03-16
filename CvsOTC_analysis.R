@@ -145,34 +145,70 @@ plotResiduals(m1)
 
 
 #### Community weighted Trait Values
-# Mean trait data per species and Treatment
-# ! Variability in species traits along thaw gradient not yet accounted for, look into doing this.
-SpeciesTraits<- Traitdata%>%
+# Mean trait data per species, Habitat and  Treatment
+
+# function to calculate standard error
+se <- function(x) sd(x)/sqrt(length(x))
+
+# Plot mean + sd of trait values for each species in each habitat and treatment
+Traitdata%>%
   select(SampleID, Species, Habitat, Treatment, VH, LA, LT1, LA, SLA, LDMC1)%>%
   gather(Trait, value, VH:LDMC1)%>%
   group_by(Species, Treatment, Habitat, Trait)%>%
-  summarise(mean=mean(value), sd=sd(value))%>% #calculate mean, sd traits per species, treatment, habitat
-  ungroup()
-
-# Plot mean + sd of trait values for each species in each habitat and treatment
-ggplot(SpeciesTraits, aes(Habitat, mean, color=Treatment))+
+  summarise(mean=mean(value), se=se(value))%>% #calculate mean, sd traits per species, treatment, habitat
+  ggplot(aes(Habitat, mean, color=Treatment))+ 
   geom_point(position=position_dodge(width = 0.5), stat="identity")+
-  geom_errorbar(aes(ymin=mean-sd, ymax=mean+sd), position=position_dodge(width = 0.5), width=.2)+
+  geom_errorbar(aes(ymin=mean-se, ymax=mean+se), position=position_dodge(width = 0.5), width=.2)+
   facet_grid(Trait~Species, scales = "free")
 
-TraitMatrix<- SpeciesTraits%>%
-  unite(Species_Treatment, c("Species", "Treatment"))%>%
-  filter(!Species_Treatment == "Bet.nan_P_C")%>% # remove Bet.nan control P values as not in vegetation data
-  column_to_rownames(var="Species_Treatment")
 
-TraitMatrix[is.na(TraitMatrix)] <- 0 # replace NA with 0
-TraitMatrix<-as.matrix(TraitMatrix)
+# create traitmatrix for calculating community weighted trait values based on species, habitat and treatment specific values
+SpeciesTrait<-  Traitdata%>%
+  select(SampleID, Species, Habitat, Treatment, VH, LA, LT1, LA, SLA, LDMC1)%>%
+  mutate(Habitat = recode(Habitat, WG ="M"))%>% #recode WG to M as trait values do not vary between these habitats
+  group_by(Species, Treatment, Habitat)%>%
+  summarise_if(is.numeric, mean, na.rm = TRUE)
 
-SpeciesTreatmentMatrix<- VegComp2021%>%
+SpeciesCover<- VegComp2021%>%
   gather(Species, cover, And.pol:Eri.vag)%>%
-  unite(Species_Treatment, c("Species", "Treatment"))%>%
-  select(PlotID, Species_Treatment, cover)%>%
-  spread(Species_Treatment, cover)%>%
+  mutate(Trait_Habitat = recode(Habitat, WG = "M"))
+
+CWMtraits <- left_join(SpeciesCover, SpeciesTrait, by= c("Species", "Treatment", "Trait_Habitat"="Habitat"))%>%
+  drop_na(cover)%>%
+  gather(Trait, value, VH:LDMC1)%>%
+  group_by(PlotID, Habitat, Treatment, Trait)%>%
+  summarise(CWM = weighted.mean(value, cover, na.rm = TRUE))
+
+# function to calculate standard error
+se <- function(x) sd(x)/sqrt(length(x))
+
+CWMtraits%>%
+  group_by(Treatment, Habitat, Trait)%>%
+  summarise(mean=mean(CWM), se=se(CWM))%>% #calculate mean, se traits per species, treatment, habitat
+  ggplot(aes(Habitat, mean, color=Treatment))+ 
+  geom_point(position=position_dodge(width = 0.5), stat="identity")+
+  geom_errorbar(aes(ymin=mean-se, ymax=mean+se), position=position_dodge(width = 0.5), width=.2)+
+  facet_wrap(~Trait, scales = "free")
+
+#%>%
+#  unite(Species_Habitat_Treatment, c("Species", "Habitat", "Treatment"))%>%
+#  filter(!Species_Habitat_Treatment == "Bet.nan_P_C")%>% # remove Bet.nan control P values as not in vegetation data
+#  column_to_rownames(var="Species_Habitat_Treatment")
+
+
+
+
+
+SpeciesTraitMatrix[is.na(SpeciesTraitMatrix)] <- 0 # replace NA with 0
+SpeciesTraitMatrix<-as.matrix(SpeciesTraitMatrix)
+
+SpeciesCoverMatrix<- VegComp2021%>%
+  #mutate(Habitat = recode(Habitat, WG ="M"))%>% #recode WG to M as trait values do not vary between these habitats
+  gather(Species, cover, And.pol:Eri.vag)%>%
+  unite(Species_Habitat_Treatment, c("Species", "Habitat", "Treatment"))%>%
+  select(PlotID, Species_Habitat_Treatment, cover)%>%
+  spread(Species_Habitat_Treatment, cover)%>%
+  filter(!Species_Habitat_Treatment %in% c("Arc.pol_P_C", "Arc.pol_P_OTC", "Arc.pol_M_OTC", "Bet.nan_P_C")%>% # remove Bet.nan control P values as not in vegetation data
   column_to_rownames(var="PlotID")
 
 SpeciesTreatmentMatrix[is.na(SpeciesTreatmentMatrix)] <- 0 # replace NA with 0
@@ -189,11 +225,7 @@ Iskoras_CWM<-FD_Traits$CWM%>%
          Habitat = substring(PlotID_Treatment, 2,3),
          Habitat = sub("_", "", Habitat))
 
-Iskoras_CWM%>%
-  gather(Trait, value, VH:LT)%>%
-  ggplot(aes(Habitat, value, fill = Treatment))+
-  geom_boxplot()+
-  facet_wrap(~Trait, scales = "free")
+
 
 VegComp2021_Traits<- left_join(VegComp2021, Iskoras_CWM, by = c("PlotID", "Habitat", "Treatment"))
 
