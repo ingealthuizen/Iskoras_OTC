@@ -86,7 +86,7 @@ Traitdata%>%
 
 Traitdata%>%
   select(Species, Habitat, VH, LA, LDMC1, SLA, LT1)%>%
-  gather(Trait, value, VH:LT)%>%
+  gather(Trait, value, VH:LT1)%>%
   ggplot(aes(Habitat, value, fill=Habitat))+
   geom_boxplot()+
   facet_grid(Trait~Species, scales="free")
@@ -145,12 +145,20 @@ plotResiduals(m1)
 
 
 #### Community weighted Trait Values
-# Mean trait data per species
+# Mean trait data per species and Treatment
+# ! Variability in species traits along thaw gradient not yet accounted for, look into doing this.
 SpeciesTraits<- Traitdata%>%
-  group_by(Species, Treatment)%>%
-  summarise_if(is.numeric, mean, na.rm = TRUE)%>% #calculate average traits per species, treatment, habitat
-  select(Species, Treatment, VH, LA, LDMC1, SLA, LT)%>%
+  select(SampleID, Species, Habitat, Treatment, VH, LA, LT1, LA, SLA, LDMC1)%>%
+  gather(Trait, value, VH:LDMC1)%>%
+  group_by(Species, Treatment, Habitat, Trait)%>%
+  summarise(mean=mean(value), sd=sd(value))%>% #calculate mean, sd traits per species, treatment, habitat
   ungroup()
+
+# Plot mean + sd of trait values for each species in each habitat and treatment
+ggplot(SpeciesTraits, aes(Habitat, mean, color=Treatment))+
+  geom_point(position=position_dodge(width = 0.5), stat="identity")+
+  geom_errorbar(aes(ymin=mean-sd, ymax=mean+sd), position=position_dodge(width = 0.5), width=.2)+
+  facet_grid(Trait~Species, scales = "free")
 
 TraitMatrix<- SpeciesTraits%>%
   unite(Species_Treatment, c("Species", "Treatment"))%>%
