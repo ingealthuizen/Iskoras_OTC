@@ -58,9 +58,9 @@ Iskoras_env <-VegComp2021%>%
 adonis2(VegMatrix ~ Habitat * Treatment, strata = Iskoras_env$Transect, data=Iskoras_env, perm=999 )
 #Significant differences between Habitat, minor significance for Treatment  
 
-
+###########################################################################################################################################################
 #### TRAIT DATA
-### !!! for relatively small leaves 3 leaf samples were taken
+### !!! for relatively small leaves 3 leaf samples were taken, only 1st leave used in analysis
 
 Traitdata_raw<-read.csv2("VegetationData\\LeafTraits\\LeafTraits_Iskoras_leaves.csv")
 Traitdata<- Traitdata_raw%>%
@@ -71,21 +71,21 @@ Traitdata<- Traitdata_raw%>%
   #gather(measurement, LDMC, LDMC1:LDMC3)%>%
   #group_by(SampleID, Species, Sample, Treatment, Habitat)%>%
   #summarise_if(is.numeric, mean, na.rm = TRUE)%>% # calculate average LDMC per SampleID
-  group_by(SampleID, Species, Sample, Treatment, Habitat)%>%
-  gather(measurement, LT, LT1:LT3)%>%
-  summarise_if(is.numeric, mean, na.rm = TRUE)%>% #calculate average leaf thickness per SampleID
+  #group_by(SampleID, Species, Sample, Treatment, Habitat)%>%
+  #gather(measurement, LT, LT1:LT3)%>%
+  #summarise_if(is.numeric, mean, na.rm = TRUE)%>% #calculate average leaf thickness per SampleID
   ungroup()
 
 Traitdata%>%
-  select(Species,Treatment, Habitat, VH, LA, LDMC1, SLA, LT)%>%
-  gather(Trait, value, VH:LT)%>%
+  select(Species,Treatment, Habitat, VH, LA, LDMC1, SLA, LT1)%>%
+  gather(Trait, value, VH:LT1)%>%
   ggplot(aes(Species, value, fill=Treatment))+
   geom_boxplot()+
   facet_grid(Trait~Habitat, scales="free")+
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
 
 Traitdata%>%
-  select(Species, Habitat, VH, LA, LDMC1, SLA, LT)%>%
+  select(Species, Habitat, VH, LA, LDMC1, SLA, LT1)%>%
   gather(Trait, value, VH:LT)%>%
   ggplot(aes(Habitat, value, fill=Habitat))+
   geom_boxplot()+
@@ -123,8 +123,6 @@ summary(m2)
 plotQQunif(m2)
 plotResiduals(m2)
 
-
-
 m1 <- glmmTMB(LAlog ~ Habitat * Treatment + (1|Species ), family= gaussian(link = "identity"), data=Traitmodel)
 summary(m1)
 plotQQunif(m1)
@@ -146,6 +144,7 @@ plotQQunif(m1)
 plotResiduals(m1)
 
 
+#### Community weighted Trait Values
 # Mean trait data per species
 SpeciesTraits<- Traitdata%>%
   group_by(Species, Treatment)%>%
