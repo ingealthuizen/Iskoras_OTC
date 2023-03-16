@@ -311,9 +311,11 @@ ggplot(NDVImean, aes(as.factor(Month), NDVI.mean, color= Habitat, shape= Treatme
 
 ####################################################################################################################################
 ####### Abiotic conditions (TOMST loggers)
+#! NEED TO CHECK LOGGERID and LOCATION!!!
+library(lubridate)
 TomstData<-read.csv("AnalysisR\\TOMSTdata_SMcalculated.csv")
+se <- function(x) sd(x)/sqrt(length(x))
 
-#
 ### calculate mean temp for habitat and treatments
 TomstData<-TomstData%>%
   filter(Treatment %in% c("C", "OTC"))%>%
@@ -326,7 +328,7 @@ TomstData<-TomstData%>%
 TomstData_MeanHourlyTransect<-TomstData%>%
   gather(Climate_variable, value, SoilTemperature:Soilmoisture_Volumetric)%>%
   group_by(Habitat, Treatment, Transect, Date, Hour, Climate_variable)%>%
-  summarise_at(vars(value), list(Min = min, Mean = mean, Max = max, Sd = sd))
+  summarise_at(vars(value), list(Min = min, Mean = mean, Max = max, Sd = sd, se = se))
 
 # Plot SoilTemperature 
 TomstData_MeanHourlyTransect%>%
@@ -360,7 +362,7 @@ TomstData_MeanHourlyTransect%>%
 TomstData_MeanHourlyHabitat<-TomstData%>%
   gather(Climate_variable, value, SoilTemperature:Soilmoisture_Volumetric)%>%
   group_by(Habitat, Treatment, Date, Hour, Climate_variable)%>%
-  summarise_at(vars(value), list(Min = min, Mean = mean, Max = max, Sd = sd))
+  summarise_at(vars(value), list(Min = min, Mean = mean, Max = max, Sd = sd, se =se))
 
 # plot summerdays hourly
 TomstData_MeanHourlyHabitat%>%
@@ -375,19 +377,19 @@ TomstData_MeanHourlyHabitat%>%
 # Summary Daily Per Transect and Habitat
 TomstData_MeanDailyTransect<-TomstData%>%
   gather(Climate_variable, value, SoilTemperature:Soilmoisture_Volumetric)%>%
-  group_by(Habitat,Treatment, Transect, Date, Climate_variable)%>%
-  summarise_at(vars(value), list(Min = min, Mean = mean, Max = max, Sd = sd))
+  group_by(Habitat, Treatment, Date, Climate_variable)%>%
+  summarise_at(vars(value), list(Min = min, Mean = mean, Max = max, Sd = sd, se =se))
 
 # plot summer period
 TomstData_MeanDailyTransect%>%
-  filter(Date > "2022-06-01" & Date <"2022-09-01")%>%
+  filter(Date > "2021-06-01" & Date <"2021-09-01")%>%
   filter(Climate_variable %in% c("SoilTemperature"))%>%
   ggplot(aes(Date, Mean, col= Treatment))+
   geom_line()+
-  geom_ribbon(aes(ymin = Mean-Sd, ymax = Mean+Sd, fill = Treatment), alpha=0.3) +
-  facet_grid(Transect~Habitat, scales="free")
+  geom_ribbon(aes(ymin = Mean-se, ymax = Mean+se, fill = Treatment), alpha=0.3) +
+  facet_grid(Climate_variable~Habitat, scales="free")
 
-TomstData_MeanDailyTransect%>%
+ TomstData_MeanDailyTransect%>%
   filter(Date > "2022-06-01" & Date <"2022-09-01")%>%
   filter(Climate_variable %in% c("AirTemperature"))%>%
   ggplot(aes(Date, Mean, col= Treatment))+
@@ -435,7 +437,7 @@ library(ggplot2)
 # ### HMR output based on V  in L, A in m2, CH4 in ppb, C02 in ppm
 
 # load HMR output 2020; collar Area () volume taken into account
-SR2020_CO2<-read.csv("SR2020_CO2_HMRoutput.csv")%>%
+SR2020_CO2<-read.csv("Cflux\\SR2020_CO2_HMRoutput.csv")%>%
   separate(Series, sep = "_", into = c("Plot", "Treatment", "Date", "comment"))%>%
   mutate(Transect = substring(Plot,1,1),
          Habitat = substring(Plot, 2,3))%>%
@@ -445,7 +447,7 @@ SR2020_CO2<-read.csv("SR2020_CO2_HMRoutput.csv")%>%
   rowid_to_column(var='FluxID')
 
 # load HMR output, collar volume taken into account 
-SR2021_CO2<-read.csv("SR2021_CO2_HMRoutput.csv")%>%
+SR2021_CO2<-read.csv("Cflux\\SR2021_CO2_HMRoutput.csv")%>%
   separate(PlotID, sep = "_", into = c("Plot", "Treatment"))%>%
   mutate(Transect = substring(Plot,1,1),
          Habitat = substring(Plot, 2,3))%>%
@@ -458,7 +460,7 @@ SR20202021_CO2<- rbind(SR2020_CO2, SR2021_CO2)%>%
   mutate(Date = as.Date(Date, "%Y-%m-%d"))
 
 # SR cH4 data
-SR2021_CH4<-read.csv("SR2021_CH4_HMRoutput.csv")%>%
+SR2021_CH4<-read.csv("Cflux\\SR2021_CH4_HMRoutput.csv")%>%
   separate(PlotID, sep = "_", into = c("Plot", "Treatment"))%>%
   mutate(Transect = substring(Plot,1,1),
          Habitat = substring(Plot, 2,3))%>%
@@ -469,22 +471,22 @@ SR2021_CH4<-read.csv("SR2021_CH4_HMRoutput.csv")%>%
   
 
 ## Environmental data 2020 and 2021
-SRenvdata04102020<-read.csv2("2020\\SRmetadata_04102020.csv")
-SRenvdata08092020<-read.csv2("2020\\SRmetadata_08092020.csv")
-SRenvdata11082020<-read.csv2("2020\\SRmetadata_11082020.csv")
-SRenvdata1507020<-read.csv2("2020\\SRmetadata_15072020.csv")
-SRenvdata17072020<-read.csv2("2020\\SRmetadata_17072020.csv")
+SRenvdata04102020<-read.csv2("Cflux\\2020\\SRmetadata_04102020.csv")
+SRenvdata08092020<-read.csv2("Cflux\\2020\\SRmetadata_08092020.csv")
+SRenvdata11082020<-read.csv2("Cflux\\2020\\SRmetadata_11082020.csv")
+SRenvdata1507020<-read.csv2("Cflux\\2020\\SRmetadata_15072020.csv")
+SRenvdata17072020<-read.csv2("Cflux\\2020\\SRmetadata_17072020.csv")
 SRenvdata2020<-rbind(SRenvdata1507020, SRenvdata17072020, SRenvdata11082020, SRenvdata08092020, SRenvdata04102020 )%>%
   mutate(Date = as.Date(Date, "%d.%m.%Y"))%>%
   mutate(Habitat = recode(Habitat, WGA = "WG", WGB = "WG", "WG "= "WG"))
 
-SRenvdata04062021<-read.csv2("2021\\SRmetadata_04062021.csv")
-SRenvdata19082021<-read.csv2("2021\\SRmetadata_19082021.csv")
-SRenvdata19082021_2<-read.csv2("2021\\SRmetadata_19082021_2.csv")
-SRenvdata12092021<-read.csv2("2021\\SRmetadata_12092021.csv")
-SRenvdata21082021<-read.csv2("2021\\SRmetadata_21082021.csv")
-SRenvdata22072021<-read.csv2("2021\\SRmetadata_22072021.csv")
-SRenvdata30062021<-read.csv2("2021\\SRmetadata_30062021.csv")
+SRenvdata04062021<-read.csv2("Cflux\\2021\\SRmetadata_04062021.csv")
+SRenvdata19082021<-read.csv2("Cflux\\2021\\SRmetadata_19082021.csv")
+SRenvdata19082021_2<-read.csv2("Cflux\\2021\\SRmetadata_19082021_2.csv")
+SRenvdata12092021<-read.csv2("Cflux\\2021\\SRmetadata_12092021.csv")
+SRenvdata21082021<-read.csv2("Cflux\\2021\\SRmetadata_21082021.csv")
+SRenvdata22072021<-read.csv2("Cflux\\2021\\SRmetadata_22072021.csv")
+SRenvdata30062021<-read.csv2("Cflux\\2021\\SRmetadata_30062021.csv")
 SRenvdata2021<- rbind(SRenvdata04062021, SRenvdata30062021, SRenvdata22072021, SRenvdata19082021, SRenvdata19082021_2, SRenvdata21082021, SRenvdata12092021)%>%
   mutate(Date = recode(Date, "19.08.2021" = "18.08.2021", "21.08.2021" = "18.08.2021"))%>% #match envdata to flux data
   mutate(Date = as.Date(Date, "%d.%m.%Y"))%>%
