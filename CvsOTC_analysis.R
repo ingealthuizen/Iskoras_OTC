@@ -190,44 +190,7 @@ CWMtraits%>%
   geom_errorbar(aes(ymin=mean-se, ymax=mean+se), position=position_dodge(width = 0.5), width=.2)+
   facet_wrap(~Trait, scales = "free")
 
-#%>%
-#  unite(Species_Habitat_Treatment, c("Species", "Habitat", "Treatment"))%>%
-#  filter(!Species_Habitat_Treatment == "Bet.nan_P_C")%>% # remove Bet.nan control P values as not in vegetation data
-#  column_to_rownames(var="Species_Habitat_Treatment")
 
-
-
-
-
-SpeciesTraitMatrix[is.na(SpeciesTraitMatrix)] <- 0 # replace NA with 0
-SpeciesTraitMatrix<-as.matrix(SpeciesTraitMatrix)
-
-SpeciesCoverMatrix<- VegComp2021%>%
-  #mutate(Habitat = recode(Habitat, WG ="M"))%>% #recode WG to M as trait values do not vary between these habitats
-  gather(Species, cover, And.pol:Eri.vag)%>%
-  unite(Species_Habitat_Treatment, c("Species", "Habitat", "Treatment"))%>%
-  select(PlotID, Species_Habitat_Treatment, cover)%>%
-  spread(Species_Habitat_Treatment, cover)%>%
-  filter(!Species_Habitat_Treatment %in% c("Arc.pol_P_C", "Arc.pol_P_OTC", "Arc.pol_M_OTC", "Bet.nan_P_C")%>% # remove Bet.nan control P values as not in vegetation data
-  column_to_rownames(var="PlotID")
-
-SpeciesTreatmentMatrix[is.na(SpeciesTreatmentMatrix)] <- 0 # replace NA with 0
-SpeciesTreatmentMatrix<-as.matrix(SpeciesTreatmentMatrix[, colSums(SpeciesTreatmentMatrix) != 0])
-
-# calculate CWM traits 
-library(FD)
-FD_Traits<-dbFD(TraitMatrix, SpeciesTreatmentMatrix, w.abun= TRUE, calc.CWM = TRUE)
-Iskoras_CWM<-FD_Traits$CWM%>%
-  rownames_to_column(var = "PlotID_Treatment")%>%
-  mutate(PlotID = PlotID_Treatment)%>%
-  mutate(Treatment = str_extract(PlotID, "[^_]+$"),
-         Transect = substring(PlotID_Treatment, 1,1),
-         Habitat = substring(PlotID_Treatment, 2,3),
-         Habitat = sub("_", "", Habitat))
-
-
-
-VegComp2021_Traits<- left_join(VegComp2021, Iskoras_CWM, by = c("PlotID", "Habitat", "Treatment"))
 
 #PCA
 library(ggfortify)
