@@ -284,6 +284,7 @@ plot_grid(PCAplot, palsaPCA, thawslumpPCA, VegetatedpondPCA, labels= c("A", "B",
   
 
 # NDVI data
+se <- function(x) sd(x)/sqrt(length(x))
 # group by month and year!
 NDVIdata<-read.csv2("VegetationData\\NDVI_Greenseeker.csv")%>%
   mutate(Date = as.Date(Date, "%d.%m.%Y"),
@@ -297,7 +298,7 @@ NDVIdata<-read.csv2("VegetationData\\NDVI_Greenseeker.csv")%>%
 
 NDVImean<- NDVIdata%>%
   group_by(Month, Habitat, Treatment)%>%
-  summarise(NDVI.sd = sd(NDVI, na.rm = TRUE),
+  summarise(NDVI.se = se(NDVI, na.rm = TRUE),
             NDVI.mean = mean(NDVI, na.rm=TRUE))%>%
   ungroup()
 
