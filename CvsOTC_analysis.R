@@ -410,10 +410,10 @@ TomstData_MeanHourlyHabitat<-TomstData%>%
 
 # plot summer season hourly based on June-August data in 2021
 TomstData_MeanHourlyHabitat%>%
-  filter(Climate_variable %in% c("AirTemperature", "GroundTemperature", "SoilTemperature", "Soilmoisture_Volumetric"))%>%
-  ggplot(aes(Hour, Mean, col= Treatment))+
+  filter(Climate_variable %in% c("AirTemperature", "SoilTemperature"))%>%
+  ggplot(aes(Hour, Mean, col= Habitat, linetype =Treatment))+
   geom_line()+
-  geom_ribbon(aes(ymin = Mean-se, ymax = Mean+se, fill = Treatment), alpha=0.3) +
+  geom_ribbon(aes(ymin = Mean-se, ymax = Mean+se, fill = Habitat), alpha=0.3) +
   facet_grid(Climate_variable~Habitat, scales="free")
 
 ##### DAILY
@@ -445,8 +445,8 @@ TomstData_MeanDailyTransect%>%
   filter(Climate_variable %in% c("Soilmoisture_Volumetric"))%>%
   ggplot(aes(Date, Mean, col= Treatment))+
   geom_line()+
-  geom_ribbon(aes(ymin = Mean-Sd, ymax = Mean+Sd, fill = Treatment), alpha=0.3) +
-  facet_grid(Transect~Habitat, scales="free")
+  geom_ribbon(aes(ymin = Mean-se, ymax = Mean+se, fill = Treatment), alpha=0.3) +
+  facet_grid(~Habitat, scales="free")
 
 # Summary per Habitat
 TomstData_MeanDailyHabitat<-TomstData%>%
