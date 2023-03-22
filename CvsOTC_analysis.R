@@ -360,7 +360,7 @@ DailyVariablity%>%
   group_by(Habitat, Climatevariable)%>%
   mutate(moving_avg7 = rollmean(value, k=7, fill=NA, align='right'))%>%
   filter(Climatevariable != "RawSoilmoisture")%>%
-  filter(Date > "2021-07-01" & Date <"2021-08-01" )%>%
+  filter(Date > "2021-06-01" & Date <"2021-09-01" )%>%
   ggplot(aes(Date, value, col= Difference))+
   geom_point()+
   geom_line(aes(y=moving_avg7))+
@@ -404,16 +404,16 @@ TomstData_MeanHourlyTransect%>%
 # summary Hourly per Habitat
 TomstData_MeanHourlyHabitat<-TomstData%>%
   gather(Climate_variable, value, SoilTemperature:Soilmoisture_Volumetric)%>%
-  group_by(Habitat, Treatment, Date, Hour, Climate_variable)%>%
+  filter(Date > "2021-06-01" & Date <"2021-09-01")%>%
+  group_by(Habitat, Treatment, Hour, Climate_variable)%>%
   summarise_at(vars(value), list(Min = min, Mean = mean, Max = max, Sd = sd, se =se))
 
-# plot summerdays hourly
+# plot summer season hourly based on June-August data in 2021
 TomstData_MeanHourlyHabitat%>%
-  filter(Date == "2021-07-01")%>%
   filter(Climate_variable %in% c("AirTemperature", "GroundTemperature", "SoilTemperature", "Soilmoisture_Volumetric"))%>%
   ggplot(aes(Hour, Mean, col= Treatment))+
   geom_line()+
-  geom_ribbon(aes(ymin = Mean-Sd, ymax = Mean+Sd, fill = Treatment), alpha=0.3) +
+  geom_ribbon(aes(ymin = Mean-se, ymax = Mean+se, fill = Treatment), alpha=0.3) +
   facet_grid(Climate_variable~Habitat, scales="free")
 
 ##### DAILY
