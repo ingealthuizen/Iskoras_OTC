@@ -311,11 +311,11 @@ ggplot(NDVImean, aes(as.factor(Month), NDVI.mean, color= Habitat, shape= Treatme
   geom_point(position = position_dodge(0.8), size=4) +
   geom_errorbar(aes(ymin=NDVI.mean-NDVI.se, ymax=NDVI.mean+NDVI.se), position = position_dodge(0.8), width=.4)+
   scale_color_manual(values= c("#fc8d62", "#e5c494","#66c2a5", "#8da0cb"), 
-                     name = "Habitat", labels = c("Vegetated Palsa", "Soil Palsa", "Thawslump", "Vegetated Pond"))+
-  scale_shape_manual(values= c(17,19), name = "Treatment", labels = c("Control", "OTC"))+
+                     name = "Habitat")+
+  scale_shape_manual(values= c(19,17), name = "Treatment", labels = c("Control", "OTC"))+
   labs(x = "Month of the year", y= "NDVI")+
   facet_grid()+
-  theme_bw()+
+  theme_classic()+
   theme(legend.position = "bottom", axis.title = element_text(size = 14), axis.text = element_text(size =12), legend.text = element_text(size =11) )
 
 ####################################################################################################################################
