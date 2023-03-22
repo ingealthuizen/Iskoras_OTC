@@ -214,8 +214,6 @@ TraitPCA<- VegComp2021_Traits%>%
   select(VH, LA, SLA, LDMC)
 TraitPCA <- princomp(TraitPCA, cor= TRUE, scores=TRUE) #, Temperature = T_summer_longterm, Precipitation = P_annual_longterm
 
-
-
 PCAplot<- autoplot(TraitPCA, data = VegComp2021_Traits,  size = 4, fill= "Habitat", shape = "Treatment",
                    loadings = TRUE, loadings.colour = 'black', loadings.label.colour = "black", 
                    loadings.label = TRUE, loadings.label.size = 5, loadings.label.vjust = -.6, loadings.label.hjust = 0.9)+
@@ -337,6 +335,30 @@ TomstData<-TomstData%>%
   mutate(Date = as.Date(Date),
          DateTime = as.POSIXct(strptime(Date_Time, tz = "UTC", "%Y-%m-%dT%H:%M:%SZ")),
          Hour = hour(DateTime))
+
+# calculate min, max and mean for each Climatic variable measured by TOMST
+DailyVariablity<- TomstData%>%
+  group_by(PlotID, Transect, Habitat, Treatment, Date)%>%
+  gather(Climatevariable, value, SoilTemperature:Soilmoisture_Volumetric)%>%
+  select(PlotID, Transect, Habitat, Treatment, Date, Climatevariable, value)%>%
+  group_by(Habitat, Treatment, Date, Climatevariable)%>%
+  summarise(min = min(value),
+            max = max(value),
+            mean = mean(value))%>%
+  mutate(Treatment = factor(Treatment, c("OTC", "C"), ordered = T)) %>% 
+  group_by(Habitat, Date, Climatevariable) %>% 
+  mutate(diff_min = min - lag(min, 1),
+         diff_max = max - lag(max, 1),
+         diff_mean = mean - lag(mean, 1))
+
+DailyVariablity%>%
+  gather(Difference, value, diff_min:diff_mean)%>%
+  filter(Climatevariable != "RawSoilmoisture")%>%
+  filter(Date > "2021-07-01" & Date <"2021-08-01" )%>%
+  ggplot(aes(Date, value, col= Difference))+
+  geom_point()+
+  facet_grid(Climatevariable~Habitat, scales = "free")
+
 
 # summary Hourly per Transect and Habitat
 TomstData_MeanHourlyTransect<-TomstData%>%
