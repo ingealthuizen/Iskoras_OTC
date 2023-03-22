@@ -33,7 +33,8 @@ data.scores.sites$sitename <- rownames(data.scores.sites)  # create a column of 
 data.scores.sites$Treatment <- VegComp2021$Treatment#  add the treatment variable 
 data.scores.sites$Habitat <- VegComp2021$Habitat #  add Habitat variable
 data.scores.sites<-data.scores.sites%>%
-  mutate(Habitat =recode(Habitat, M = "Thawslump", P= "Palsa", WG= "Vegetated Pond")) # recode Habitat
+  mutate(Habitat =recode(Habitat, M = "Thawslump", P= "Vegetated Palsa", WG= "Vegetated Pond")) # recode Habitat
+data.scores.sites$Habitat <- factor(data.scores.sites$Habitat, levels = c("Vegetated Palsa", "Thawslump", "Vegetated Pond"))
 
 species.scores <- as.data.frame(data.scores$species)
 species.scores$species <- rownames(species.scores)
@@ -298,14 +299,15 @@ NDVIdata<-read.csv2("VegetationData\\NDVI_Greenseeker.csv")%>%
 
 NDVImean<- NDVIdata%>%
   group_by(Month, Habitat, Treatment)%>%
-  summarise(NDVI.se = se(NDVI, na.rm = TRUE),
-            NDVI.mean = mean(NDVI, na.rm=TRUE))%>%
-  ungroup()
+  summarise(NDVI.se = se(NDVI),
+            NDVI.mean = mean(NDVI))%>%
+  ungroup()%>%
+  mutate(Habitat = recode(Habitat, P= "Palsa"  ))
 
 ggplot(NDVImean, aes(as.factor(Month), NDVI.mean, color= Habitat, shape= Treatment)) +
   geom_point(position = position_dodge(0.8), size=2) +
-  geom_errorbar(aes(ymin=NDVI.mean-NDVI.sd, ymax=NDVI.mean+NDVI.sd), position = position_dodge(0.8), width=.2)+
-  scale_fill_manual(values= c("#fc8d62", "#66c2a5", "#8da0cb"), name = "Habitat", labels = c("Palsa", "Thawslump", "Vegetated Pond"))+
+  geom_errorbar(aes(ymin=NDVI.mean-NDVI.se, ymax=NDVI.mean+NDVI.se), position = position_dodge(0.8), width=.2)+
+  scale_color_manual(values= c("#fc8d62", "#e5c494","#66c2a5", "#8da0cb"), name = "Habitat", labels = c("Vegetated Palsa", "Soil Palsa", "Thawslump", "Vegetated Pond"))+
   scale_shape_manual(values= c(17,19), name = "Treatment", labels = c("Control", "OTC"))+
   facet_grid()+
   theme_bw()
