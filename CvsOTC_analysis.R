@@ -337,6 +337,8 @@ TomstData<-TomstData%>%
          Hour = hour(DateTime))
 
 # calculate min, max and mean for each Climatic variable measured by TOMST
+ma <- function(x, n = 7){  stats::filter(x, rep(1 / n, n), sides = 2)} # moving average for 7 days 
+
 DailyVariablity<- TomstData%>%
   group_by(PlotID, Transect, Habitat, Treatment, Date)%>%
   gather(Climatevariable, value, SoilTemperature:Soilmoisture_Volumetric)%>%
@@ -349,14 +351,19 @@ DailyVariablity<- TomstData%>%
   group_by(Habitat, Date, Climatevariable) %>% 
   mutate(diff_min = min - lag(min, 1),
          diff_max = max - lag(max, 1),
-         diff_mean = mean - lag(mean, 1))
+         diff_mean = mean - lag(mean, 1))%>%
+  filter(Treatment != "C")
 
+library(zoo)
 DailyVariablity%>%
   gather(Difference, value, diff_min:diff_mean)%>%
+  group_by(Habitat, Climatevariable)%>%
+  mutate(moving_avg7 = rollmean(value, k=7, fill=NA, align='right'))%>%
   filter(Climatevariable != "RawSoilmoisture")%>%
   filter(Date > "2021-07-01" & Date <"2021-08-01" )%>%
   ggplot(aes(Date, value, col= Difference))+
   geom_point()+
+  geom_line(aes(y=moving_avg7))+
   facet_grid(Climatevariable~Habitat, scales = "free")
 
 
