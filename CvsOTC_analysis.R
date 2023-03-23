@@ -538,7 +538,7 @@ SR2021_CO2<-read.csv("Cflux\\2021\\HMRoutput_SR2021_CO2.csv")%>%
   select(-H2O)
 
 # SR cH4 data
-SR2021_CH4<-read.csv2("Cflux\\2021\\HMRoutput_SR2021_CH4.csv")%>%
+SR2021_CH4<-read.csv2("Cflux\\2021\\HMRoutput_SR2021_CH4.csv", dec = ".")%>%
   separate(Series, sep = "_", into = c("Plot", "Treatment", "Date", "H2O"))%>%
   mutate(Transect = substring(Plot,1,1),
          Habitat = substring(Plot, 2,3),
@@ -575,7 +575,25 @@ SR2021_CO2_env<- SR2021_CO2_env%>%
   mutate(CO2flux = CO2.f0/(0.08205*(273.15+AirTemperature)),
          CO2flux.LR = CO2.LR/(0.08205*(273.15+AirTemperature)))
 
+# bind together 2020 and 2021 CO2 flux data
 SR20202021_CO2_env<- rbind(SR2020_CO2_env, SR2021_CO2_env)
+
+
+
+# combine SR2021data CH4 with environmental data
+SR2021_CH4_env<- left_join(SR2021_CH4, SRenvdata2021, by= c("Date", "PlotID", "Transect" , "Habitat", "Treatment"))%>%
+  distinct(FluxID, .keep_all = TRUE)%>% # remove duplicated rows
+  mutate(Hour = as.integer(substr(Starttime, 1,2)))
+
+## Add airtemp based on TOMSTloggerData for measurement hour
+SR2021_CH4_env<-left_join(SR2021_CH4_env, TomstData_HourlyPlotID, by= c("Date", "Hour", "PlotID", "Transect" , "Habitat", "Treatment"))
+
+# Flux conversion HMR microL/m2/s > micromol/m2/s HMRoutput/(0.08205*(273.15+Air_temp))
+SR2021_CH4_env<- SR2021_CH4_env%>%
+  filter(Method.CH4 != "No flux")%>%
+  mutate(CH4flux = CH4.f0/(0.08205*(273.15+AirTemperature)),
+         CH4flux.LR = CH4.LR/(0.08205*(273.15+AirTemperature)))
+
 
 
 ### CLEAN DATA
