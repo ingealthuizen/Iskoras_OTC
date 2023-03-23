@@ -336,6 +336,14 @@ TomstData<-TomstData%>%
          DateTime = as.POSIXct(strptime(Date_Time, tz = "UTC", "%Y-%m-%dT%H:%M:%SZ")),
          Hour = hour(DateTime))
 
+TomstData_HourlyPlotID<- TomstData%>%
+  group_by(PlotID, Transect, Habitat, Treatment, Date, Hour)%>%
+  summarise(SoilTemperature = mean(SoilTemperature, na.rm = TRUE), 
+            GroundTemperature = mean(GroundTemperature, na.rm = TRUE),
+            AirTemperature = mean(AirTemperature, na.rm = TRUE),
+            Soilmoisture_Volumetric = mean(Soilmoisture_Volumetric, na.rm = TRUE))%>%
+  ungroup()
+
 # calculate min, max and mean for each Climatic variable measured by TOMST
 ma <- function(x, n = 7){  stats::filter(x, rep(1 / n, n), sides = 2)} # moving average for 7 days 
 
@@ -472,22 +480,49 @@ library(tidyverse)
 library(ggplot2)
 
 ## NEED TO CHECK whether I need to do conversion still
-# Flux conversion HMR microL/m2/s > micromol/m2/s HMRoutput/(0.08205*(273.15+Air_temp)) 
+
 # (0.08205*273.15) equals 22.4 L/mol, which is the standard molar volume at standard conditions (temp = 0 and 1 atm pressure)
 # think about using FluxCalR of gasfluxes for processing data
 
 #Soil Respiration
 # ### HMR output based on V  in L, A in m2, CH4 in ppb, C02 in ppm
 
-# load HMR output 2020; collar Area () volume taken into account
+# Flux conversion HMR microL/m2/s > micromol/m2/s HMRoutput/(0.08205*(273.15+Air_temp))!!!! 
+# load HMR output 2020; collar Area and volume taken into account
 SR2020_CO2<-read.csv("Cflux\\SR2020_CO2_HMRoutput.csv")%>%
   separate(Series, sep = "_", into = c("Plot", "Treatment", "Date", "comment"))%>%
   mutate(Transect = substring(Plot,1,1),
-         Habitat = substring(Plot, 2,3))%>%
+         Habitat = substring(Plot, 2,3),
+         Date = as.Date(Date, "%Y-%m-%d"))%>%
   unite(PlotID, Plot:Treatment, remove = FALSE)%>%
   select(PlotID, Transect, Habitat, Treatment, Date, f0, LR.f0, Method)%>%
   rename(CO2.f0 = f0, CO2.LR = LR.f0, Method.CO2 = Method)%>%
   rowid_to_column(var='FluxID')
+
+## Environmental data 2020 and 2021
+SRenvdata04102020<-read.csv2("Cflux\\2020\\SRmetadata_04102020.csv")
+SRenvdata08092020<-read.csv2("Cflux\\2020\\SRmetadata_08092020.csv")
+SRenvdata11082020<-read.csv2("Cflux\\2020\\SRmetadata_11082020.csv")
+SRenvdata1507020<-read.csv2("Cflux\\2020\\SRmetadata_15072020.csv")
+SRenvdata17072020<-read.csv2("Cflux\\2020\\SRmetadata_17072020.csv")
+SRenvdata2020<-rbind(SRenvdata1507020, SRenvdata17072020, SRenvdata11082020, SRenvdata08092020, SRenvdata04102020 )%>%
+  mutate(Date = as.Date(Date, "%d.%m.%Y"))%>%
+  mutate(Habitat = recode(Habitat, WGA = "WG", WGB = "WG", "WG "= "WG"))
+
+SR2020_CO2_env<- left_join(SR2020_CO2, SRenvdata2020, by= c("Date", "PlotID", "Transect" , "Habitat", "Treatment"))%>%
+  distinct(FluxID, .keep_all = TRUE)%>% # remove duplicated rows
+  mutate(Hour = as.integer(substr(Starttime, 1,2)))
+
+## Add airtemp based on TOMSTloggerData for measurement hour
+SR2020_CO2_env<-left_join(SR2020_CO2_env, TomstData_HourlyPlotID, by= c("Date", "Hour", "PlotID", "Transect" , "Habitat", "Treatment"))
+
+# Flux conversion HMR microL/m2/s > micromol/m2/s HMRoutput/(0.08205*(273.15+Air_temp))
+SR2020_CO2_env<- SR2020_CO2_env%>%
+  mutate(CO2flux = CO2.f0/(0.08205*(273.15+AirTemperature)))
+
+ggplot(SR2020_CO2_env, aes(as.factor(Date), CO2flux, col=Treatment))+
+  geom_boxplot()+
+  facet_grid(~Habitat)
 
 # load HMR output, collar volume taken into account 
 SR2021_CO2<-read.csv("Cflux\\SR2021_CO2_HMRoutput.csv")%>%
