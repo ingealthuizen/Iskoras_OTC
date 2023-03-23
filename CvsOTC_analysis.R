@@ -628,7 +628,51 @@ ggplot(SR2021_CH4_env_clean, aes(Month, CH4flux, fill=Treatment))+
 ######################################################################################################################################################
 ##### NET ECOSYSTEM EXCHANGE 
 # NEE chamber  V = 2.5 L, A = 0.0625 m2, CH4 in ppb, C02 in ppm
+NEE2020_CO2<- read.csv("Cflux\\2020\\NEE2020_CO2_HMRoutput.csv")%>%
+  rename(FluxID = X, CO2.f0 = f0, CO2.LR = LR.f0, Method.CO2 = Method)%>%
+  mutate(Date = as.Date(Date, "%Y-%m-%d"))
+  
 
+# load environmental metadata
+meta.data1<- read.csv2("2020\\LiCOR850\\NEEmetadata_14072020.csv")
+meta.data2<- read.csv2("2020\\LiCOR850\\NEEmetadata2_14072020.csv")
+meta.data3<- read.csv2("2020\\LiCOR850\\NEEmetadata_15072020.csv")
+meta.data4<- read.csv2("2020\\LiCOR850\\NEEmetadata2_15072020.csv")
+meta.data5<- read.csv2("2020\\LiCOR850\\NEEmetadata_14082020.csv")
+meta.data6<- read.csv2("2020\\LiCOR850\\NEEmetadata_15082020.csv")
+meta.data7<- read.csv2("2020\\LiCOR850\\NEEmetadata_07092020.csv")
+meta.data8<- read.csv2("2020\\LiCOR850\\NEEmetadata2_07092020.csv")
+meta.data9<- read.csv2("2020\\LiCOR850\\NEEmetadata_08092020.csv")
+meta.data10<- read.csv2("2020\\LiCOR850\\NEEmetadata_09092020.csv")
+meta.data11<- read.csv2("2020\\LiCOR850\\NEEmetadata2_09092020.csv")
+meta.data12<- read.csv2("2020\\LiCOR850\\NEEmetadata_04102020.csv")
+meta.data13<- read.csv2("2020\\LiCOR850\\NEEmetadata_05102020.csv")
+#Li7810
+meta.data14<- read.csv2("2020\\LiCOR7810\\NEEmetadata_20062020.csv")
+meta.data15<- read.csv2("2020\\LiCOR7810\\NEEmetadata_21062020.csv")
+
+NEEenvdata2020<- rbind(meta.data1, meta.data2,meta.data3, meta.data4, meta.data5, meta.data6, meta.data7, meta.data8, meta.data9,  meta.data10, meta.data11, meta.data12, meta.data13, meta.data14, meta.data15)%>%
+  mutate(Date = as.Date(Date, "%d.%m.%Y"))
+
+# combine SR2021data with environmental data
+NEE2020_CO2_env<- left_join(NEE2020_CO2, NEEenvdata2020, by= c("Date", "PlotID", "Transect" , "Habitat", "Treatment", "Cover"))%>%
+  distinct(FluxID, .keep_all = TRUE)%>% # remove duplicated rows
+  mutate(Hour = as.integer(substr(Starttime, 1,2)))%>%
+  mutate(Habitat=recode(Habitat, WGA = "WG", WGB = "WG"))
+
+
+## Add airtemp based on TOMSTloggerData for measurement hour
+NEE2020_CO2_env<-left_join(NEE2020_CO2_env, TomstData_HourlyPlotID, by= c("Date", "Hour", "PlotID", "Transect" , "Habitat", "Treatment"))
+'
+# NEED TO CORRECT FLUXES WITH IBUTTON TEMPERATURE TOMSTDATA not available for all dates !!!
+# Flux conversion HMR microL/m2/s > micromol/m2/s HMRoutput/(0.08205*(273.15+Air_temp))
+NEE2020_CO2<- NEE2020_CO2%>%
+  mutate(CO2flux = CO2.f0/(0.08205*(273.15+AirTemperature)),
+         CO2flux.LR = CO2.LR/(0.08205*(273.15+AirTemperature)))
+
+
+
+########## 2021 
 NEE2021_CO2<-read.csv("2021\\HMRoutput_NEE2021_CO2.csv")%>%
   separate(Series, sep = "_", into = c("PlotID", "Treatment", "Cover", "Date", "FluxID"))%>%
   mutate(Transect = substring(PlotID,1,1),
@@ -645,8 +689,7 @@ NEE2021_CH4<-read.csv("2021\\HMRoutput_NEE2021_CH4.csv")%>%
   select(PlotID, Transect, Habitat, Treatment, Date, f0, LR.f0, Method, FluxID, Cover)%>%
   rename(CH4.f0 = f0, CH4.LR = LR.f0, Method.CH4 = Method)
 
-
-NEE2021_CO2CH4<- inner_join(NEE2021_CO2, NEE2021_CH4, by= c("Date","PlotID","Transect", "Habitat", "Treatment", "FluxID", "Cover"))
+#NEE2021_CO2CH4<- inner_join(NEE2021_CO2, NEE2021_CH4, by= c("Date","PlotID","Transect", "Habitat", "Treatment", "FluxID", "Cover"))
 
 ## read in metadata
 NEEenvdata03062021<-read.csv2("2021\\NEEmetadata_03062021.csv")
