@@ -579,7 +579,6 @@ SR2021_CO2_env<- SR2021_CO2_env%>%
 SR20202021_CO2_env<- rbind(SR2020_CO2_env, SR2021_CO2_env)
 
 
-
 # combine SR2021data CH4 with environmental data
 SR2021_CH4_env<- left_join(SR2021_CH4, SRenvdata2021, by= c("Date", "PlotID", "Transect" , "Habitat", "Treatment"))%>%
   distinct(FluxID, .keep_all = TRUE)%>% # remove duplicated rows
@@ -595,47 +594,38 @@ SR2021_CH4_env<- SR2021_CH4_env%>%
          CH4flux.LR = CH4.LR/(0.08205*(273.15+AirTemperature)))
 
 
-
-### CLEAN DATA
-SR_CO2_FluxEnv_clean<-SR_CO2_FluxEnv%>%
+########################################################################################################################################
+### DATA CLEANING & visualitions
+SR20202021_CO2_env_clean<-SR20202021_CO2_env%>%
+  mutate(Month = as.factor(month(Date)),
+         Year = as.factor(year(Date)))%>%
   filter(Comment != "redo")%>%
   filter(Habitat != "W")%>%
-  filter(CO2.f0 > 0) # remove negative values
+  filter(CO2flux > 0) # remove negative values
 
-ggplot(SR_CO2_FluxEnv_clean, aes(as.factor(Date), CO2.f0, fill=Treatment))+
+ggplot(SR20202021_CO2_env_clean, aes(Month, CO2flux, fill=Treatment))+
   geom_boxplot()+
-  geom_vline(xintercept = 4.5)+
-  facet_grid(~Habitat)+
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+  facet_grid(~Habitat)
+
+ggplot(SR20202021_CO2_env_clean, aes(SoilTemp1, CO2flux, col=Treatment))+
+  geom_point()+
+  facet_grid(~Habitat)
 
 
-# match CH4 fluxdata and envdata
-SR_CH4_FluxEnv<- left_join(SRenvdata2021, SR2021_CH4, by= c("Date", "PlotID", "Transect" , "Habitat", "Treatment"))%>%
-  mutate(Date = as.Date(Date, "%d.%m.%Y"),
-         Month = format(as.Date(Date, format="%d/%m/%Y"),"%m"),
-         Year = format(as.Date(Date, format="%d/%m/%Y"),"%Y"),
-         Habitat = recode(Habitat, WGA = "WG", WGB = "WG", "WG "= "WG"))
-## TOO MANY ENTRIES!
 
-SR_CH4_FluxEnv_clean<-SR_CH4_FluxEnv%>%
+SR2021_CH4_env_clean<-SR2021_CH4_env%>%
+  mutate(Month = as.factor(month(Date)),
+         Year = as.factor(year(Date)))%>%
   filter(Habitat != "W")%>%
-  filter(CH4.f0 < 1000) # remove extreme values
+  filter(CH4flux < 1000) # remove extreme values
 
-ggplot(SR_CH4_FluxEnv_clean, aes(as.factor(Date), CH4.f0, fill=Treatment))+
+ggplot(SR2021_CH4_env_clean, aes(Month, CH4flux, fill=Treatment))+
   geom_boxplot()+
-  facet_grid(~Habitat)+
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+  facet_wrap(~Habitat, scales= "free")
 
 
-### ? Use environmental data to predict fluxes, see Konsta paper on tundra
-ggplot(SR_CO2_FluxEnv_clean, aes(SoilTemp1, CO2.f0, col=Treatment, shape =Treatment))+
-  geom_point(size =1)+
-  facet_grid(~Habitat)
 
-ggplot(SR_CH4_FluxEnv_clean, aes(SoilTemp1, CH4.f0, col=Treatment, shape =Treatment))+
-  geom_point(size =1)+
-  facet_grid(~Habitat)
-
+######################################################################################################################################################
 ##### NET ECOSYSTEM EXCHANGE 
 # NEE chamber  V = 2.5 L, A = 0.0625 m2, CH4 in ppb, C02 in ppm
 
