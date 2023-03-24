@@ -671,6 +671,15 @@ NEE_ibuttonTemp<- rbind(NEELi7810_notHMR, NEELi850_notHMR)%>%
 NEE2020_CO2_env<- left_join(NEE2020_CO2_env, NEE_ibuttonTemp, by= c("Date", "Transect", "Habitat", "Treatment", "PlotID", "Cover"))%>%
   distinct(FluxID, .keep_all = TRUE)
 
+# match EC tower airtemp with fluxes
+ECtower<-read.csv("Climate\\Mobileflux1_level1_30min.csv")%>%
+  mutate(Date = as.Date(index, "%Y-%m-%d"),
+         Hour = as.integer(substr(index, 12,13)))%>%
+  rename(ECairtemp = air_temperature)%>%
+  select(Date, Hour, ECairtemp)
+
+NEE2020_CO2_env<- left_join(NEE2020_CO2_env, ECtower, by= c("Date", "Hour"))
+
 # Flux conversion HMR microL/m2/s > micromol/m2/s HMRoutput/(0.08205*(273.15+Air_temp))
 NEE2020_CO2_env<- NEE2020_CO2_env%>%
   mutate(CO2flux = CO2.f0/(0.08205*(273.15+ChamberAirtemp)),
@@ -692,8 +701,6 @@ NEE2021_CH4<-read.csv("2021\\HMRoutput_NEE2021_CH4.csv")%>%
   unite(PlotID, PlotID:Treatment, remove =FALSE )%>%
   select(PlotID, Transect, Habitat, Treatment, Date, f0, LR.f0, Method, FluxID, Cover)%>%
   rename(CH4.f0 = f0, CH4.LR = LR.f0, Method.CH4 = Method)
-
-#NEE2021_CO2CH4<- inner_join(NEE2021_CO2, NEE2021_CH4, by= c("Date","PlotID","Transect", "Habitat", "Treatment", "FluxID", "Cover"))
 
 ## read in metadata
 NEEenvdata03062021<-read.csv2("2021\\NEEmetadata_03062021.csv")
