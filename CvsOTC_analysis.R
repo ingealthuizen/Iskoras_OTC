@@ -722,6 +722,13 @@ NEEenvdata2021<- rbind(NEEenvdata03062021, NEEenvdata04062021, NEEenvdata0207202
 
 #!!!! CHECK PAR for NEE measurements 02072021, PAR sensor wrong 
 
+
+### process fluxes with fluxcalc function to get airtemp from chamber!
+
+
+
+
+
 # link Environmental data and fluxdata
 NEE_FluxEnv2021<- left_join(NEEenvdata2021, NEE2021_CO2CH4, 
                             by= c("FluxID", "Date", "PlotID", "Transect", "Habitat", "Treatment", "Cover"))%>%
