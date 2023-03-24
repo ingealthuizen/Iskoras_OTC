@@ -342,7 +342,7 @@ TomstData_HourlyPlotID<- TomstData%>%
             GroundTemperature = mean(GroundTemperature, na.rm = TRUE),
             AirTemperature = mean(AirTemperature, na.rm = TRUE),
             Soilmoisture_Volumetric = mean(Soilmoisture_Volumetric, na.rm = TRUE))%>%
-  ungroup()
+            ungroup()
 
 # calculate min, max and mean for each Climatic variable measured by TOMST
 ma <- function(x, n = 7){  stats::filter(x, rep(1 / n, n), sides = 2)} # moving average for 7 days 
@@ -479,15 +479,9 @@ library(here)
 library(tidyverse)
 library(ggplot2)
 
-## NEED TO CHECK whether I need to do conversion still
-
-# (0.08205*273.15) equals 22.4 L/mol, which is the standard molar volume at standard conditions (temp = 0 and 1 atm pressure)
-# think about using FluxCalR of gasfluxes for processing data
 
 #Soil Respiration
 # ### HMR output based on V  in L, A in m2, CH4 in ppb, C02 in ppm
-
-# Flux conversion HMR microL/m2/s > micromol/m2/s HMRoutput/(0.08205*(273.15+Air_temp))!!!! 
 # load HMR output 2020; collar Area and volume taken into account
 SR2020_CO2<-read.csv("Cflux\\SR2020_CO2_HMRoutput.csv")%>%
   separate(Series, sep = "_", into = c("Plot", "Treatment", "Date", "comment"))%>%
@@ -518,6 +512,7 @@ SR2020_CO2_env<- left_join(SR2020_CO2, SRenvdata2020, by= c("Date", "PlotID", "T
 SR2020_CO2_env<-left_join(SR2020_CO2_env, TomstData_HourlyPlotID, by= c("Date", "Hour", "PlotID", "Transect" , "Habitat", "Treatment"))
 
 # Flux conversion HMR microL/m2/s > micromol/m2/s HMRoutput/(0.08205*(273.15+Air_temp))
+# (0.08205*273.15) equals 22.4 L/mol, which is the standard molar volume at standard conditions (temp = 0 and 1 atm pressure)
 SR2020_CO2_env<- SR2020_CO2_env%>%
   mutate(CO2flux = CO2.f0/(0.08205*(273.15+AirTemperature)),
          CO2flux.LR = CO2.LR/(0.08205*(273.15+AirTemperature)))
@@ -578,7 +573,6 @@ SR2021_CO2_env<- SR2021_CO2_env%>%
 # bind together 2020 and 2021 CO2 flux data
 SR20202021_CO2_env<- rbind(SR2020_CO2_env, SR2021_CO2_env)
 
-
 # combine SR2021data CH4 with environmental data
 SR2021_CH4_env<- left_join(SR2021_CH4, SRenvdata2021, by= c("Date", "PlotID", "Transect" , "Habitat", "Treatment"))%>%
   distinct(FluxID, .keep_all = TRUE)%>% # remove duplicated rows
@@ -611,8 +605,6 @@ ggplot(SR20202021_CO2_env_clean, aes(SoilTemp1, CO2flux, col=Treatment))+
   geom_point()+
   facet_grid(~Habitat)
 
-
-
 SR2021_CH4_env_clean<-SR2021_CH4_env%>%
   mutate(Month = as.factor(month(Date)),
          Year = as.factor(year(Date)))%>%
@@ -624,14 +616,12 @@ ggplot(SR2021_CH4_env_clean, aes(Month, CH4flux, fill=Treatment))+
   facet_wrap(~Habitat, scales= "free")
 
 
-
 ######################################################################################################################################################
 ##### NET ECOSYSTEM EXCHANGE 
 # NEE chamber  V = 2.5 L, A = 0.0625 m2, CH4 in ppb, C02 in ppm
-NEE2020_CO2<- read.csv("Cflux\\2020\\NEE2020_CO2_HMRoutput.csv")%>%
+NEE2020_CO2<- read.csv("Cflux\\2020\\NEE2020_CO2_HMRoutput.csv", sep= ",")%>%
   rename(FluxID = X, CO2.f0 = f0, CO2.LR = LR.f0, Method.CO2 = Method)%>%
   mutate(Date = as.Date(Date, "%Y-%m-%d"))
-  
 
 # load environmental metadata
 meta.data1<- read.csv2("2020\\LiCOR850\\NEEmetadata_14072020.csv")
@@ -663,14 +653,28 @@ NEE2020_CO2_env<- left_join(NEE2020_CO2, NEEenvdata2020, by= c("Date", "PlotID",
 
 ## Add airtemp based on TOMSTloggerData for measurement hour
 NEE2020_CO2_env<-left_join(NEE2020_CO2_env, TomstData_HourlyPlotID, by= c("Date", "Hour", "PlotID", "Transect" , "Habitat", "Treatment"))
-'
+
 # NEED TO CORRECT FLUXES WITH IBUTTON TEMPERATURE TOMSTDATA not available for all dates !!!
+NEELi7810_notHMR<-read.csv("2020\\LiCOR7810\\NEEflux_2020_Li7810.csv")%>%
+  select(Date, Transect, Habitat, Treatment, PlotID, Cover, Airtemp)%>%
+  mutate(Date = as.Date(Date, "%d.%m.%Y"))
+
+NEELi850_notHMR<-read.csv("2020\\LiCOR850\\NEEflux_2020_Li850.csv")%>%
+  select(Date, Transect, Habitat, Treatment, PlotID, Cover, Airtemp)%>%
+  mutate(Date = as.Date(Date, "%d.%m.%Y"))
+
+NEE_ibuttonTemp<- rbind(NEELi7810_notHMR, NEELi850_notHMR)%>%
+  rename(ChamberAirtemp= Airtemp)%>%
+  mutate(Habitat=recode(Habitat, WGA = "WG", WGB = "WG"))
+
+# match chamber airtemp to NEE data
+NEE2020_CO2_env<- left_join(NEE2020_CO2_env, NEE_ibuttonTemp, by= c("Date", "Transect", "Habitat", "Treatment", "PlotID", "Cover"))%>%
+  distinct(FluxID, .keep_all = TRUE)
+
 # Flux conversion HMR microL/m2/s > micromol/m2/s HMRoutput/(0.08205*(273.15+Air_temp))
-NEE2020_CO2<- NEE2020_CO2%>%
-  mutate(CO2flux = CO2.f0/(0.08205*(273.15+AirTemperature)),
-         CO2flux.LR = CO2.LR/(0.08205*(273.15+AirTemperature)))
-
-
+NEE2020_CO2_env<- NEE2020_CO2_env%>%
+  mutate(CO2flux = CO2.f0/(0.08205*(273.15+ChamberAirtemp)),
+         CO2flux.LR = CO2.LR/(0.08205*(273.15+ChamberAirtemp)))
 
 ########## 2021 
 NEE2021_CO2<-read.csv("2021\\HMRoutput_NEE2021_CO2.csv")%>%
