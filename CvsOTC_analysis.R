@@ -596,13 +596,62 @@ SR20202021_CO2_env_clean<-SR20202021_CO2_env%>%
   filter(Comment != "redo")%>%
   filter(Habitat != "W")%>%
   filter(CO2flux > 0)%>% # remove negative values
-  mutate(Habitat =recode(Habitat, M = "Thawslump", P= "Vegetated Palsa", S = "Soil Palsa", WG= "Vegetated Pond")) # recode Habitat
+  filter(CO2flux< 3)%>%
+  mutate(Habitat =dplyr::recode(Habitat, M = "Thawslump", P= "Vegetated Palsa", S = "Soil Palsa", WG= "Vegetated Pond")) # recode Habitat
 SR20202021_CO2_env_clean$Habitat <- factor(SR20202021_CO2_env_clean$Habitat, levels = c("Vegetated Palsa", "Soil Palsa", "Thawslump", "Vegetated Pond"))
 
 SR20202021_CO2_env_clean%>%
   ggplot(aes(Habitat, CO2flux, fill=Treatment))+
   geom_boxplot(outlier.colour="black", outlier.shape=16,
                outlier.size=2, notch=TRUE)
+
+library(dplyr)
+library(rstatix)
+SR20202021_CO2_env_clean %>% 
+  group_by(Habitat) %>%
+  anova_test(CO2flux ~ Treatment)
+
+palsadata<- SR20202021_CO2_env_clean%>%
+  filter(Habitat =="Vegetated Palsa")
+Palsa.aov<-aov(CO2flux ~ Treatment, data = palsadata)
+summary(Palsa.aov)
+hist(Palsa.aov$residuals)
+qqPlot(Palsa.aov$residuals, id = FALSE)
+
+Sdata<- SR20202021_CO2_env_clean%>%
+  filter(Habitat =="Soil Palsa")
+S.aov<-aov(log(CO2flux) ~ Treatment, data = Sdata)
+summary(S.aov)
+hist(S.aov$residuals)
+qqPlot(S.aov$residuals,id = FALSE )
+
+Mdata<- SR20202021_CO2_env_clean%>%
+  filter(Habitat =="Thawslump")
+M.aov<-aov(CO2flux ~ Treatment, data = Mdata)
+summary(M.aov)
+hist(M.aov$residuals)
+qqPlot(M.aov$residuals,id = FALSE )
+
+WGdata<- SR20202021_CO2_env_clean%>%
+  filter(Habitat =="Vegetated Pond")
+WG.aov<-aov(log(CO2flux) ~ Treatment, data = WGdata)
+summary(WG.aov)
+hist(WG.aov$residuals)
+qqPlot(WG.aov$residuals,id = FALSE )
+
+
+# Two way anova test
+RS.aov<- aov(CO2flux ~ Habitat*Treatment, data = SR20202021_CO2_env_clean)
+summary(RS.aov)
+TukeyHSD(RS.aov, which = "Habitat")
+
+# histogram
+hist(RS.aov$residuals)
+# QQ-plot
+library(car)
+qqPlot(RS.aov$residuals,
+       id = TRUE)
+
 
 # SR for each habitat and treatment over summer seasons 2020 and 2021 
 SR20202021_CO2_env_clean%>%
