@@ -597,8 +597,12 @@ SR20202021_CO2_env_clean<-SR20202021_CO2_env%>%
   filter(Habitat != "W")%>%
   filter(CO2flux > 0)%>% # remove negative values
   mutate(Habitat =recode(Habitat, M = "Thawslump", P= "Vegetated Palsa", S = "Soil Palsa", WG= "Vegetated Pond")) # recode Habitat
-
 SR20202021_CO2_env_clean$Habitat <- factor(SR20202021_CO2_env_clean$Habitat, levels = c("Vegetated Palsa", "Soil Palsa", "Thawslump", "Vegetated Pond"))
+
+SR20202021_CO2_env_clean%>%
+  ggplot(aes(Habitat, CO2flux, fill=Treatment))+
+  geom_boxplot(outlier.colour="black", outlier.shape=16,
+               outlier.size=2, notch=FALSE)
 
 # SR for each habitat and treatment over summer seasons 2020 and 2021 
 SR20202021_CO2_env_clean%>%
