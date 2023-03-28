@@ -595,26 +595,63 @@ SR20202021_CO2_env_clean<-SR20202021_CO2_env%>%
          Year = as.factor(year(Date)))%>%
   filter(Comment != "redo")%>%
   filter(Habitat != "W")%>%
-  filter(CO2flux > 0) # remove negative values
+  filter(CO2flux > 0)%>% # remove negative values
+  mutate(Habitat =recode(Habitat, M = "Thawslump", P= "Vegetated Palsa", S = "Soil Palsa", WG= "Vegetated Pond")) # recode Habitat
 
-ggplot(SR20202021_CO2_env_clean, aes(Month, CO2flux, fill=Treatment))+
-  geom_boxplot()+
-  facet_grid(~Habitat)
+SR20202021_CO2_env_clean$Habitat <- factor(SR20202021_CO2_env_clean$Habitat, levels = c("Vegetated Palsa", "Soil Palsa", "Thawslump", "Vegetated Pond"))
 
-ggplot(SR20202021_CO2_env_clean, aes(SoilTemp1, CO2flux, col=Treatment))+
-  geom_point()+
-  facet_grid(~Habitat)
+# SR for each habitat and treatment over summer seasons 2020 and 2021 
+SR20202021_CO2_env_clean%>%
+  group_by(Habitat, Treatment)%>%
+  summarise(CO2flux.se = se(CO2flux),
+            CO2flux.sd = sd(CO2flux, na.rm=TRUE),
+            CO2flux.mean= mean(CO2flux, na.rm=TRUE))%>%
+  ggplot(aes(Habitat, CO2flux.mean, color= Habitat, shape= Treatment))+
+  geom_point(position = position_dodge(0.8), size=4 )+
+  geom_errorbar(aes(ymin=CO2flux.mean-CO2flux.se, ymax=CO2flux.mean+CO2flux.se), position = position_dodge(0.8), width=.4)+
+  scale_color_manual(values= c("#fc8d62", "#e5c494","#66c2a5", "#8da0cb"), 
+                     name = "Habitat")+
+  scale_shape_manual(values= c(19,17), name = "Treatment", labels = c("Control", "OTC"))+
+  theme_classic()+
+  theme(legend.position = "bottom", axis.title = element_text(size = 14), axis.text = element_text(size =12), legend.text = element_text(size =11) )
+
+# supplement include seasonal pattern
+SR20202021_CO2_env_clean%>%
+  group_by(Habitat, Treatment, Month)%>%
+  summarise(CO2flux.se = se(CO2flux),
+            CO2flux.sd = sd(CO2flux, na.rm=TRUE),
+            CO2flux.mean= mean(CO2flux, na.rm=TRUE))%>%
+  ggplot(aes(Month, CO2flux.mean, color= Habitat, shape= Treatment))+
+  geom_point(position = position_dodge(0.8), size=4 )+
+  geom_errorbar(aes(ymin=CO2flux.mean-CO2flux.se, ymax=CO2flux.mean+CO2flux.se), position = position_dodge(0.8), width=.4)+
+  scale_color_manual(values= c("#fc8d62", "#e5c494","#66c2a5", "#8da0cb"), 
+                     name = "Habitat")+
+  scale_shape_manual(values= c(19,17), name = "Treatment", labels = c("Control", "OTC"))+
+  theme_classic()+
+  theme(legend.position = "bottom", axis.title = element_text(size = 14), axis.text = element_text(size =12), legend.text = element_text(size =11) )
+
 
 SR2021_CH4_env_clean<-SR2021_CH4_env%>%
   mutate(Month = as.factor(month(Date)),
          Year = as.factor(year(Date)))%>%
   filter(Habitat != "W")%>%
-  filter(CH4flux < 1000) # remove extreme values
+  filter(CH4flux < 1000)%>%# remove extreme values
+  mutate(Habitat =recode(Habitat, M = "Thawslump", P= "Vegetated Palsa", S = "Soil Palsa", WG= "Vegetated Pond")) # recode Habitat
+SR2021_CH4_env_clean$Habitat <- factor(SR2021_CH4_env_clean$Habitat, levels = c("Vegetated Palsa", "Soil Palsa", "Thawslump", "Vegetated Pond"))
 
-ggplot(SR2021_CH4_env_clean, aes(Month, CH4flux, fill=Treatment))+
-  geom_boxplot()+
-  facet_wrap(~Habitat, scales= "free")
-
+SR2021_CH4_env_clean%>%
+  group_by(Habitat, Treatment)%>%
+  summarise(CH4flux.se = se(CH4flux),
+            CH4flux.sd = sd(CH4flux, na.rm=TRUE),
+            CH4flux.mean= mean(CH4flux, na.rm=TRUE))%>%
+  ggplot(aes(Habitat, CH4flux.mean, color= Habitat, shape= Treatment))+
+  geom_point(position = position_dodge(0.8), size=4 )+
+  geom_errorbar(aes(ymin=CH4flux.mean-CH4flux.se, ymax=CH4flux.mean+CH4flux.se), position = position_dodge(0.8), width=.4)+
+  scale_color_manual(values= c("#fc8d62", "#e5c494","#66c2a5", "#8da0cb"), 
+                     name = "Habitat")+
+  scale_shape_manual(values= c(19,17), name = "Treatment", labels = c("Control", "OTC"))+
+  theme_classic()+
+  theme(legend.position = "bottom", axis.title = element_text(size = 14), axis.text = element_text(size =12), legend.text = element_text(size =11) )
 
 ######################################################################################################################################################
 ##### NET ECOSYSTEM EXCHANGE 
