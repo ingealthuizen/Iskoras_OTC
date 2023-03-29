@@ -897,6 +897,19 @@ NEE20202021_CO2_env%>%
   ggplot(aes(Habitat, CO2flux, col=Treatment))+ 
   geom_boxplot()
 
+NEE20202021_CO2_env%>%
+  filter(Treatment %in% c("C", "OTC"))%>%
+  filter(Habitat %in% c("S", "P", "M", "WG"))%>%
+  filter(Cover == "RECO")%>%
+  filter(Comment != "redo")%>%
+  filter(Method.CO2 != "No flux")%>%
+  filter(CO2flux > 0)%>%
+  ggplot(aes(x=SoilTemp1+273.15, y=CO2flux, col=Habitat, shape= Treatment, linetype=Treatment))+
+  geom_point(na.rm= TRUE)+
+  geom_smooth(method = "nls", formula= y~A*exp(-308.56/I(x-227.13)), method.args = list(start=c(A=0)), se=FALSE, na.rm= TRUE)+
+  facet_grid(~Habitat)+
+  theme_bw()
+
 NEE2021_CH4_env%>%
   filter(Treatment %in% c("C", "OTC"))%>%
   filter(Habitat %in% c("S", "P", "M", "WG"))%>%
@@ -931,11 +944,15 @@ GPP_CO2<-left_join(GPP_CO2, RECO_CO2, by=c("PlotID", "Date", "Year", "Month"))%>
 
 GPP_CO2%>%
   filter(Month %in% 7:8 )%>%
-  ggplot(aes(PAR, GPPflux, col=Habitat, shape= Treatment))+
+  ggplot(aes(PAR, GPPflux, col=Habitat, shape= Treatment, linetype=Treatment))+
   geom_point()+
+  geom_smooth(method = "nls", formula= y~(A*B*x)/(A*x+B), method.args = list(start=c(A=0.01, B=2)), se=FALSE, na.rm= TRUE)+
   facet_grid(~Habitat)
 
 
+#fit.Reco_ALL<-nls((Reco~A*exp(-308.56/I(tempK-227.13))), start=c(A=0 ), data=CO2_RECO_1516Trait) #
+
+#fit.GPP_ALL<-nls((GPP~ (A*B*PAR.x)/(A*PAR.x+B)), start=c(A=0.01, B=2), data=CO2_GPP_1516Trait)
 
 #!!!! CHECK PAR for NEE measurements 02072021, PAR sensor wrong 
 ### process fluxes with fluxcalc function to get airtemp from chamber!
