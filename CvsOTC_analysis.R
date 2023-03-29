@@ -842,6 +842,38 @@ NEE2021_CH4_env<- left_join(NEE2021_CH4, NEEenvdata2021, by= c("FluxID", "Date",
   mutate(Habitat= dplyr::recode(Habitat, WGA = "WG", WGB = "WG"))%>%
   dplyr::select(-FluxID)
 
+## Add airtemp based on TOMSTloggerData for measurement hour
+#NEE2020_CO2_env<-left_join(NEE2020_CO2_env, TomstData_HourlyPlotID, by= c("Date", "Hour", "PlotID", "Transect" , "Habitat", "Treatment"))
+
+# NEED TO CORRECT FLUXES WITH IBUTTON TEMPERATURE TOMSTDATA not available for all dates !!!
+#NEELi7810_notHMR<-read.csv("2020\\LiCOR7810\\NEEflux_2020_Li7810.csv")%>%
+#  dplyr::select(Date, Transect, Habitat, Treatment, PlotID, Cover, Airtemp)%>%
+#  mutate(Date = as.Date(Date, "%d.%m.%Y"))
+
+#NEELi850_notHMR<-read.csv("2020\\LiCOR850\\NEEflux_2020_Li850.csv")%>%
+#  dplyr::select(Date, Transect, Habitat, Treatment, PlotID, Cover, Airtemp)%>%
+#  mutate(Date = as.Date(Date, "%d.%m.%Y"))
+
+#NEE_ibuttonTemp<- rbind(NEELi7810_notHMR, NEELi850_notHMR)%>%
+#  dplyr::rename(ChamberAirtemp= Airtemp)%>%
+#  mutate(Habitat= dplyr::recode(Habitat, WGA = "WG", WGB = "WG"))
+
+# match chamber airtemp to NEE data
+#NEE2020_CO2_env<- left_join(NEE2020_CO2_env, NEE_ibuttonTemp, by= c("Date", "Transect", "Habitat", "Treatment", "PlotID", "Cover"))%>%
+#  distinct(FluxID, .keep_all = TRUE)
+
+# match EC tower airtemp with fluxes
+#ECtower<-read.csv("Climate\\Mobileflux1_level1_30min.csv")%>%
+#  mutate(Date = as.Date(index, "%Y-%m-%d"),
+#         Hour = as.integer(substr(index, 12,13)))%>%
+#  group_by(Date, Hour)%>%
+#  summarise(ECairtemp = mean(air_temperature))%>%
+ # dplyr::select(Date, Hour, ECairtemp)
+
+#NEE2020_CO2_env<- left_join(NEE2020_CO2_env, ECtower, by= c("Date", "Hour"))
+
+
+
 ##############
 # Flux conversion HMR microL/m2/s > micromol/m2/s HMRoutput/(0.08205*(273.15+Air_temp))
 # (0.08205*273.15) equals 22.4 L/mol, which is the standard molar volume at standard conditions (temp = 0 and 1 atm pressure)
@@ -855,35 +887,8 @@ NEE2021_CH4_env<- NEE2021_CH4_env%>%
          CH4flux.LR = CH4.LR/(0.08205*(273.15+SoilTemp1)))
 
 
-## Add airtemp based on TOMSTloggerData for measurement hour
-NEE2020_CO2_env<-left_join(NEE2020_CO2_env, TomstData_HourlyPlotID, by= c("Date", "Hour", "PlotID", "Transect" , "Habitat", "Treatment"))
 
-# NEED TO CORRECT FLUXES WITH IBUTTON TEMPERATURE TOMSTDATA not available for all dates !!!
-NEELi7810_notHMR<-read.csv("2020\\LiCOR7810\\NEEflux_2020_Li7810.csv")%>%
-  dplyr::select(Date, Transect, Habitat, Treatment, PlotID, Cover, Airtemp)%>%
-  mutate(Date = as.Date(Date, "%d.%m.%Y"))
 
-NEELi850_notHMR<-read.csv("2020\\LiCOR850\\NEEflux_2020_Li850.csv")%>%
-  dplyr::select(Date, Transect, Habitat, Treatment, PlotID, Cover, Airtemp)%>%
-  mutate(Date = as.Date(Date, "%d.%m.%Y"))
-
-NEE_ibuttonTemp<- rbind(NEELi7810_notHMR, NEELi850_notHMR)%>%
-  dplyr::rename(ChamberAirtemp= Airtemp)%>%
-  mutate(Habitat= dplyr::recode(Habitat, WGA = "WG", WGB = "WG"))
-
-# match chamber airtemp to NEE data
-NEE2020_CO2_env<- left_join(NEE2020_CO2_env, NEE_ibuttonTemp, by= c("Date", "Transect", "Habitat", "Treatment", "PlotID", "Cover"))%>%
-  distinct(FluxID, .keep_all = TRUE)
-
-# match EC tower airtemp with fluxes
-ECtower<-read.csv("Climate\\Mobileflux1_level1_30min.csv")%>%
-  mutate(Date = as.Date(index, "%Y-%m-%d"),
-         Hour = as.integer(substr(index, 12,13)))%>%
-  group_by(Date, Hour)%>%
-  summarise(ECairtemp = mean(air_temperature))%>%
-  dplyr::select(Date, Hour, ECairtemp)
-
-NEE2020_CO2_env<- left_join(NEE2020_CO2_env, ECtower, by= c("Date", "Hour"))
 
 
 
