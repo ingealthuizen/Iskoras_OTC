@@ -502,7 +502,7 @@ SRenvdata1507020<-read.csv2("Cflux\\2020\\SRmetadata_15072020.csv")
 SRenvdata17072020<-read.csv2("Cflux\\2020\\SRmetadata_17072020.csv")
 SRenvdata2020<-rbind(SRenvdata1507020, SRenvdata17072020, SRenvdata11082020, SRenvdata08092020, SRenvdata04102020 )%>%
   mutate(Date = as.Date(Date, "%d.%m.%Y"))%>%
-  mutate(Habitat = recode(Habitat, WGA = "WG", WGB = "WG", "WG "= "WG"))
+  mutate(Habitat = dplyr::recode(Habitat, WGA = "WG", WGB = "WG", "WG "= "WG"))
 
 SR2020_CO2_env<- left_join(SR2020_CO2, SRenvdata2020, by= c("Date", "PlotID", "Transect" , "Habitat", "Treatment"))%>%
   distinct(FluxID, .keep_all = TRUE)%>% # remove duplicated rows
@@ -513,13 +513,10 @@ SR2020_CO2_env<-left_join(SR2020_CO2_env, TomstData_HourlyPlotID, by= c("Date", 
 
 # Flux conversion HMR microL/m2/s > micromol/m2/s HMRoutput/(0.08205*(273.15+Air_temp))
 # (0.08205*273.15) equals 22.4 L/mol, which is the standard molar volume at standard conditions (temp = 0 and 1 atm pressure)
+#!! for now recalculate flux with soiltemp as loggerID missing for some TOMSTloggers
 SR2020_CO2_env<- SR2020_CO2_env%>%
-  mutate(CO2flux = CO2.f0/(0.08205*(273.15+AirTemperature)),
-         CO2flux.LR = CO2.LR/(0.08205*(273.15+AirTemperature)))
-
-ggplot(SR2020_CO2_env, aes(as.factor(Date), CO2flux, col=Treatment))+
-  geom_boxplot()+
-  facet_grid(~Habitat)
+  mutate(CO2flux = CO2.f0/(0.08205*(273.15+SoilTemp1)),
+         CO2flux.LR = CO2.LR/(0.08205*(273.15+SoilTemp1)))
 
 # load HMR output, collar volume taken into account 
 SR2021_CO2<-read.csv("Cflux\\2021\\HMRoutput_SR2021_CO2.csv")%>%
@@ -599,6 +596,19 @@ SR20202021_CO2_env_clean<-SR20202021_CO2_env%>%
   filter(CO2flux< 3)%>%
   mutate(Habitat =dplyr::recode(Habitat, M = "Thawslump", P= "Vegetated Palsa", S = "Soil Palsa", WG= "Vegetated Pond")) # recode Habitat
 SR20202021_CO2_env_clean$Habitat <- factor(SR20202021_CO2_env_clean$Habitat, levels = c("Vegetated Palsa", "Soil Palsa", "Thawslump", "Vegetated Pond"))
+
+# compute summary statistics
+SR20202021_CO2_env_clean%>%
+  group_by(Habitat, Treatment) %>%
+  summarise(
+    count = n(),
+    mean = round(mean(CO2flux, na.rm = TRUE), 2),
+    median = round(median(CO2flux, na.rm = TRUE), 2),
+    sd = round(sd(CO2flux, na.rm = TRUE), 2),
+    cv = round(sd/mean, 2),
+  ) %>%
+  ungroup()
+
 
 SR20202021_CO2_env_clean%>%
   ggplot(aes(Habitat, CO2flux, fill=Treatment))+
