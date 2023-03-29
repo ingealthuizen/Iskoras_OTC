@@ -653,55 +653,6 @@ em_out_category %>%
   test(joint = TRUE)
 pairs(em_out_category)
 
-
-library(dplyr)
-library(rstatix)
-SR20202021_CO2_env_clean %>% 
-  group_by(Habitat) %>%
-  anova_test(CO2flux ~ Treatment)
-
-palsadata<- SR20202021_CO2_env_clean%>%
-  filter(Habitat =="Vegetated Palsa")
-Palsa.aov<-aov(CO2flux ~ Treatment, data = palsadata)
-summary(Palsa.aov)
-hist(Palsa.aov$residuals)
-qqPlot(Palsa.aov$residuals, id = FALSE)
-
-Sdata<- SR20202021_CO2_env_clean%>%
-  filter(Habitat =="Soil Palsa")
-S.aov<-aov(log(CO2flux) ~ Treatment, data = Sdata)
-summary(S.aov)
-hist(S.aov$residuals)
-qqPlot(S.aov$residuals,id = FALSE )
-
-Mdata<- SR20202021_CO2_env_clean%>%
-  filter(Habitat =="Thawslump")
-M.aov<-aov(CO2flux ~ Treatment, data = Mdata)
-summary(M.aov)
-hist(M.aov$residuals)
-qqPlot(M.aov$residuals,id = FALSE )
-
-WGdata<- SR20202021_CO2_env_clean%>%
-  filter(Habitat =="Vegetated Pond")
-WG.aov<-aov(log(CO2flux) ~ Treatment, data = WGdata)
-summary(WG.aov)
-hist(WG.aov$residuals)
-qqPlot(WG.aov$residuals,id = FALSE )
-
-
-# Two way anova test
-RS.aov<- aov(CO2flux ~ Habitat*Treatment, data = SR20202021_CO2_env_clean)
-summary(RS.aov)
-TukeyHSD(RS.aov, which = "Habitat")
-
-# histogram
-hist(RS.aov$residuals)
-# QQ-plot
-library(car)
-qqPlot(RS.aov$residuals,
-       id = TRUE)
-
-
 # SR for each habitat and treatment over summer seasons 2020 and 2021 
 SR20202021_CO2_env_clean%>%
   group_by(Habitat, Treatment)%>%
@@ -739,7 +690,7 @@ SR2021_CH4_env_clean<-SR2021_CH4_env%>%
          Year = as.factor(year(Date)))%>%
   filter(Habitat != "W")%>%
   filter(CH4flux < 1000)%>%# remove extreme values
-  mutate(Habitat =recode(Habitat, M = "Thawslump", P= "Vegetated Palsa", S = "Soil Palsa", WG= "Vegetated Pond")) # recode Habitat
+  mutate(Habitat = dplyr::recode(Habitat, M = "Thawslump", P= "Vegetated Palsa", S = "Soil Palsa", WG= "Vegetated Pond")) # recode Habitat
 SR2021_CH4_env_clean$Habitat <- factor(SR2021_CH4_env_clean$Habitat, levels = c("Vegetated Palsa", "Soil Palsa", "Thawslump", "Vegetated Pond"))
 
 SR2021_CH4_env_clean%>%
@@ -753,8 +704,55 @@ SR2021_CH4_env_clean%>%
   scale_color_manual(values= c("#fc8d62", "#e5c494","#66c2a5", "#8da0cb"), 
                      name = "Habitat")+
   scale_shape_manual(values= c(19,17), name = "Treatment", labels = c("Control", "OTC"))+
+  geom_hline(yintercept =0, color= "grey")+
   theme_classic()+
   theme(legend.position = "bottom", axis.title = element_text(size = 14), axis.text = element_text(size =12), legend.text = element_text(size =11) )
+
+SR2021_CH4_env_clean%>%
+  ggplot(aes(Habitat, CH4flux, fill=Treatment))+
+  geom_boxplot(outlier.colour="black", outlier.shape=16,
+               outlier.size=2, notch=TRUE)
+
+# ANOVA to test Treatment and Habitat effect 
+aov.org <- aov( CH4flux ~ Habitat * Treatment, data = SR20202021_CO2_env_clean,
+                contrasts = list(Habitat = 'contr.sum', Treatment = 'contr.sum' ))
+Anova(aov.org, type = 'III')
+
+aov.log <- aov( log(CH4flux) ~ Habitat * Treatment, data = SR20202021_CO2_env_clean,
+                contrasts = list(Habitat = 'contr.sum', Treatment = 'contr.sum' ))
+Anova(aov.log, type = 'III')
+
+aov.rank <- aov( rank(CH4flux) ~ Habitat * Treatment, data = SR20202021_CO2_env_clean,
+                 contrasts = list(Habitat = 'contr.sum', Treatment = 'contr.sum' ))
+Anova(aov.rank, type = 'III')
+
+res.org = aov.org$resid
+res.log = aov.log$resid
+res.rnk = aov.rank$resid
+
+qqnorm(  res.org, pch = 20, main = "Original Data",
+         cex.lab = 1, cex.axis = 0.7, cex.main = 1)
+qqline(res.org)
+plot(aov.org, 1, main = "Original Data")
+
+qqnorm(  res.log, pch = 20, main = "Log-Transformed",
+         cex.lab = 1, cex.axis = 0.7, cex.main = 1)
+qqline(res.log)
+plot(aov.log, 1, main = "Log-Transformed")
+
+qqnorm(  res.rnk, pch = 20, main = "Rank-Transformed",
+         cex.lab = 1, cex.axis = 0.7, cex.main = 1)
+qqline(res.rnk)
+plot(aov.rank, 1, main = "Rank-Transformed")
+
+library(emmelog, pairwise ~ Habitat | Treatment)
+em_out_category<-emmeans(aov.log,  ~ Treatment | Habitat) 
+em_out_category %>% 
+  pairs() %>% 
+  test(joint = TRUE)
+pairs(em_out_category)
+
+
 
 ######################################################################################################################################################
 ##### NET ECOSYSTEM EXCHANGE 
