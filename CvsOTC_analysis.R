@@ -891,6 +891,8 @@ NEE20202021_CO2_env%>%
   filter(Treatment %in% c("C", "OTC"))%>%
   filter(Habitat %in% c("S", "P", "M", "WG"))%>%
   filter(Cover == "RECO")%>%
+  filter(Comment != "redo")%>%
+  filter(Method.CO2 != "No flux")%>%
   filter(CO2flux > 0)%>%
   ggplot(aes(Habitat, CO2flux, col=Treatment))+ 
   geom_boxplot()
@@ -898,15 +900,37 @@ NEE20202021_CO2_env%>%
 NEE2021_CH4_env%>%
   filter(Treatment %in% c("C", "OTC"))%>%
   filter(Habitat %in% c("S", "P", "M", "WG"))%>%
-  filter(Cover == "RECO")%>%
+  #filter(Cover == "RECO")%>%
   filter(CH4flux < 25)%>%
+  filter(CH4flux >-30)%>%
+  filter(Method.CO2 != "No flux")%>%
   ggplot(aes(Habitat, CH4flux, col=Treatment))+ 
   geom_boxplot()+
   geom_hline(yintercept = 0)+
   facet_wrap(~Habitat, scales="free")
 
+# calculate GPP 
+RECO_CO2<-NEE20202021_CO2_env%>%
+  filter(!grepl("R", PlotID))%>%
+  filter(Cover== "RECO")%>%
+  filter(Comment != "redo")%>%
+  filter(CO2flux > 0)%>%
+  rename( CO2flux_RECO = CO2flux,  CO2flux.LR_RECO = CO2flux.LR )%>%
+  dplyr::select(PlotID, Date, Year, Month, CO2flux_RECO, CO2flux.LR_RECO)
 
+GPP_CO2<-NEE20202021_CO2_env%>%
+  filter(!grepl("R", PlotID))%>%
+  filter(Treatment %in% c("C",  "OTC"))%>%
+  filter(Cover != "RECO")%>%
+  filter(Method.CO2 != "No flux") # 11 measurements dropped
 
+GPP_CO2<-left_join(GPP_CO2, RECO_CO2, by=c("PlotID", "Date", "Year", "Month"))%>%
+  unique()%>%
+  mutate(GPPflux = (CO2flux- CO2flux_RECO)*(-1))
+
+ggplot(GPP_CO2, aes(PAR1, GPPflux, col=Treatment))+
+  geom_point()+
+  facet_grid(~Habitat)
 
 
 
