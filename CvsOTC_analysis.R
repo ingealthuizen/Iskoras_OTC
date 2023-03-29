@@ -550,9 +550,9 @@ SRenvdata21082021<-read.csv2("Cflux\\2021\\SRmetadata_21082021.csv")
 SRenvdata22072021<-read.csv2("Cflux\\2021\\SRmetadata_22072021.csv")
 SRenvdata30062021<-read.csv2("Cflux\\2021\\SRmetadata_30062021.csv")
 SRenvdata2021<- rbind(SRenvdata04062021, SRenvdata30062021, SRenvdata22072021, SRenvdata19082021, SRenvdata19082021_2, SRenvdata21082021, SRenvdata12092021)%>%
-  mutate(Date = recode(Date, "19.08.2021" = "18.08.2021", "21.08.2021" = "18.08.2021"))%>% #match envdata to flux data
+  mutate(Date = dplyr::recode(Date, "19.08.2021" = "18.08.2021", "21.08.2021" = "18.08.2021"))%>% #match envdata to flux data
   mutate(Date = as.Date(Date, "%d.%m.%Y"))%>%
-  mutate(Habitat = recode(Habitat, WGA = "WG", WGB = "WG", "WG "= "WG"))
+  mutate(Habitat = dplyr::recode(Habitat, WGA = "WG", WGB = "WG", "WG "= "WG"))
 
 # combine SR2021data with environmental data
 SR2021_CO2_env<- left_join(SR2021_CO2, SRenvdata2021, by= c("Date", "PlotID", "Transect" , "Habitat", "Treatment"))%>%
@@ -564,8 +564,8 @@ SR2021_CO2_env<-left_join(SR2021_CO2_env, TomstData_HourlyPlotID, by= c("Date", 
 
 # Flux conversion HMR microL/m2/s > micromol/m2/s HMRoutput/(0.08205*(273.15+Air_temp))
 SR2021_CO2_env<- SR2021_CO2_env%>%
-  mutate(CO2flux = CO2.f0/(0.08205*(273.15+AirTemperature)),
-         CO2flux.LR = CO2.LR/(0.08205*(273.15+AirTemperature)))
+  mutate(CO2flux = CO2.f0/(0.08205*(273.15+SoilTemp1)),
+         CO2flux.LR = CO2.LR/(0.08205*(273.15+SoilTemp1)))
 
 # bind together 2020 and 2021 CO2 flux data
 SR20202021_CO2_env<- rbind(SR2020_CO2_env, SR2021_CO2_env)
@@ -581,8 +581,8 @@ SR2021_CH4_env<-left_join(SR2021_CH4_env, TomstData_HourlyPlotID, by= c("Date", 
 # Flux conversion HMR microL/m2/s > micromol/m2/s HMRoutput/(0.08205*(273.15+Air_temp))
 SR2021_CH4_env<- SR2021_CH4_env%>%
   filter(Method.CH4 != "No flux")%>%
-  mutate(CH4flux = CH4.f0/(0.08205*(273.15+AirTemperature)),
-         CH4flux.LR = CH4.LR/(0.08205*(273.15+AirTemperature)))
+  mutate(CH4flux = CH4.f0/(0.08205*(273.15+SoilTemp1)),
+         CH4flux.LR = CH4.LR/(0.08205*(273.15+SoilTemp1)))
 
 
 ########################################################################################################################################
