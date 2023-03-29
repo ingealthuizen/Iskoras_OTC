@@ -950,6 +950,128 @@ GPP_CO2%>%
   facet_grid(~Habitat)
 
 
+# for bootstrapping
+library(viridis)
+library(broom)
+library(investr)
+library(lubridate)
+library(patchwork)
+
+#### separate datasets per habitat and Treatment
+GPP_P_C <- GPP_CO2 %>%
+  filter(Month %in% 7:8 )%>%
+  filter(Habitat == "P", Treatment == "C") %>% 
+  dplyr::select(GPPflux, PAR) %>% 
+  na.omit() 
+
+GPP_P_OTC <- GPP_CO2 %>% 
+  filter(Month %in% 7:8 )%>%
+  filter(Habitat == "P", Treatment == "OTC") %>% 
+  dplyr::select(GPPflux, PAR) %>% 
+  na.omit() 
+
+GPP_M_C <- GPP_CO2 %>% 
+  filter(Month %in% 7:8 )%>%
+  filter(Habitat == "M", Treatment == "C") %>% 
+  dplyr::select(GPPflux, PAR) %>% 
+  na.omit() 
+
+GPP_M_OTC <- GPP_CO2 %>% 
+  filter(Month %in% 7:8 )%>%
+  filter(Habitat == "M", Treatment == "OTC") %>% 
+  dplyr::select(GPPflux, PAR) %>% 
+  na.omit() 
+
+GPP_WG_C <- GPP_CO2 %>% 
+  filter(Month %in% 7:8 )%>%
+  filter(Habitat == "WG", Treatment == "C") %>% 
+  dplyr::select(GPPflux, PAR) %>% 
+  na.omit() 
+
+GPP_WG_OTC <- GPP_CO2 %>% 
+  filter(Month %in% 7:8 )%>%
+  filter(Habitat == "WG", Treatment == "OTC") %>% 
+  dplyr::select(GPPflux, PAR) %>% 
+  na.omit() 
+
+
+## get coefficients for each landscape unit model
+# model P
+fit_P_C <- nls( GPPflux ~  (aGPP*GPPmax*PAR)/(aGPP*PAR+GPPmax), data = GPP_P_C, start = list(aGPP=0.01, GPPmax=2))
+aGPP_P_C <- coef(summary(fit_P_C))[1]
+GPPmax_P_C <- coef(summary(fit_P_C))[2]
+
+new.data <- data.frame(PAR=seq(1, 2000, by = 10))
+fitted_P_C <- as_tibble(predFit(fit_P_C, newdata = new.data, interval = "confidence", level =0.9 ))%>%
+  mutate(PAR = new.data$PAR,
+         Habitat = "P",
+         Treatment = "C")
+
+fit_P_OTC <- nls( GPPflux ~  (aGPP*GPPmax*PAR)/(aGPP*PAR+GPPmax), data = GPP_P_OTC, start = list(aGPP=0.01, GPPmax=2))
+aGPP_P_OTC <- coef(summary(fit_M_OTC))[1]
+GPPmax_P_OTC <- coef(summary(fit_M_OTC))[2]
+
+fitted_P_OTC <- as_tibble(predFit(fit_P_OTC, newdata = new.data, interval = "confidence", level =0.9 ))%>%
+  mutate(PAR = new.data$PAR,
+         Habitat = "P",
+         Treatment = "OTC")
+
+# model M
+fit_M_C <- nls( GPPflux ~  (aGPP*GPPmax*PAR)/(aGPP*PAR+GPPmax), data = GPP_M_C, start = list(aGPP=0.01, GPPmax=2)) 
+aGPP_M_C <- coef(summary(fit_M_C))[1]
+GPPmax_M_C <- coef(summary(fit_M_C))[2]
+
+fitted_M_C <- as_tibble(predFit(fit_M_C, newdata = new.data, interval = "confidence", level =0.9 ))%>%
+  mutate(PAR = new.data$PAR,
+         Habitat = "M",
+         Treatment = "C")
+
+fit_M_OTC <- nls( GPPflux ~  (aGPP*GPPmax*PAR)/(aGPP*PAR+GPPmax), data = GPP_M_OTC, start = list(aGPP=0.01, GPPmax=2))
+aGPP_M_OTC <- coef(summary(fit_M_OTC))[1]
+GPPmax_M_OTC <- coef(summary(fit_M_OTC))[2]
+
+fitted_M_OTC <- as_tibble(predFit(fit_M_OTC, newdata = new.data, interval = "confidence", level =0.9 ))%>%
+  mutate(PAR = new.data$PAR,
+         Habitat = "M",
+         Treatment = "OTC")
+
+
+# model WG
+fit_WG_C <- nls( GPPflux ~  (aGPP*GPPmax*PAR)/(aGPP*PAR+GPPmax), data = GPP_WG_C, start = list(aGPP=0.01, GPPmax=2))
+aGPP_WG_C <- coef(summary(fit_WG_C))[1]
+GPPmax_WG_C <- coef(summary(fit_WG_C))[2]
+
+fitted_WG_C <- as_tibble(predFit(fit_WG_C, newdata = new.data, interval = "confidence", level =0.9 ))%>%
+  mutate(PAR = new.data$PAR,
+         Habitat = "WG",
+         Treatment = "C")
+
+fit_WG_OTC <- nls( GPPflux ~  (aGPP*GPPmax*PAR)/(aGPP*PAR+GPPmax), data = GPP_WG_OTC, start = list(aGPP=0.01, GPPmax=2))
+aGPP_WG_OTC <- coef(summary(fit_WG_OTC))[1]
+GPPmax_WG_OTC <- coef(summary(fit_WG_OTC))[2]
+
+fitted_WG_OTC <- as_tibble(predFit(fit_WG_OTC, newdata = new.data, interval = "confidence", level =0.9 ))%>%
+  mutate(PAR = new.data$PAR,
+         Habitat = "WG",
+         Treatment = "OTC")
+
+
+fitted_Habitat <- rbind(fitted_P_C, fitted_M_C, fitted_WG_C, fitted_P_OTC, fitted_M_OTC, fitted_WG_OTC)
+
+plotGPP<- ggplot(GPP_CO2) +  
+  geom_point(aes(x=PAR, y=GPPflux, col = Habitat, shape=Treatment)) + 
+  xlab("PAR") + ylab("GPP")
+
+plotGPP +  geom_line(data=fitted_Habitat, aes(x = PAR, y = fit, color = Habitat, linetype=Treatment ))+
+  geom_ribbon(data=fitted_Habitat, aes(x=PAR, ymin=lwr, ymax=upr, fill= Treatment), alpha=0.3, inherit.aes=F)+
+  scale_fill_viridis(discrete = TRUE)+
+  theme( axis.title.x = element_text(size = 18), axis.title.y = element_text(size = 18), axis.text.x = element_text(size = 16),
+         axis.text.y = element_text(size = 16), panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+         panel.background = element_blank(), axis.line = element_line(colour = "black"))+
+  facet_grid(~Habitat)
+
+
+
 #fit.Reco_ALL<-nls((Reco~A*exp(-308.56/I(tempK-227.13))), start=c(A=0 ), data=CO2_RECO_1516Trait) #
 
 #fit.GPP_ALL<-nls((GPP~ (A*B*PAR.x)/(A*PAR.x+B)), start=c(A=0.01, B=2), data=CO2_GPP_1516Trait)
