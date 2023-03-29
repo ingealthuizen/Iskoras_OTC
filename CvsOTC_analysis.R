@@ -886,13 +886,24 @@ NEE2021_CH4_env<- NEE2021_CH4_env%>%
   mutate(CH4flux = CH4.f0/(0.08205*(273.15+SoilTemp1)),
          CH4flux.LR = CH4.LR/(0.08205*(273.15+SoilTemp1)))
 
+# RECO
+NEE20202021_CO2_env%>%
+  filter(Treatment %in% c("C", "OTC"))%>%
+  filter(Habitat %in% c("S", "P", "M", "WG"))%>%
+  filter(Cover == "RECO")%>%
+  filter(CO2flux > 0)%>%
+  ggplot(aes(Habitat, CO2flux, col=Treatment))+ 
+  geom_boxplot()
 
-
-
-
-
-
-
+NEE2021_CH4_env%>%
+  filter(Treatment %in% c("C", "OTC"))%>%
+  filter(Habitat %in% c("S", "P", "M", "WG"))%>%
+  filter(Cover == "RECO")%>%
+  filter(CH4flux < 25)%>%
+  ggplot(aes(Habitat, CH4flux, col=Treatment))+ 
+  geom_boxplot()+
+  geom_hline(yintercept = 0)+
+  facet_wrap(~Habitat, scales="free")
 
 
 
