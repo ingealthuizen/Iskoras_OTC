@@ -926,9 +926,12 @@ GPP_CO2<-NEE20202021_CO2_env%>%
 
 GPP_CO2<-left_join(GPP_CO2, RECO_CO2, by=c("PlotID", "Date", "Year", "Month"))%>%
   unique()%>%
-  mutate(GPPflux = (CO2flux- CO2flux_RECO)*(-1))
+  mutate(GPPflux = (CO2flux- CO2flux_RECO)*(-1),
+         PAR = (PAR1+PAR2+PAR3)/3)
 
-ggplot(GPP_CO2, aes(PAR1, GPPflux, col=Treatment))+
+GPP_CO2%>%
+  filter(Month %in% 7:8 )%>%
+  ggplot(aes(PAR, GPPflux, col=Habitat, shape= Treatment))+
   geom_point()+
   facet_grid(~Habitat)
 
