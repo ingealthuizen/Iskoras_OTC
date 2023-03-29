@@ -937,10 +937,14 @@ GPP_CO2<-NEE20202021_CO2_env%>%
   filter(Cover != "RECO")%>%
   filter(Method.CO2 != "No flux") # 11 measurements dropped
 
+# Recalculate PAR based on shading cover, 
+# need to check shading effect of covers
 GPP_CO2<-left_join(GPP_CO2, RECO_CO2, by=c("PlotID", "Date", "Year", "Month"))%>%
   unique()%>%
   mutate(GPPflux = (CO2flux- CO2flux_RECO)*(-1),
-         PAR = (PAR1+PAR2+PAR3)/3)
+         PAR = (PAR1+PAR2+PAR3)/3)%>%
+  mutate(PAR = ifelse(Cover == 'NEE2', PAR*0.33,
+                         ifelse(Cover == 'NEE1', PAR*0.67, PAR)))
 
 GPP_CO2%>%
   filter(Month %in% 7:8 )%>%
