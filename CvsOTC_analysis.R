@@ -785,7 +785,74 @@ NEEenvdata2020<- rbind(meta.data1, meta.data2,meta.data3, meta.data4, meta.data5
 NEE2020_CO2_env<- left_join(NEE2020_CO2, NEEenvdata2020, by= c("Date", "PlotID", "Transect" , "Habitat", "Treatment", "Cover"))%>%
   distinct(FluxID, .keep_all = TRUE)%>% # remove duplicated rows
   mutate(Hour = as.integer(substr(Starttime, 1,2)))%>%
-  mutate(Habitat=recode(Habitat, WGA = "WG", WGB = "WG"))
+  mutate(Habitat= dplyr::recode(Habitat, WGA = "WG", WGB = "WG"))%>%
+  dplyr::select(-FluxID)
+
+
+########## 2021 
+NEE2021_CO2<-read.csv("2021\\Cfluxdata\\HMRoutput_NEE2021_CO2.csv")%>%
+  separate(Series, sep = "_", into = c("PlotID", "Treatment", "Cover", "Date", "FluxID"))%>%
+  mutate(Transect = substring(PlotID,1,1),
+         Habitat = substring(PlotID, 2,3))%>%
+  unite(PlotID, PlotID:Treatment, remove =FALSE )%>%
+  #dplyr::select(PlotID, Transect, Habitat, Treatment, Date, f0, LR.f0, Method, FluxID, Cover)%>%
+  rename(CO2.f0 = f0, CO2.LR = LR.f0, Method.CO2 = Method)
+
+NEE2021_CH4<-read.csv("2021\\Cfluxdata\\HMRoutput_NEE2021_CH4.csv")%>%
+  separate(Series, sep = "_", into = c("PlotID", "Treatment", "Cover", "Date", "FluxID"))%>%
+  mutate(Transect = substring(PlotID,1,1),
+         Habitat = substring(PlotID, 2,3))%>%
+  unite(PlotID, PlotID:Treatment, remove =FALSE )%>%
+  #dplyr::select(PlotID, Transect, Habitat, Treatment, Date, f0, LR.f0, Method, FluxID, Cover)%>%
+  rename(CH4.f0 = f0, CH4.LR = LR.f0, Method.CH4 = Method)
+
+## read in metadata
+NEEenvdata03062021<-read.csv2("2021\\Cfluxdata\\NEEmetadata_03062021.csv")
+NEEenvdata04062021<-read.csv2("2021\\Cfluxdata\\NEEmetadata_04062021.csv")
+NEEenvdata02072021<-read.csv2("2021\\Cfluxdata\\NEEmetadata_02072021.csv")%>%
+  dplyr::select(-X)# Check PAR ECtower
+NEEenvdata03072021<-read.csv2("2021\\Cfluxdata\\NEEmetadata_03072021.csv")
+NEEenvdata20072021<-read.csv2("2021\\Cfluxdata\\NEEmetadata_20072021.csv")
+NEEenvdata21072021<-read.csv2("2021\\Cfluxdata\\NEEmetadata_21072021.csv")
+NEEenvdata23072021<-read.csv2("2021\\Cfluxdata\\NEEmetadata_23072021.csv")
+NEEenvdata17082021<-read.csv2("2021\\Cfluxdata\\NEEmetadata_17082021.csv")
+NEEenvdata18082021<-read.csv2("2021\\Cfluxdata\\NEEmetadata_18082021.csv")
+NEEenvdata21082021<-read.csv2("2021\\Cfluxdata\\NEEmetadata_21082021.csv")
+NEEenvdata11092021<-read.csv2("2021\\Cfluxdata\\NEEmetadata_11092021.csv")
+NEEenvdata12092021<-read.csv2("2021\\Cfluxdata\\NEEmetadata_12092021.csv")
+
+NEEenvdata2021<- rbind(NEEenvdata03062021, NEEenvdata04062021, NEEenvdata02072021,NEEenvdata03072021, NEEenvdata20072021, NEEenvdata21072021, NEEenvdata23072021, NEEenvdata17082021, NEEenvdata18082021, NEEenvdata21082021, NEEenvdata11092021, NEEenvdata12092021)%>%
+  mutate(FluxID = as.character(FluxID))
+
+# link Environmental data and CO2fluxdata
+NEE2021_CO2_env<- left_join(NEE2021_CO2, NEEenvdata2021, by= c("FluxID", "Date", "PlotID", "Transect", "Habitat", "Treatment", "Cover"))%>%
+  mutate(Hour = as.integer(substr(Starttime, 1,2)),
+         Date = as.Date(Date, "%d.%m.%Y"))%>%
+  mutate(Habitat= dplyr::recode(Habitat, WGA = "WG", WGB = "WG"))%>%
+  dplyr::select(-FluxID)
+
+# bind together 2020 and 2021 NEE CO2 data
+NEE20202021_CO2_env<- rbind(NEE2020_CO2_env, NEE2021_CO2_env)%>%
+  mutate(Month = lubridate::month(Date),
+         Year = lubridate::year(Date))
+
+NEE2021_CH4_env<- left_join(NEE2021_CH4, NEEenvdata2021, by= c("FluxID", "Date", "PlotID", "Transect", "Habitat", "Treatment", "Cover"))%>%
+  mutate(Hour = as.integer(substr(Starttime, 1,2)),
+         Date = as.Date(Date, "%d.%m.%Y"))%>%
+  mutate(Habitat= dplyr::recode(Habitat, WGA = "WG", WGB = "WG"))%>%
+  dplyr::select(-FluxID)
+
+##############
+# Flux conversion HMR microL/m2/s > micromol/m2/s HMRoutput/(0.08205*(273.15+Air_temp))
+# (0.08205*273.15) equals 22.4 L/mol, which is the standard molar volume at standard conditions (temp = 0 and 1 atm pressure)
+# for now using soilTemp1 but better with either chamber ibutton data/ TOMST logger data or EC airtemp data
+NEE20202021_CO2_env<-NEE20202021_CO2_env%>%
+  mutate(CO2flux = CO2.f0/(0.08205*(273.15+SoilTemp1)),
+         CO2flux.LR = CO2.LR/(0.08205*(273.15+SoilTemp1)))
+
+NEE2021_CH4_env<- NEE2021_CH4_env%>%
+  mutate(CH4flux = CH4.f0/(0.08205*(273.15+SoilTemp1)),
+         CH4flux.LR = CH4.LR/(0.08205*(273.15+SoilTemp1)))
 
 
 ## Add airtemp based on TOMSTloggerData for measurement hour
@@ -793,16 +860,16 @@ NEE2020_CO2_env<-left_join(NEE2020_CO2_env, TomstData_HourlyPlotID, by= c("Date"
 
 # NEED TO CORRECT FLUXES WITH IBUTTON TEMPERATURE TOMSTDATA not available for all dates !!!
 NEELi7810_notHMR<-read.csv("2020\\LiCOR7810\\NEEflux_2020_Li7810.csv")%>%
-  select(Date, Transect, Habitat, Treatment, PlotID, Cover, Airtemp)%>%
+  dplyr::select(Date, Transect, Habitat, Treatment, PlotID, Cover, Airtemp)%>%
   mutate(Date = as.Date(Date, "%d.%m.%Y"))
 
 NEELi850_notHMR<-read.csv("2020\\LiCOR850\\NEEflux_2020_Li850.csv")%>%
-  select(Date, Transect, Habitat, Treatment, PlotID, Cover, Airtemp)%>%
+  dplyr::select(Date, Transect, Habitat, Treatment, PlotID, Cover, Airtemp)%>%
   mutate(Date = as.Date(Date, "%d.%m.%Y"))
 
 NEE_ibuttonTemp<- rbind(NEELi7810_notHMR, NEELi850_notHMR)%>%
-  rename(ChamberAirtemp= Airtemp)%>%
-  mutate(Habitat=recode(Habitat, WGA = "WG", WGB = "WG"))
+  dplyr::rename(ChamberAirtemp= Airtemp)%>%
+  mutate(Habitat= dplyr::recode(Habitat, WGA = "WG", WGB = "WG"))
 
 # match chamber airtemp to NEE data
 NEE2020_CO2_env<- left_join(NEE2020_CO2_env, NEE_ibuttonTemp, by= c("Date", "Transect", "Habitat", "Treatment", "PlotID", "Cover"))%>%
@@ -812,118 +879,39 @@ NEE2020_CO2_env<- left_join(NEE2020_CO2_env, NEE_ibuttonTemp, by= c("Date", "Tra
 ECtower<-read.csv("Climate\\Mobileflux1_level1_30min.csv")%>%
   mutate(Date = as.Date(index, "%Y-%m-%d"),
          Hour = as.integer(substr(index, 12,13)))%>%
-  rename(ECairtemp = air_temperature)%>%
-  select(Date, Hour, ECairtemp)
+  group_by(Date, Hour)%>%
+  summarise(ECairtemp = mean(air_temperature))%>%
+  dplyr::select(Date, Hour, ECairtemp)
 
 NEE2020_CO2_env<- left_join(NEE2020_CO2_env, ECtower, by= c("Date", "Hour"))
 
-# Flux conversion HMR microL/m2/s > micromol/m2/s HMRoutput/(0.08205*(273.15+Air_temp))
-NEE2020_CO2_env<- NEE2020_CO2_env%>%
-  mutate(CO2flux = CO2.f0/(0.08205*(273.15+ChamberAirtemp)),
-         CO2flux.LR = CO2.LR/(0.08205*(273.15+ChamberAirtemp)))
 
-########## 2021 
-NEE2021_CO2<-read.csv("2021\\HMRoutput_NEE2021_CO2.csv")%>%
-  separate(Series, sep = "_", into = c("PlotID", "Treatment", "Cover", "Date", "FluxID"))%>%
-  mutate(Transect = substring(PlotID,1,1),
-         Habitat = substring(PlotID, 2,3))%>%
-  unite(PlotID, PlotID:Treatment, remove =FALSE )%>%
-  select(PlotID, Transect, Habitat, Treatment, Date, f0, LR.f0, Method, FluxID, Cover)%>%
-  rename(CO2.f0 = f0, CO2.LR = LR.f0, Method.CO2 = Method)
 
-NEE2021_CH4<-read.csv("2021\\HMRoutput_NEE2021_CH4.csv")%>%
-  separate(Series, sep = "_", into = c("PlotID", "Treatment", "Cover", "Date", "FluxID"))%>%
-  mutate(Transect = substring(PlotID,1,1),
-         Habitat = substring(PlotID, 2,3))%>%
-  unite(PlotID, PlotID:Treatment, remove =FALSE )%>%
-  select(PlotID, Transect, Habitat, Treatment, Date, f0, LR.f0, Method, FluxID, Cover)%>%
-  rename(CH4.f0 = f0, CH4.LR = LR.f0, Method.CH4 = Method)
 
-## read in metadata
-NEEenvdata03062021<-read.csv2("2021\\NEEmetadata_03062021.csv")
-NEEenvdata04062021<-read.csv2("2021\\NEEmetadata_04062021.csv")
-NEEenvdata02072021<-read.csv2("2021\\NEEmetadata_02072021.csv")%>%
-  select(-X)# Check PAR ECtower
-NEEenvdata03072021<-read.csv2("2021\\NEEmetadata_03072021.csv")
-NEEenvdata20072021<-read.csv2("2021\\NEEmetadata_20072021.csv")
-NEEenvdata21072021<-read.csv2("2021\\NEEmetadata_21072021.csv")
-NEEenvdata23072021<-read.csv2("2021\\NEEmetadata_23072021.csv")
-NEEenvdata17082021<-read.csv2("2021\\NEEmetadata_17082021.csv")
-NEEenvdata18082021<-read.csv2("2021\\NEEmetadata_18082021.csv")
-NEEenvdata21082021<-read.csv2("2021\\NEEmetadata_21082021.csv")
-NEEenvdata11092021<-read.csv2("2021\\NEEmetadata_11092021.csv")
-NEEenvdata12092021<-read.csv2("2021\\NEEmetadata_12092021.csv")
 
-NEEenvdata2021<- rbind(NEEenvdata03062021, NEEenvdata04062021, NEEenvdata02072021,NEEenvdata03072021, NEEenvdata20072021, NEEenvdata21072021, NEEenvdata23072021, NEEenvdata17082021, NEEenvdata18082021, NEEenvdata21082021, NEEenvdata11092021, NEEenvdata12092021)%>%
-  mutate(FluxID = as.character(FluxID))
+
+
+
+
 
 #!!!! CHECK PAR for NEE measurements 02072021, PAR sensor wrong 
-
-
 ### process fluxes with fluxcalc function to get airtemp from chamber!
 
 
+#
+#  mutate(plotDate = recode(Date, "03.06.2021" = "04.06.2021", 
+#                           "02.07.2021" = "03.07.2021", 
+#                           "20.07.2021" = "23.07.2021", "21.07.2021" = "23.07.2021", 
+#                           "17.08.2021" = "21.08.2021", "18.08.2021" = "21.08.2021", 
+#                           "11.09.2021" = "12.09.2021"))%>%
+#  mutate(plotDate = as.Date(plotDate, "%d.%m.%Y"),
 
 
-
-# link Environmental data and fluxdata
-NEE_FluxEnv2021<- left_join(NEEenvdata2021, NEE2021_CO2CH4, 
-                            by= c("FluxID", "Date", "PlotID", "Transect", "Habitat", "Treatment", "Cover"))%>%
-  mutate(plotDate = recode(Date, "03.06.2021" = "04.06.2021", 
-                           "02.07.2021" = "03.07.2021", 
-                           "20.07.2021" = "23.07.2021", "21.07.2021" = "23.07.2021", 
-                           "17.08.2021" = "21.08.2021", "18.08.2021" = "21.08.2021", 
-                           "11.09.2021" = "12.09.2021"))%>%
-  mutate(plotDate = as.Date(plotDate, "%d.%m.%Y"),
-         Date = as.Date(Date, "%d.%m.%Y"),
-         Month = format(as.Date(Date, format="%d/%m/%Y"),"%m"))%>%
+%>%
   filter(Treatment %in% c("C", "OTC"))%>%
   filter(Habitat %in% c("S", "P", "M", "WG"))%>%
   filter(CH4.f0< 1000)%>%
   filter(CH4.f0>-1000)
 
-# RECO measurements
-NEE_FluxEnv2021%>%
-  filter(Cover == "RECO")%>%
-  ggplot(aes(as.factor(plotDate), CO2.f0, fill=Treatment))+
-  geom_boxplot()+
-  facet_grid(~Habitat, scales = "free")+
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
-
-NEE_FluxEnv2021%>%
-  filter(Cover == "RECO")%>%
-  ggplot(aes(as.factor(plotDate), CH4.f0, fill=Treatment))+
-  geom_boxplot()+
-  facet_grid(~Habitat, scales = "free")+
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
-
-NEE_FluxEnv2021%>%
-  filter(Cover == "RECO")%>%
-  ggplot(aes(SoilTemp1, CO2.f0, col=Treatment, shape =Treatment))+
-  geom_point(size =1)+
-  facet_grid(~Habitat, scales = "free")
-
-NEE_FluxEnv2021%>%
-  filter(Cover == "RECO")%>%
-  ggplot(aes(SoilTemp1, CH4.f0, col=Treatment, shape =Treatment))+
-  geom_point(size =1)+
-  facet_grid(~Habitat, scales = "free")
-
-
-
-# NEE measurements
-NEE_FluxEnv2021%>%
-  filter(Cover != "RECO")%>%
-  ggplot(aes(as.factor(plotDate), CO2.f0, fill=Treatment))+
-  geom_boxplot()+
-  facet_grid(~Habitat, scales = "free")+
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
-
-NEE_FluxEnv2021%>%
-  filter(Cover != "RECO")%>%
-  ggplot(aes(as.factor(plotDate), CH4.f0, fill=Treatment))+
-  geom_boxplot()+
-  facet_grid(~Habitat, scales = "free")+
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
 
 
