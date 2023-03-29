@@ -593,7 +593,7 @@ SR20202021_CO2_env_clean<-SR20202021_CO2_env%>%
   filter(Comment != "redo")%>%
   filter(Habitat != "W")%>%
   filter(CO2flux > 0)%>% # remove negative values
-  filter(CO2flux< 3)%>%
+  #filter(CO2flux< 2.1)%>% #remove 3 outliers
   mutate(Habitat =dplyr::recode(Habitat, M = "Thawslump", P= "Vegetated Palsa", S = "Soil Palsa", WG= "Vegetated Pond")) # recode Habitat
 SR20202021_CO2_env_clean$Habitat <- factor(SR20202021_CO2_env_clean$Habitat, levels = c("Vegetated Palsa", "Soil Palsa", "Thawslump", "Vegetated Pond"))
 
@@ -609,11 +609,50 @@ SR20202021_CO2_env_clean%>%
   ) %>%
   ungroup()
 
-
 SR20202021_CO2_env_clean%>%
   ggplot(aes(Habitat, CO2flux, fill=Treatment))+
   geom_boxplot(outlier.colour="black", outlier.shape=16,
                outlier.size=2, notch=TRUE)
+
+# ANOVA to test Treatment and Habitat effect 
+aov.org <- aov( CO2flux ~ Habitat * Treatment, data = SR20202021_CO2_env_clean,
+  contrasts = list(Habitat = 'contr.sum', Treatment = 'contr.sum' ))
+Anova(aov.org, type = 'III')
+
+aov.log <- aov( log(CO2flux) ~ Habitat * Treatment, data = SR20202021_CO2_env_clean,
+                contrasts = list(Habitat = 'contr.sum', Treatment = 'contr.sum' ))
+Anova(aov.log, type = 'III')
+
+aov.rank <- aov( rank(CO2flux) ~ Habitat * Treatment, data = SR20202021_CO2_env_clean,
+                contrasts = list(Habitat = 'contr.sum', Treatment = 'contr.sum' ))
+Anova(aov.rank, type = 'III')
+
+res.org = aov.org$resid
+res.log = aov.log$resid
+res.rnk = aov.rank$resid
+
+qqnorm(  res.org, pch = 20, main = "Original Data",
+  cex.lab = 1, cex.axis = 0.7, cex.main = 1)
+qqline(res.org)
+plot(aov.org, 1, main = "Original Data")
+
+qqnorm(  res.log, pch = 20, main = "Log-Transformed",
+  cex.lab = 1, cex.axis = 0.7, cex.main = 1)
+qqline(res.log)
+plot(aov.log, 1, main = "Log-Transformed")
+
+qqnorm(  res.rnk, pch = 20, main = "Rank-Transformed",
+  cex.lab = 1, cex.axis = 0.7, cex.main = 1)
+qqline(res.rnk)
+plot(aov.rank, 1, main = "Rank-Transformed")
+
+library(emmelog, pairwise ~ Habitat | Treatment)
+em_out_category<-emmeans(aov.log,  ~ Treatment | Habitat) 
+em_out_category %>% 
+  pairs() %>% 
+  test(joint = TRUE)
+pairs(em_out_category)
+
 
 library(dplyr)
 library(rstatix)
@@ -690,6 +729,7 @@ SR20202021_CO2_env_clean%>%
   scale_color_manual(values= c("#fc8d62", "#e5c494","#66c2a5", "#8da0cb"), 
                      name = "Habitat")+
   scale_shape_manual(values= c(19,17), name = "Treatment", labels = c("Control", "OTC"))+
+  facet_grid(~Habitat)+
   theme_classic()+
   theme(legend.position = "bottom", axis.title = element_text(size = 14), axis.text = element_text(size =12), legend.text = element_text(size =11) )
 
