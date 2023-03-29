@@ -609,11 +609,6 @@ SR20202021_CO2_env_clean%>%
   ) %>%
   ungroup()
 
-SR20202021_CO2_env_clean%>%
-  ggplot(aes(Habitat, CO2flux, fill=Treatment))+
-  geom_boxplot(outlier.colour="black", outlier.shape=16,
-               outlier.size=2, notch=TRUE)
-
 # ANOVA to test Treatment and Habitat effect 
 aov.org <- aov( CO2flux ~ Habitat * Treatment, data = SR20202021_CO2_env_clean,
   contrasts = list(Habitat = 'contr.sum', Treatment = 'contr.sum' ))
@@ -656,13 +651,19 @@ pairs(em_out_category)
 
 # SR for each habitat and treatment over summer seasons 2020 and 2021 
 SR20202021_CO2_env_clean%>%
+  ggplot(aes(Habitat, CO2flux, fill=Treatment))+
+  geom_boxplot(outlier.colour="black", outlier.shape=16,
+               outlier.size=2, notch=TRUE)+
+  theme_classic()
+
+SR20202021_CO2_env_clean%>%
   group_by(Habitat, Treatment)%>%
   summarise(CO2flux.se = se(CO2flux),
             CO2flux.sd = sd(CO2flux, na.rm=TRUE),
             CO2flux.mean= mean(CO2flux, na.rm=TRUE))%>%
   ggplot(aes(Habitat, CO2flux.mean, color= Habitat, shape= Treatment))+
   geom_point(position = position_dodge(0.8), size=4 )+
-  geom_errorbar(aes(ymin=CO2flux.mean-CO2flux.se, ymax=CO2flux.mean+CO2flux.se), position = position_dodge(0.8), width=.4)+
+  geom_errorbar(aes(ymin=CO2flux.mean-CO2flux.sd, ymax=CO2flux.mean+CO2flux.sd), position = position_dodge(0.8), width=.4)+
   scale_color_manual(values= c("#fc8d62", "#e5c494","#66c2a5", "#8da0cb"), 
                      name = "Habitat")+
   scale_shape_manual(values= c(19,17), name = "Treatment", labels = c("Control", "OTC"))+
@@ -671,13 +672,20 @@ SR20202021_CO2_env_clean%>%
 
 # supplement include seasonal pattern
 SR20202021_CO2_env_clean%>%
+  ggplot(aes(Month, CO2flux, fill=Treatment))+
+  geom_boxplot(outlier.colour="black", outlier.shape=16,
+               outlier.size=2, notch=FALSE)+
+  facet_grid(~Habitat)+
+  theme_classic()
+
+SR20202021_CO2_env_clean%>%
   group_by(Habitat, Treatment, Month)%>%
   summarise(CO2flux.se = se(CO2flux),
             CO2flux.sd = sd(CO2flux, na.rm=TRUE),
             CO2flux.mean= mean(CO2flux, na.rm=TRUE))%>%
   ggplot(aes(Month, CO2flux.mean, color= Habitat, shape= Treatment))+
   geom_point(position = position_dodge(0.8), size=4 )+
-  geom_errorbar(aes(ymin=CO2flux.mean-CO2flux.se, ymax=CO2flux.mean+CO2flux.se), position = position_dodge(0.8), width=.4)+
+  geom_errorbar(aes(ymin=CO2flux.mean-CO2flux.sd, ymax=CO2flux.mean+CO2flux.sd), position = position_dodge(0.8), width=.4)+
   scale_color_manual(values= c("#fc8d62", "#e5c494","#66c2a5", "#8da0cb"), 
                      name = "Habitat")+
   scale_shape_manual(values= c(19,17), name = "Treatment", labels = c("Control", "OTC"))+
@@ -701,7 +709,7 @@ SR2021_CH4_env_clean%>%
             CH4flux.mean= mean(CH4flux, na.rm=TRUE))%>%
   ggplot(aes(Habitat, CH4flux.mean, color= Habitat, shape= Treatment))+
   geom_point(position = position_dodge(0.8), size=4 )+
-  geom_errorbar(aes(ymin=CH4flux.mean-CH4flux.se, ymax=CH4flux.mean+CH4flux.se), position = position_dodge(0.8), width=.4)+
+  geom_errorbar(aes(ymin=CH4flux.mean-CH4flux.sd, ymax=CH4flux.mean+CH4flux.sd), position = position_dodge(0.8), width=.4)+
   scale_color_manual(values= c("#fc8d62", "#e5c494","#66c2a5", "#8da0cb"), 
                      name = "Habitat")+
   scale_shape_manual(values= c(19,17), name = "Treatment", labels = c("Control", "OTC"))+
