@@ -889,12 +889,21 @@ NEE_CO2<-NEE20202021_CO2_env%>%
 # Recalculate PAR based on shading cover, 
 # need to check shading effect of covers
 GPP_CO2<-left_join(NEE_CO2, RECO_CO2, by=c("PlotID", "Date", "Year", "Month"))%>%
-  unique()%>%
-  mutate(GPPflux = (CO2flux- CO2flux_RECO)*(-1),
-         PAR = (PAR1+PAR2+PAR3)/3)%>%
-  mutate(PAR = ifelse(Cover == 'NEE2', PAR*0.33,
-                         ifelse(Cover == 'NEE1', PAR*0.67, PAR)))%>%
-  filter(GPPflux > 0)
+  mutate(GPPflux = (CO2flux- CO2flux_RECO)*(-1))%>%
+  drop_na(GPPflux)%>%
+  group_by(PlotID, Transect, Habitat, Treatment, Cover, Date, Hour, Month, Year)%>%
+  gather(PAR, value, PAR1:PAR3)%>%
+  mutate(PAR.mean = mean(value, na.rm=TRUE))%>%
+  distinct(GPPflux, .keep_all = TRUE)%>%
+  mutate(PAR.mean = ifelse(Cover == 'NEE2', PAR.mean*0.33,
+                         ifelse(Cover == 'NEE1', PAR.mean*0.67, PAR.mean)))%>%
+  filter(GPPflux > 0)%>%
+  ungroup()
+
+group_by(PlotID, Transect, Habitat, Treatment, Cover, Date, Hour, Month, Year)%>%
+  gather(PAR, value, PAR1:PAR3)%>%
+  mutate(PAR.mean = mean(value, na.rm=TRUE))%>%
+  unique()
 
 #!!!! CHECK PAR for NEE measurements 02072021, PAR sensor wrong 
 ### process fluxes with fluxcalc function to get airtemp from chamber!
