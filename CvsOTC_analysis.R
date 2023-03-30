@@ -918,14 +918,6 @@ CWMtraits_wide<- CWMtraits%>%
 
 GPP_NDVI_CWM<-left_join(GPP_NDVI, CWMtraits_wide, by= c("PlotID", "Treatment"))
 
-ggplot(GPP_NDVI_CWM, aes(NDVI, GPPflux))+
-  geom_point(aes(col=Habitat))+
-  geom_smooth(method = "lm")
-
-ggplot(GPP_NDVI_CWM, aes(SoilTemp.mean, GPPflux))+
-  geom_point(aes(col=Habitat))+
-  geom_smooth(method = "lm")
-
 library(glmmTMB)
 library(lme4)
 library(lmerTest)
