@@ -894,8 +894,9 @@ NEE20202021_CO2_env%>%
   filter(Comment != "redo")%>%
   filter(Method.CO2 != "No flux")%>%
   filter(CO2flux > 0)%>%
-  ggplot(aes(Habitat, CO2flux, col=Treatment))+ 
-  geom_boxplot()
+  ggplot(aes(as.factor(Month), CO2flux, fill=Treatment))+ 
+  geom_boxplot()+
+  facet_grid(~Habitat)
 
 NEE20202021_CO2_env%>%
   filter(Treatment %in% c("C", "OTC"))%>%
@@ -916,7 +917,7 @@ NEE2021_CH4_env%>%
   #filter(Cover == "RECO")%>%
   filter(CH4flux < 25)%>%
   filter(CH4flux >-30)%>%
-  filter(Method.CO2 != "No flux")%>%
+  filter(Method.CH4 != "No flux")%>%
   ggplot(aes(Habitat, CH4flux, col=Treatment))+ 
   geom_boxplot()+
   geom_hline(yintercept = 0)+
@@ -931,7 +932,7 @@ RECO_CO2<-NEE20202021_CO2_env%>%
   rename( CO2flux_RECO = CO2flux,  CO2flux.LR_RECO = CO2flux.LR )%>%
   dplyr::select(PlotID, Date, Year, Month, CO2flux_RECO, CO2flux.LR_RECO)
 
-GPP_CO2<-NEE20202021_CO2_env%>%
+NEE_CO2<-NEE20202021_CO2_env%>%
   filter(!grepl("R", PlotID))%>%
   filter(Treatment %in% c("C",  "OTC"))%>%
   filter(Cover != "RECO")%>%
@@ -939,12 +940,13 @@ GPP_CO2<-NEE20202021_CO2_env%>%
 
 # Recalculate PAR based on shading cover, 
 # need to check shading effect of covers
-GPP_CO2<-left_join(GPP_CO2, RECO_CO2, by=c("PlotID", "Date", "Year", "Month"))%>%
+GPP_CO2<-left_join(NEE_CO2, RECO_CO2, by=c("PlotID", "Date", "Year", "Month"))%>%
   unique()%>%
   mutate(GPPflux = (CO2flux- CO2flux_RECO)*(-1),
          PAR = (PAR1+PAR2+PAR3)/3)%>%
   mutate(PAR = ifelse(Cover == 'NEE2', PAR*0.33,
-                         ifelse(Cover == 'NEE1', PAR*0.67, PAR)))
+                         ifelse(Cover == 'NEE1', PAR*0.67, PAR)))%>%
+  filter(GPPflux > 0)
 
 GPP_CO2%>%
   filter(Month %in% 7:8 )%>%
@@ -1062,7 +1064,9 @@ fitted_WG_OTC <- as_tibble(predFit(fit_WG_OTC, newdata = new.data, interval = "c
 
 fitted_Habitat <- rbind(fitted_P_C, fitted_M_C, fitted_WG_C, fitted_P_OTC, fitted_M_OTC, fitted_WG_OTC)
 
-plotGPP<- ggplot(GPP_CO2) +  
+plotGPP<-GPP_CO2 %>%
+  filter(Month %in% 7:8 )%>%
+  ggplot() +  
   geom_point(aes(x=PAR, y=GPPflux, col = Habitat, shape=Treatment)) + 
   xlab("PAR") + ylab("GPP")
 
