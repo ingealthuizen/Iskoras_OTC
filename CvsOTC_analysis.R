@@ -705,7 +705,8 @@ pairs(em_out_category)
 # NEE chamber  V = 2.5 L, A = 0.0625 m2, CH4 in ppb, C02 in ppm
 NEE2020_CO2<- read.csv("Cflux\\2020\\NEE2020_CO2_HMRoutput.csv", sep= ",")%>%
   rename(FluxID = X, CO2.f0 = f0, CO2.LR = LR.f0, Method.CO2 = Method)%>%
-  mutate(Date = as.Date(Date, "%Y-%m-%d"))
+  mutate(Date = as.Date(Date, "%Y-%m-%d"))%>%
+  mutate(PlotID = dplyr::recode(PlotID, "3WGA_OTC" = "3WGB_OTC"))
 
 # load environmental metadata
 meta.data1<- read.csv2("2020\\LiCOR850\\NEEmetadata_14072020.csv")
@@ -905,6 +906,14 @@ GPP_NDVI<- left_join(GPP_CO2, NDVIdata, by=c("PlotID", "Treatment", "Habitat", "
 ggplot(GPP_NDVI, aes(NDVI, GPPflux, col=Habitat))+
   geom_point()+
   geom_smooth(method = "lm")
+
+CWMtraits_wide<- CWMtraits%>%
+  spread(Trait, CWM)%>%
+  ungroup()
+
+GPP_NDVI_CWM<-left_join(GPP_NDVI, CWMtraits_wide, by= c("PlotID", "Treatment"))
+
+
 
 # for bootstrapping
 library(viridis)
