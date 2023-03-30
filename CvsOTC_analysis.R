@@ -992,9 +992,12 @@ GPPmodel$rSquared
 
 library(glmmTMB)
 library(lme4)
+library(lmerTest)
 library(DHARMa)
 
-fitGPP <- lmer(log(GPPflux) ~ scale(PAR) + NDVI + VH + (1|PlotID) ,  data = GPP_NDVI_CWM)
+fitGPP <- lmer(log(GPPflux) ~ scale(PAR.mean) + NDVI + VH + LA + SLA +LDMC + (1|PlotID) ,  data = GPP_NDVI_CWM)
+summary(fitGPP)
+anova(fitGPP)
 
 hist(log(GPP_NDVI_CWM$GPPflux))
 
