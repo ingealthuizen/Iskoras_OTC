@@ -923,6 +923,9 @@ ggplot(GPP_NDVI_CWM, aes(NDVI, GPPflux))+
   geom_point(aes(col=Habitat))+
   geom_smooth(method = "lm")
 
+
+
+
 # Bayesion PAR model
 # These packages need to be loaded to run the model
 #install.packages("nimble")
@@ -944,11 +947,14 @@ source("C:\\Users\\ialt\\OneDrive - NORCE\\FunCab\\Data\\FunCaB2\\TraitCO2\\mcmc
 source("C:\\Users\\ialt\\OneDrive - NORCE\\FunCab\\Data\\FunCaB2\\TraitCO2\\glmNIMBLE.R")
 source("C:\\Users\\ialt\\OneDrive - NORCE\\FunCab\\Data\\FunCaB2\\TraitCO2\\gppLightCurveCorrection.R")
 
+GPP_NDVI_CWM_noNA<-GPP_NDVI_CWM%>%
+  drop_na(NDVI)
+  
 GPPmodel <- gppLightCurveCorrection(
   # Set the input data
-  inputData = GPP_NDVI_CWM,
+  inputData = GPP_NDVI_CWM_noNA,
   # Tell the model which column represents the light values (for the curve correction)
-  lightValues = "PAR",
+  lightValues = "PAR.mean",
   # Set the three sub-models for the model components.  You probably want to keep the x-assymtote model as an intercept-only model
   # and turn off the multiplier model (by setting the multiplier to 1.0).  This means only the y-asymptote will change with the
   # environmental covariates + VegetationHeight + Richness + Evenness + Diversity + CWM_N + CWM_C + CWM_CN + CWM_LDMC + CWM_LT + CWM_LA + CWM_SLA + CWM_VH + FDis_Traits
@@ -958,6 +964,11 @@ GPPmodel <- gppLightCurveCorrection(
   # Tell the model that you want to do LASSO regularisation
   regCoeffs = "lasso" , 
   # Define the set of indirect models that you also want to fit (check how the sub-models are defined)
+  indirectComponents = list(
+    list(modelFormula = CO2flux_RECO ~ SoilTemp1 + SoilMoist1 + VH + LA + SLA +LDMC, errorFamily = Gamma(link = "log"),
+         regCoeffs = "lasso", 
+         suffix = "_Reco_Model")
+  ),
   # A vector of different PAR values you want to get predictions for (so that you can do PAR standardisation of the values)
   lightStandards = c(800),
   mcmcParams = list(numRuns = 100000, thinDensity = 400, predictThinDensity = 400),
