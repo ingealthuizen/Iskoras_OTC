@@ -770,7 +770,8 @@ NEEenvdata11092021<-read.csv2("2021\\Cfluxdata\\NEEmetadata_11092021.csv")
 NEEenvdata12092021<-read.csv2("2021\\Cfluxdata\\NEEmetadata_12092021.csv")
 
 NEEenvdata2021<- rbind(NEEenvdata03062021, NEEenvdata04062021, NEEenvdata02072021,NEEenvdata03072021, NEEenvdata20072021, NEEenvdata21072021, NEEenvdata23072021, NEEenvdata17082021, NEEenvdata18082021, NEEenvdata21082021, NEEenvdata11092021, NEEenvdata12092021)%>%
-  mutate(FluxID = as.character(FluxID))
+  mutate(FluxID = as.character(FluxID))%>%
+  mutate(SoilTemp2 = dplyr::recode(SoilTemp2, '100.6' = 10.6L)) #correct typo on data
 
 # link Environmental data and CO2fluxdata
 NEE2021_CO2_env<- left_join(NEE2021_CO2, NEEenvdata2021, by= c("FluxID", "Date", "PlotID", "Transect", "Habitat", "Treatment", "Cover"))%>%
@@ -921,23 +922,33 @@ ggplot(GPP_NDVI_CWM, aes(NDVI, GPPflux))+
   geom_point(aes(col=Habitat))+
   geom_smooth(method = "lm")
 
+ggplot(GPP_NDVI_CWM, aes(SoilTemp.mean, GPPflux))+
+  geom_point(aes(col=Habitat))+
+  geom_smooth(method = "lm")
+
 library(glmmTMB)
 library(lme4)
 library(lmerTest)
 library(DHARMa)
+library(MuMIn)
 
 hist(log(GPP_NDVI_CWM$GPPflux))
 
 fitGPP <- lmer(log(GPPflux) ~ scale(PAR.mean) + SoilTemp.mean + SoilMoist.mean + NDVI + VH + LA + SLA +LDMC + (1|PlotID) ,  data = GPP_NDVI_CWM)
 summary(fitGPP)
 anova(fitGPP)
+MuMIn::r.squaredGLMM(fitGPP)
+simulationOutput <- simulateResiduals(fittedModel = fitGPP, plot = F)
+plot(simulationOutput)
+
 
 hist(log(GPP_NDVI_CWM$CO2flux_RECO))
 fitReco <- lmer(log(CO2flux_RECO) ~ SoilTemp.mean + SoilMoist.mean + NDVI + VH + LA + SLA +LDMC + (1|PlotID) ,  data = GPP_NDVI_CWM)
 summary(fitReco)
 anova(fitReco)
-
-
+MuMIn::r.squaredGLMM(fitReco)
+simulationOutput <- simulateResiduals(fittedModel = fitReco, plot = F)
+plot(simulationOutput)
 
 # https://www.nature.com/articles/s42003-023-04626-3 
 # Bürkner, P.-C. Advanced bayesian multilevel modeling with the R Package brms. R J. 10, 395–411 (2018).
