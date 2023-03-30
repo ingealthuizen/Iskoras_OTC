@@ -923,8 +923,28 @@ ggplot(GPP_NDVI_CWM, aes(NDVI, GPPflux))+
   geom_point(aes(col=Habitat))+
   geom_smooth(method = "lm")
 
+library(glmmTMB)
+library(lme4)
+library(lmerTest)
+library(DHARMa)
+
+hist(log(GPP_NDVI_CWM$GPPflux))
+
+fitGPP <- lmer(log(GPPflux) ~ scale(PAR.mean) + SoilTemp1 + SoilMoist1 + NDVI + VH + LA + SLA +LDMC + (1|PlotID) ,  data = GPP_NDVI_CWM)
+summary(fitGPP)
+anova(fitGPP)
+
+hist(log(GPP_NDVI_CWM$CO2flux_RECO))
+fitReco <- lmer(log(CO2flux_RECO) ~ SoilTemp1 + SoilMoist1 + NDVI + VH + LA + SLA +LDMC + (1|PlotID) ,  data = GPP_NDVI_CWM)
+summary(fitReco)
+anova(fitReco)
 
 
+
+# https://www.nature.com/articles/s42003-023-04626-3 
+# Bürkner, P.-C. Advanced bayesian multilevel modeling with the R Package brms. R J. 10, 395–411 (2018).
+# Mac Nally, R. & Walsh, C. J. Hierarchical partitioning public-domain software. Biodivers. Conserv. 13, 659 (2004).
+# Murray, K. & Conner, M. M. Methods to quantify variable importance: implications for the analysis of noisy ecological data. Ecology 90, 348–355 (2009).
 
 # Bayesion PAR model
 # These packages need to be loaded to run the model
@@ -990,16 +1010,7 @@ GPPmodel$WAIC
 GPPmodel$rSquared
 
 
-library(glmmTMB)
-library(lme4)
-library(lmerTest)
-library(DHARMa)
 
-fitGPP <- lmer(log(GPPflux) ~ scale(PAR.mean) + NDVI + VH + LA + SLA +LDMC + (1|PlotID) ,  data = GPP_NDVI_CWM)
-summary(fitGPP)
-anova(fitGPP)
-
-hist(log(GPP_NDVI_CWM$GPPflux))
 
 # for bootstrapping
 library(viridis)
