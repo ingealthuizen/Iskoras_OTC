@@ -196,8 +196,6 @@ CWMplot<- CWMtraits%>%
   theme_bw()+
   theme(legend.position = "bottom")
 
-
-
 #%>%
 #  unite(Species_Habitat_Treatment, c("Species", "Habitat", "Treatment"))%>%
 #  filter(!Species_Habitat_Treatment == "Bet.nan_P_C")%>% # remove Bet.nan control P values as not in vegetation data
@@ -242,8 +240,8 @@ se <- function(x) sd(x)/sqrt(length(x))
 # group by month and year!
 NDVIdata<-read.csv2("VegetationData\\NDVI_Greenseeker.csv")%>%
   mutate(Date = as.Date(Date, "%d.%m.%Y"),
-         Month = format(as.Date(Date, format="%d/%m/%Y"),"%m"),
-         Year = format(as.Date(Date, format="%d/%m/%Y"),"%Y"))%>%
+         Month = lubridate::month(Date),
+         Year = lubridate::year(Date))%>%
   filter(!grepl("water", Comment))%>% #filter out plots that were fully or partially under water
   gather(Measurement, NDVI, Value1:Value2)%>%
   group_by(Year, Month, Transect, Habitat, Treatment, PlotID)%>%
@@ -266,9 +264,9 @@ ggplot(NDVImean, aes(as.factor(Month), NDVI.mean, color= Habitat, shape= Treatme
                      name = "Habitat")+
   scale_shape_manual(values= c(19,17), name = "Treatment", labels = c("Control", "OTC"))+
   labs(x = "Month of the year", y= "NDVI")+
-  facet_grid()+
   theme_classic()+
-  theme(legend.position = "bottom", axis.title = element_text(size = 14), axis.text = element_text(size =12), legend.text = element_text(size =11) )
+  theme(legend.position = "right", axis.title = element_text(size = 14), axis.text = element_text(size =12), legend.text = element_text(size =11) )
+
 
 ####################################################################################################################################
 ####### Abiotic conditions (TOMST loggers)
@@ -897,13 +895,16 @@ GPP_CO2<-left_join(NEE_CO2, RECO_CO2, by=c("PlotID", "Date", "Year", "Month"))%>
                          ifelse(Cover == 'NEE1', PAR*0.67, PAR)))%>%
   filter(GPPflux > 0)
 
-GPP_CO2%>%
-  filter(Month %in% 7:8 )%>%
-  ggplot(aes(PAR, GPPflux, col=Habitat, shape= Treatment, linetype=Treatment))+
-  geom_point()+
-  geom_smooth(method = "nls", formula= y~(A*B*x)/(A*x+B), method.args = list(start=c(A=0.01, B=2)), se=FALSE, na.rm= TRUE)+
-  facet_grid(~Habitat)
+#!!!! CHECK PAR for NEE measurements 02072021, PAR sensor wrong 
+### process fluxes with fluxcalc function to get airtemp from chamber!
 
+#### MODELLING GPP
+# Link NDVI data to GPP 
+GPP_NDVI<- left_join(GPP_CO2, NDVIdata, by=c("PlotID", "Treatment", "Habitat", "Transect",  "Year", "Month"))
+
+ggplot(GPP_NDVI, aes(NDVI, GPPflux, col=Habitat))+
+  geom_point()+
+  geom_smooth(method = "lm")
 
 # for bootstrapping
 library(viridis)
@@ -1027,30 +1028,22 @@ plotGPP +  geom_line(data=fitted_Habitat, aes(x = PAR, y = fit, color = Habitat,
          panel.background = element_blank(), axis.line = element_line(colour = "black"))+
   facet_grid(~Habitat)
 
-
-
 #fit.Reco_ALL<-nls((Reco~A*exp(-308.56/I(tempK-227.13))), start=c(A=0 ), data=CO2_RECO_1516Trait) #
 
 #fit.GPP_ALL<-nls((GPP~ (A*B*PAR.x)/(A*PAR.x+B)), start=c(A=0.01, B=2), data=CO2_GPP_1516Trait)
 
-#!!!! CHECK PAR for NEE measurements 02072021, PAR sensor wrong 
-### process fluxes with fluxcalc function to get airtemp from chamber!
 
 
-#
-#  mutate(plotDate = recode(Date, "03.06.2021" = "04.06.2021", 
-#                           "02.07.2021" = "03.07.2021", 
-#                           "20.07.2021" = "23.07.2021", "21.07.2021" = "23.07.2021", 
-#                           "17.08.2021" = "21.08.2021", "18.08.2021" = "21.08.2021", 
-#                           "11.09.2021" = "12.09.2021"))%>%
-#  mutate(plotDate = as.Date(plotDate, "%d.%m.%Y"),
 
 
-%>%
-  filter(Treatment %in% c("C", "OTC"))%>%
-  filter(Habitat %in% c("S", "P", "M", "WG"))%>%
-  filter(CH4.f0< 1000)%>%
-  filter(CH4.f0>-1000)
+
+
+
+
+
+
+
+
 
 
 
