@@ -903,17 +903,80 @@ GPP_CO2<-left_join(NEE_CO2, RECO_CO2, by=c("PlotID", "Date", "Year", "Month"))%>
 # Link NDVI data to GPP 
 GPP_NDVI<- left_join(GPP_CO2, NDVIdata, by=c("PlotID", "Treatment", "Habitat", "Transect",  "Year", "Month"))
 
-ggplot(GPP_NDVI, aes(NDVI, GPPflux, col=Habitat))+
-  geom_point()+
-  geom_smooth(method = "lm")
-
 CWMtraits_wide<- CWMtraits%>%
   spread(Trait, CWM)%>%
-  ungroup()
+  ungroup()%>%
+  select(-Habitat)
 
 GPP_NDVI_CWM<-left_join(GPP_NDVI, CWMtraits_wide, by= c("PlotID", "Treatment"))
 
+ggplot(GPP_NDVI_CWM, aes(NDVI, GPPflux))+
+  geom_point(aes(col=Habitat))+
+  geom_smooth(method = "lm")
 
+# Bayesion PAR model
+# These packages need to be loaded to run the model
+#install.packages("nimble")
+library(nimble)
+library(DHARMa)
+library(coda)
+library(parallel)  # Adds the library that allows to detect the number of cores you have
+library(future)    # Adds the library that allows asynchronous calling of R code
+plan(multisession) # Allows the future library to do parallel processing
+
+
+# Import your data (replace this line to whereever you store your data)
+#CO2_mass_traits <- readRDS(paste(Sys.getenv("WORKSPACE_BASELOC"), "Work", "FUNCAB", "CO2_traits13022020.rds", sep = "/"))
+
+# The source files have been removed from the FUNCAB directory (instead moved to the public PaGAn repository) so you can
+# import the files directly from their GitHub links.  This means that if I update PaGAn then you automatically have the
+# updated files
+source("C:\\Users\\ialt\\OneDrive - NORCE\\FunCab\\Data\\FunCaB2\\TraitCO2\\mcmcInternals.R")
+source("C:\\Users\\ialt\\OneDrive - NORCE\\FunCab\\Data\\FunCaB2\\TraitCO2\\glmNIMBLE.R")
+source("C:\\Users\\ialt\\OneDrive - NORCE\\FunCab\\Data\\FunCaB2\\TraitCO2\\gppLightCurveCorrection.R")
+
+GPPmodel <- gppLightCurveCorrection(
+  # Set the input data
+  inputData = GPP_NDVI_CWM,
+  # Tell the model which column represents the light values (for the curve correction)
+  lightValues = "PAR",
+  # Set the three sub-models for the model components.  You probably want to keep the x-assymtote model as an intercept-only model
+  # and turn off the multiplier model (by setting the multiplier to 1.0).  This means only the y-asymptote will change with the
+  # environmental covariates + VegetationHeight + Richness + Evenness + Diversity + CWM_N + CWM_C + CWM_CN + CWM_LDMC + CWM_LT + CWM_LA + CWM_SLA + CWM_VH + FDis_Traits
+  yAsymModel = GPPflux ~ NDVI + VH + LA + SLA +LDMC, 
+  xAsymModel = ~ 1,
+  multiplierModel = 1,
+  # Tell the model that you want to do LASSO regularisation
+  regCoeffs = "lasso" , 
+  # Define the set of indirect models that you also want to fit (check how the sub-models are defined)
+  # A vector of different PAR values you want to get predictions for (so that you can do PAR standardisation of the values)
+  lightStandards = c(800),
+  mcmcParams = list(numRuns = 100000, thinDensity = 400, predictThinDensity = 400),
+  numCores = 0)
+
+# Get convergence plots models
+plot(GPPmodel$parameterSamples) 
+plot(GPPmodel$parameterSamples) 
+
+# Retrieve the DHARMa plot of the model
+plot(GPPmodel$DHARMaResiduals) # GPP
+plot(GPPmodel$DHARMaResiduals) # GPP
+
+#Paramater values GPP models
+GPPsummary<-GPPmodel$parameterSummary #summary of GPP model
+GPPsummary<- as.data.frame(GPPsummary)%>% 
+  mutate_if(is.numeric, round, 3)
+GPPmodel$WAIC
+GPPmodel$rSquared
+
+
+library(glmmTMB)
+library(lme4)
+library(DHARMa)
+
+fitGPP <- lmer(log(GPPflux) ~ scale(PAR) + NDVI + VH + (1|PlotID) ,  data = GPP_NDVI_CWM)
+
+hist(log(GPP_NDVI_CWM$GPPflux))
 
 # for bootstrapping
 library(viridis)
@@ -973,8 +1036,8 @@ fitted_P_C <- as_tibble(predFit(fit_P_C, newdata = new.data, interval = "confide
          Treatment = "C")
 
 fit_P_OTC <- nls( GPPflux ~  (aGPP*GPPmax*PAR)/(aGPP*PAR+GPPmax), data = GPP_P_OTC, start = list(aGPP=0.01, GPPmax=2))
-aGPP_P_OTC <- coef(summary(fit_M_OTC))[1]
-GPPmax_P_OTC <- coef(summary(fit_M_OTC))[2]
+aGPP_P_OTC <- coef(summary(fit_P_OTC))[1]
+GPPmax_P_OTC <- coef(summary(fit_P_OTC))[2]
 
 fitted_P_OTC <- as_tibble(predFit(fit_P_OTC, newdata = new.data, interval = "confidence", level =0.9 ))%>%
   mutate(PAR = new.data$PAR,
@@ -1032,8 +1095,8 @@ plotGPP<-GPP_CO2 %>%
 plotGPP +  geom_line(data=fitted_Habitat, aes(x = PAR, y = fit, color = Habitat, linetype=Treatment ))+
   geom_ribbon(data=fitted_Habitat, aes(x=PAR, ymin=lwr, ymax=upr, fill= Treatment), alpha=0.3, inherit.aes=F)+
   scale_fill_viridis(discrete = TRUE)+
-  theme( axis.title.x = element_text(size = 18), axis.title.y = element_text(size = 18), axis.text.x = element_text(size = 16),
-         axis.text.y = element_text(size = 16), panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+  theme( axis.title.x = element_text(size = 14), axis.title.y = element_text(size = 14), axis.text.x = element_text(size = 12),
+         axis.text.y = element_text(size = 12), panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
          panel.background = element_blank(), axis.line = element_line(colour = "black"))+
   facet_grid(~Habitat)
 
