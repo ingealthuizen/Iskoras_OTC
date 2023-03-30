@@ -897,13 +897,11 @@ GPP_CO2<-left_join(NEE_CO2, RECO_CO2, by=c("PlotID", "Date", "Year", "Month"))%>
   distinct(GPPflux, .keep_all = TRUE)%>%
   mutate(PAR.mean = ifelse(Cover == 'NEE2', PAR.mean*0.33,
                          ifelse(Cover == 'NEE1', PAR.mean*0.67, PAR.mean)))%>%
+  mutate(SoilTemp.mean = (SoilTemp1+ SoilTemp2)/2,
+         SoilMoist.mean =(SoilMoist1+ SoilMoist2 +SoilMoist3)/3)%>%
   filter(GPPflux > 0)%>%
   ungroup()
 
-group_by(PlotID, Transect, Habitat, Treatment, Cover, Date, Hour, Month, Year)%>%
-  gather(PAR, value, PAR1:PAR3)%>%
-  mutate(PAR.mean = mean(value, na.rm=TRUE))%>%
-  unique()
 
 #!!!! CHECK PAR for NEE measurements 02072021, PAR sensor wrong 
 ### process fluxes with fluxcalc function to get airtemp from chamber!
@@ -930,12 +928,12 @@ library(DHARMa)
 
 hist(log(GPP_NDVI_CWM$GPPflux))
 
-fitGPP <- lmer(log(GPPflux) ~ scale(PAR.mean) + SoilTemp1 + SoilMoist1 + NDVI + VH + LA + SLA +LDMC + (1|PlotID) ,  data = GPP_NDVI_CWM)
+fitGPP <- lmer(log(GPPflux) ~ scale(PAR.mean) + SoilTemp.mean + SoilMoist.mean + NDVI + VH + LA + SLA +LDMC + (1|PlotID) ,  data = GPP_NDVI_CWM)
 summary(fitGPP)
 anova(fitGPP)
 
 hist(log(GPP_NDVI_CWM$CO2flux_RECO))
-fitReco <- lmer(log(CO2flux_RECO) ~ SoilTemp1 + SoilMoist1 + NDVI + VH + LA + SLA +LDMC + (1|PlotID) ,  data = GPP_NDVI_CWM)
+fitReco <- lmer(log(CO2flux_RECO) ~ SoilTemp.mean + SoilMoist.mean + NDVI + VH + LA + SLA +LDMC + (1|PlotID) ,  data = GPP_NDVI_CWM)
 summary(fitReco)
 anova(fitReco)
 
