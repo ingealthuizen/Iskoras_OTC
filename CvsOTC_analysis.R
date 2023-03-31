@@ -977,6 +977,13 @@ GPP_CO2%>%
   ggplot(aes(Habitat, GPPflux, fill=Treatment))+
   geom_boxplot()
 
+# how are PAR values distributed for GPP measurements for C and OTC across habitats
+GPP_CO2%>%
+  ggplot(aes(x=PAR.mean, fill=Treatment))+
+  geom_density(alpha=0.5)+
+  #geom_histogram(alpha=0.5, binwidth = 100)+
+  facet_grid(~Habitat)
+
 GPP_CO2%>%
   group_by(Habitat, Treatment) %>%
   summarise(
