@@ -6,6 +6,9 @@ library(RColorBrewer)
 #library(readxl)
 library(vegan)
 
+# function to calculate standard error
+se <- function(x) sd(x)/sqrt(length(x))
+
 # Vegetation Composition Data
 VegComposition<-read.csv2("VegetationData\\Vegetation_plot_visual.csv")
 
@@ -148,10 +151,6 @@ plotResiduals(m1)
 
 #### Community weighted Trait Values
 # Mean trait data per species, Habitat and  Treatment
-
-# function to calculate standard error
-se <- function(x) sd(x)/sqrt(length(x))
-
 # Plot mean + sd of trait values for each species in each habitat and treatment
 Traitdata%>%
   select(SampleID, Species, Habitat, Treatment, VH, LA, LT1, LA, SLA, LDMC1)%>%
@@ -201,10 +200,8 @@ CWMplot<- CWMtraits%>%
 #  filter(!Species_Habitat_Treatment == "Bet.nan_P_C")%>% # remove Bet.nan control P values as not in vegetation data
 #  column_to_rownames(var="Species_Habitat_Treatment")
 
-
 VegComp2021_Traits<- left_join(VegComp2021, CWMtraits, by = c("PlotID", "Habitat", "Treatment"))%>%
   spread(Trait, CWM)%>%
-  rename(LT = "LT1", LDMC = "LDMC1")%>%
   mutate(Habitat =recode(Habitat, M = "Thawslump", P= "Vegetated Palsa", WG= "Vegetated Pond")) # recode Habitat
 VegComp2021_Traits$Habitat <- factor(VegComp2021_Traits$Habitat, levels = c("Vegetated Palsa", "Thawslump", "Vegetated Pond"))
 
@@ -232,11 +229,10 @@ PCAplot
 
 plot_grid(PCAplot, CWMplot, labels= c("A", "B" ))
 
-# leaf thicknes in same direction as VH?
+# leaf thickness in same direction as VH?
   
 
 # NDVI data
-se <- function(x) sd(x)/sqrt(length(x))
 # group by month and year!
 NDVIdata<-read.csv2("VegetationData\\NDVI_Greenseeker.csv")%>%
   mutate(Date = as.Date(Date, "%d.%m.%Y"),
@@ -273,7 +269,6 @@ ggplot(NDVImean, aes(as.factor(Month), NDVI.mean, color= Habitat, shape= Treatme
 #! NEED TO CHECK LOGGERID and LOCATION!!!
 library(lubridate)
 TomstData<-read.csv("AnalysisR\\TOMSTdata_SMcalculated.csv")
-se <- function(x) sd(x)/sqrt(length(x))
 
 ### calculate mean temp for habitat and treatments
 TomstData<-TomstData%>%
@@ -422,10 +417,8 @@ TomstData_MeanDailyHabitat%>%
 #####################################################################################################################################
 ####### Cflux data
 # SR 2021 data
-library(here)
 library(tidyverse)
 library(ggplot2)
-
 
 #Soil Respiration
 # ### HMR output based on V  in L, A in m2, CH4 in ppb, C02 in ppm
@@ -540,7 +533,6 @@ SR20202021_CO2_env_clean<-SR20202021_CO2_env%>%
   filter(Comment != "redo")%>%
   filter(Habitat != "W")%>%
   filter(CO2flux > 0)%>% # remove negative values
-  #filter(CO2flux< 2.1)%>% #remove 3 outliers
   mutate(Habitat =dplyr::recode(Habitat, M = "Thawslump", P= "Vegetated Palsa", S = "Soil Palsa", WG= "Vegetated Pond")) # recode Habitat
 SR20202021_CO2_env_clean$Habitat <- factor(SR20202021_CO2_env_clean$Habitat, levels = c("Vegetated Palsa", "Soil Palsa", "Thawslump", "Vegetated Pond"))
 
@@ -552,55 +544,43 @@ SR20202021_CO2_env_clean%>%
     mean = round(mean(CO2flux, na.rm = TRUE), 2),
     median = round(median(CO2flux, na.rm = TRUE), 2),
     sd = round(sd(CO2flux, na.rm = TRUE), 2),
-    cv = round(sd/mean, 2),
-  ) %>%
+    cv = round(sd/mean, 2)) %>%
   ungroup()
 
+# histogram of response variable
+# log transformation
+ggplot(SR20202021_CO2_env_clean, aes(x=log(CO2flux)))+
+  geom_histogram(position="identity", colour="grey40", alpha=0.2, bins = 10)
+
+ggplot(SR20202021_CO2_env_clean, aes(x=log(CO2flux), fill=Treatment))+
+  geom_histogram(position="identity", colour="grey40", alpha=0.2, bins = 10) +
+  facet_grid(. ~ Habitat)
+
 # ANOVA to test Treatment and Habitat effect 
-aov.org <- aov( CO2flux ~ Habitat * Treatment, data = SR20202021_CO2_env_clean,
-  contrasts = list(Habitat = 'contr.sum', Treatment = 'contr.sum' ))
-Anova(aov.org, type = 'III')
-
-aov.log <- aov( log(CO2flux) ~ Habitat * Treatment, data = SR20202021_CO2_env_clean,
-                contrasts = list(Habitat = 'contr.sum', Treatment = 'contr.sum' ))
-Anova(aov.log, type = 'III')
-
+library(car)
 aov.rank <- aov( rank(CO2flux) ~ Habitat * Treatment, data = SR20202021_CO2_env_clean,
                 contrasts = list(Habitat = 'contr.sum', Treatment = 'contr.sum' ))
 Anova(aov.rank, type = 'III')
 
-res.org = aov.org$resid
-res.log = aov.log$resid
 res.rnk = aov.rank$resid
-
-qqnorm(  res.org, pch = 20, main = "Original Data",
-  cex.lab = 1, cex.axis = 0.7, cex.main = 1)
-qqline(res.org)
-plot(aov.org, 1, main = "Original Data")
-
-qqnorm(  res.log, pch = 20, main = "Log-Transformed",
-  cex.lab = 1, cex.axis = 0.7, cex.main = 1)
-qqline(res.log)
-plot(aov.log, 1, main = "Log-Transformed")
-
 qqnorm(  res.rnk, pch = 20, main = "Rank-Transformed",
   cex.lab = 1, cex.axis = 0.7, cex.main = 1)
 qqline(res.rnk)
 plot(aov.rank, 1, main = "Rank-Transformed")
 
 library(emmeans)
-emmeans(aov.log, pairwise ~ Habitat | Treatment)
-em_out_category<-emmeans(aov.log,  ~ Treatment | Habitat) 
+emmeans(aov.rank, pairwise ~ Habitat | Treatment)
+em_out_category<-emmeans(aov.rank,  ~ Treatment | Habitat) 
 em_out_category %>% 
   pairs() %>% 
   test(joint = TRUE)
 pairs(em_out_category)
 
+
 # SR for each habitat and treatment over summer seasons 2020 and 2021 
 SR20202021_CO2_env_clean%>%
   ggplot(aes(Habitat, CO2flux, fill=Treatment))+
-  geom_boxplot(outlier.colour="black", outlier.shape=16,
-               outlier.size=2, notch=TRUE)+
+  geom_boxplot()+
   theme_classic()
 
 SR20202021_CO2_env_clean%>%
@@ -641,13 +621,37 @@ SR20202021_CO2_env_clean%>%
   theme(legend.position = "bottom", axis.title = element_text(size = 14), axis.text = element_text(size =12), legend.text = element_text(size =11) )
 
 
+##### CH4 
 SR2021_CH4_env_clean<-SR2021_CH4_env%>%
   mutate(Month = as.factor(month(Date)),
          Year = as.factor(year(Date)))%>%
   filter(Habitat != "W")%>%
-  filter(CH4flux < 45)%>%# remove extreme values
+  #filter(CH4flux < 6)%>%# remove 5 extreme values (65-132 nmol/m2/s)
   mutate(Habitat = dplyr::recode(Habitat, M = "Thawslump", P= "Vegetated Palsa", S = "Soil Palsa", WG= "Vegetated Pond")) # recode Habitat
 SR2021_CH4_env_clean$Habitat <- factor(SR2021_CH4_env_clean$Habitat, levels = c("Vegetated Palsa", "Soil Palsa", "Thawslump", "Vegetated Pond"))
+
+# compute summary statistics
+SR2021_CH4_env_clean%>%
+  group_by(Habitat, Treatment) %>%
+  summarise(
+    count = n(),
+    mean = round(mean(CH4flux, na.rm = TRUE), 2),
+    median = round(median(CH4flux, na.rm = TRUE), 2),
+    sd = round(sd(CH4flux, na.rm = TRUE), 2),
+    cv = round(sd/mean, 2)) %>%
+  ungroup()
+
+# histogram of response variable
+# log transformation
+ggplot(SR2021_CH4_env_clean, aes(x=rank(CH4flux)))+
+  geom_histogram(position="identity", colour="grey40", alpha=0.2, bins = 8)
+
+SR2021_CH4_env_clean%>%
+  filter(CH4flux < 6)%>% # 33 measurements not plotted
+  ggplot(aes(Habitat, CH4flux, fill=Treatment))+
+  geom_boxplot()+
+  theme_classic()
+
 
 SR2021_CH4_env_clean%>%
   group_by(Habitat, Treatment)%>%
@@ -664,28 +668,13 @@ SR2021_CH4_env_clean%>%
   theme_classic()+
   theme(legend.position = "bottom", axis.title = element_text(size = 14), axis.text = element_text(size =12), legend.text = element_text(size =11) )
 
-SR2021_CH4_env_clean%>%
-  ggplot(aes(Habitat, CH4flux, fill=Treatment))+
-  geom_boxplot(outlier.colour="black", outlier.shape=16,
-               outlier.size=2, notch=TRUE)
 
 # ANOVA to test Treatment and Habitat effect 
-aov.org <- aov( CH4flux ~ Habitat * Treatment, data = SR2021_CH4_env_clean,
-                contrasts = list(Habitat = 'contr.sum', Treatment = 'contr.sum' ))
-Anova(aov.org, type = 'III')
-
 aov.rank <- aov( rank(CH4flux) ~ Habitat * Treatment, data = SR2021_CH4_env_clean,
                  contrasts = list(Habitat = 'contr.sum', Treatment = 'contr.sum' ))
 Anova(aov.rank, type = 'III')
 
-res.org = aov.org$resid
 res.rnk = aov.rank$resid
-
-qqnorm(  res.org, pch = 20, main = "Original Data",
-         cex.lab = 1, cex.axis = 0.7, cex.main = 1)
-qqline(res.org)
-plot(aov.org, 1, main = "Original Data")
-
 qqnorm(  res.rnk, pch = 20, main = "Rank-Transformed",
          cex.lab = 1, cex.axis = 0.7, cex.main = 1)
 qqline(res.rnk)
@@ -700,7 +689,7 @@ pairs(em_out_category)
 
 
 
-######################################################################################################################################################
+###########################################################################################################################################
 ##### NET ECOSYSTEM EXCHANGE 
 # NEE chamber  V = 2.5 L, A = 0.0625 m2, CH4 in ppb, C02 in ppm
 NEE2020_CO2<- read.csv("Cflux\\2020\\NEE2020_CO2_HMRoutput.csv", sep= ",")%>%
@@ -970,7 +959,9 @@ source("C:\\Users\\ialt\\OneDrive - NORCE\\FunCab\\Data\\FunCaB2\\TraitCO2\\gppL
 
 GPP_NDVI_CWM_noNA<-GPP_NDVI_CWM%>%
   drop_na(NDVI)
-  
+
+is.double(GPP_NDVI_CWM_noNA$PAR)
+
 GPPmodel <- gppLightCurveCorrection(
   # Set the input data
   inputData = GPP_NDVI_CWM_noNA,
@@ -978,15 +969,15 @@ GPPmodel <- gppLightCurveCorrection(
   lightValues = "PAR.mean",
   # Set the three sub-models for the model components.  You probably want to keep the x-assymtote model as an intercept-only model
   # and turn off the multiplier model (by setting the multiplier to 1.0).  This means only the y-asymptote will change with the
-  # environmental covariates + VegetationHeight + Richness + Evenness + Diversity + CWM_N + CWM_C + CWM_CN + CWM_LDMC + CWM_LT + CWM_LA + CWM_SLA + CWM_VH + FDis_Traits
-  yAsymModel = GPPflux ~ NDVI + VH + LA + SLA +LDMC, 
+  # environmental covariates 
+  yAsymModel = GPPflux ~ SoilTemp.mean + SoilMoist.mean + NDVI + VH + LA + SLA +LDMC, 
   xAsymModel = ~ 1,
   multiplierModel = 1,
   # Tell the model that you want to do LASSO regularisation
   regCoeffs = "lasso" , 
   # Define the set of indirect models that you also want to fit (check how the sub-models are defined)
   indirectComponents = list(
-    list(modelFormula = CO2flux_RECO ~ SoilTemp1 + SoilMoist1 + VH + LA + SLA +LDMC, errorFamily = Gamma(link = "log"),
+    list(modelFormula = CO2flux_RECO ~ SoilTemp.mean + SoilMoist.mean + VH + LA + SLA +LDMC, errorFamily = Gamma(link = "log"),
          regCoeffs = "lasso", 
          suffix = "_Reco_Model")
   ),
