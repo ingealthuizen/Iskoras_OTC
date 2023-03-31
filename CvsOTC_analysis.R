@@ -640,7 +640,7 @@ SR2021_CH4_env_clean%>%
   ungroup()
 
 # histogram of response variable
-# log transformation
+# rank transformation
 ggplot(SR2021_CH4_env_clean, aes(x=rank(CH4flux)))+
   geom_histogram(position="identity", colour="grey40", alpha=0.2, bins = 6)
 
@@ -1011,6 +1011,52 @@ em_out_category %>%
   pairs() %>% 
   test(joint = TRUE)
 pairs(em_out_category)
+
+
+#### CH4 NEE
+# !!! NEED TO FIGURE OUT WHICH DISTRIBUTION TO USE
+NEE_CH4_clean<-NEE2021_CH4_env%>%
+  filter(Habitat %in% c("M", "P", "S", "WG"))%>%
+  filter(Treatment %in% c("C", "OTC"))%>%
+  filter(CH4flux<20)%>% #remove 4 outliers
+  filter(CH4flux > -4)# remove 2 outlier
+
+ggplot(NEE_CH4_clean, aes(Habitat, CH4flux, fill=Treatment))+
+  geom_boxplot()+
+  facet_wrap(~Habitat, scales = "free")
+
+ggplot(NEE_CH4_clean, aes(x=log(CH4flux+4.3)))+
+  geom_histogram(position="identity", colour="grey40", alpha=0.2, bins = 20)
+
+NEE_CH4_clean%>%
+  group_by(Habitat, Treatment) %>%
+  summarise(
+    count = n(),
+    mean = round(mean(CH4flux, na.rm = TRUE), 2),
+    median = round(median(CH4flux, na.rm = TRUE), 2),
+    sd = round(sd(CH4flux, na.rm = TRUE), 2),
+    cv = round(sd/mean, 2)) %>%
+  ungroup()
+#unbalanced might be problem
+
+CH4.rank<- aov( rank(CH4flux)~ Habitat * Treatment, data = NEE_CH4_clean,
+               contrasts = list(Habitat = 'contr.sum', Treatment = 'contr.sum' ))
+Anova(CH4.rank, type = 'III')
+
+res.CH4.rank = CH4.rank$resid
+qqnorm(  res.CH4.rank, pch = 20, main = "Ranked CH4 Data",
+         cex.lab = 1, cex.axis = 0.7, cex.main = 1)
+qqline(res.CH4.rank)
+plot(CH4.rank, 1, main = "Ranked CH4 Data")
+
+emmeans(CH4.rank, pairwise ~ Habitat | Treatment)
+em_out_category<-emmeans(CH4.rank,  ~ Treatment | Habitat) 
+em_out_category %>% 
+  pairs() %>% 
+  test(joint = TRUE)
+pairs(em_out_category)
+
+
 
 
 
