@@ -867,7 +867,7 @@ RECO_CO2<-NEE20202021_CO2_env%>%
   filter(Comment != "redo")%>%
   filter(CO2flux > 0)%>%
   rename( CO2flux_RECO = CO2flux,  CO2flux.LR_RECO = CO2flux.LR )%>%
-  dplyr::select(PlotID, Date, Year, Month, CO2flux_RECO, CO2flux.LR_RECO)
+  dplyr::select(PlotID, Habitat, Treatment, Date, Year, Month, CO2flux_RECO, CO2flux.LR_RECO)
 
 NEE_CO2<-NEE20202021_CO2_env%>%
   filter(!grepl("R", PlotID))%>%
@@ -890,6 +890,121 @@ GPP_CO2<-left_join(NEE_CO2, RECO_CO2, by=c("PlotID", "Date", "Year", "Month"))%>
          SoilMoist.mean =(SoilMoist1+ SoilMoist2 +SoilMoist3)/3)%>%
   filter(GPPflux > 0)%>%
   ungroup()
+
+
+# ANOVA test RECO, NEE, GPP
+hist(NEE_CO2$CO2flux) # normally distributed
+
+NEE_CO2%>%
+  ggplot(aes(Habitat, CO2flux, fill=Treatment))+
+  geom_boxplot()
+
+NEE_CO2%>%
+  group_by(Habitat, Treatment) %>%
+  summarise(
+    count = n(),
+    mean = round(mean(CO2flux, na.rm = TRUE), 2),
+    median = round(median(CO2flux, na.rm = TRUE), 2),
+    sd = round(sd(CO2flux, na.rm = TRUE), 2),
+    cv = round(sd/mean, 2)) %>%
+  ungroup()
+
+# ANOVA to tests Treatment and Habitat effect 
+library(car)
+library(emmeans)
+
+#NEE
+aov.org<- aov( CO2flux ~ Habitat * Treatment, data = NEE_CO2,
+                contrasts = list(Habitat = 'contr.sum', Treatment = 'contr.sum' ))
+Anova(aov.org, type = 'III')
+
+res.org = aov.org$resid
+qqnorm(  res.org, pch = 20, main = "Original",
+         cex.lab = 1, cex.axis = 0.7, cex.main = 1)
+qqline(res.org)
+plot(aov.org, 1, main = "Original Data")
+
+emmeans(aov.org, pairwise ~ Habitat | Treatment)
+em_out_category<-emmeans(aov.org,  ~ Treatment | Habitat) 
+em_out_category %>% 
+  pairs() %>% 
+  test(joint = TRUE)
+pairs(em_out_category)
+
+#RECO
+RECO_CO2%>%
+  ggplot(aes(Habitat, CO2flux_RECO, fill=Treatment))+
+  geom_boxplot()
+
+# Take out S plots
+RECO_CO2_clean<-RECO_CO2%>% 
+  filter(Habitat != "S")
+
+RECO_CO2_clean%>%
+  group_by(Habitat, Treatment) %>%
+  summarise(
+    count = n(),
+    mean = round(mean(CO2flux_RECO, na.rm = TRUE), 2),
+    median = round(median(CO2flux_RECO, na.rm = TRUE), 2),
+    sd = round(sd(CO2flux_RECO, na.rm = TRUE), 2),
+    cv = round(sd/mean, 2)) %>%
+  ungroup()
+
+hist(log(RECO_CO2_clean$CO2flux_RECO)) # normal distribution
+
+RECO.log<- aov( log(CO2flux_RECO)~ Habitat * Treatment, data = RECO_CO2_clean,
+               contrasts = list(Habitat = 'contr.sum', Treatment = 'contr.sum' ))
+Anova(RECO.log, type = 'III')
+
+res.RECO.log = RECO.log$resid
+qqnorm(  res.RECO.log, pch = 20, main = "Log Reco Data",
+         cex.lab = 1, cex.axis = 0.7, cex.main = 1)
+qqline(res.RECO.log)
+plot(RECO.log, 1, main = "Log Reco Data")
+
+emmeans(RECO.log, pairwise ~ Habitat | Treatment)
+em_out_category<-emmeans(RECO.log,  ~ Treatment | Habitat) 
+em_out_category %>% 
+  pairs() %>% 
+  test(joint = TRUE)
+pairs(em_out_category)
+
+
+### GPP
+hist(log(GPP_CO2$GPPflux))
+
+GPP_CO2%>%
+  ggplot(aes(Habitat, GPPflux, fill=Treatment))+
+  geom_boxplot()
+
+GPP_CO2%>%
+  group_by(Habitat, Treatment) %>%
+  summarise(
+    count = n(),
+    mean = round(mean(GPPflux, na.rm = TRUE), 2),
+    median = round(median(GPPflux, na.rm = TRUE), 2),
+    sd = round(sd(GPPflux, na.rm = TRUE), 2),
+    cv = round(sd/mean, 2)) %>%
+  ungroup()
+#unbalanced might be problem
+
+GPP.log<- aov( log(GPPflux)~ Habitat * Treatment, data = GPP_CO2,
+                contrasts = list(Habitat = 'contr.sum', Treatment = 'contr.sum' ))
+Anova(GPP.log, type = 'III')
+
+res.GPP.log = GPP.log$resid
+qqnorm(  res.GPP.log, pch = 20, main = "Log GPP Data",
+         cex.lab = 1, cex.axis = 0.7, cex.main = 1)
+qqline(res.GPP.log)
+plot(GPP.log, 1, main = "Log GPP Data")
+
+emmeans(GPP.log, pairwise ~ Habitat | Treatment)
+em_out_category<-emmeans(GPP.log,  ~ Treatment | Habitat) 
+em_out_category %>% 
+  pairs() %>% 
+  test(joint = TRUE)
+pairs(em_out_category)
+
 
 
 #!!!! CHECK PAR for NEE measurements 02072021, PAR sensor wrong 
