@@ -558,24 +558,23 @@ ggplot(SR20202021_CO2_env_clean, aes(x=log(CO2flux), fill=Treatment))+
 
 # ANOVA to test Treatment and Habitat effect 
 library(car)
-aov.rank <- aov( rank(CO2flux) ~ Habitat * Treatment, data = SR20202021_CO2_env_clean,
-                contrasts = list(Habitat = 'contr.sum', Treatment = 'contr.sum' ))
-Anova(aov.rank, type = 'III')
+aov.log <- aov( log(CO2flux) ~ Habitat * Treatment, data = SR20202021_CO2_env_clean,
+                 contrasts = list(Habitat = 'contr.sum', Treatment = 'contr.sum' ))
+Anova(aov.log, type = 'III')
 
-res.rnk = aov.rank$resid
-qqnorm(  res.rnk, pch = 20, main = "Rank-Transformed",
-  cex.lab = 1, cex.axis = 0.7, cex.main = 1)
-qqline(res.rnk)
-plot(aov.rank, 1, main = "Rank-Transformed")
+res.log = aov.log$resid
+qqnorm(  res.log, pch = 20, main = "Rank-Transformed",
+         cex.lab = 1, cex.axis = 0.7, cex.main = 1)
+qqline(res.log)
+plot(aov.log, 1, main = "Log-Transformed")
 
 library(emmeans)
-emmeans(aov.rank, pairwise ~ Habitat | Treatment)
-em_out_category<-emmeans(aov.rank,  ~ Treatment | Habitat) 
+emmeans(aov.log, pairwise ~ Habitat | Treatment)
+em_out_category<-emmeans(aov.log,  ~ Treatment | Habitat) 
 em_out_category %>% 
   pairs() %>% 
   test(joint = TRUE)
 pairs(em_out_category)
-
 
 # SR for each habitat and treatment over summer seasons 2020 and 2021 
 SR20202021_CO2_env_clean%>%
@@ -626,7 +625,6 @@ SR2021_CH4_env_clean<-SR2021_CH4_env%>%
   mutate(Month = as.factor(month(Date)),
          Year = as.factor(year(Date)))%>%
   filter(Habitat != "W")%>%
-  #filter(CH4flux < 6)%>%# remove 5 extreme values (65-132 nmol/m2/s)
   mutate(Habitat = dplyr::recode(Habitat, M = "Thawslump", P= "Vegetated Palsa", S = "Soil Palsa", WG= "Vegetated Pond")) # recode Habitat
 SR2021_CH4_env_clean$Habitat <- factor(SR2021_CH4_env_clean$Habitat, levels = c("Vegetated Palsa", "Soil Palsa", "Thawslump", "Vegetated Pond"))
 
@@ -644,30 +642,7 @@ SR2021_CH4_env_clean%>%
 # histogram of response variable
 # log transformation
 ggplot(SR2021_CH4_env_clean, aes(x=rank(CH4flux)))+
-  geom_histogram(position="identity", colour="grey40", alpha=0.2, bins = 8)
-
-SR2021_CH4_env_clean%>%
-  filter(CH4flux < 6)%>% # 33 measurements not plotted
-  ggplot(aes(Habitat, CH4flux, fill=Treatment))+
-  geom_boxplot()+
-  theme_classic()
-
-
-SR2021_CH4_env_clean%>%
-  group_by(Habitat, Treatment)%>%
-  summarise(CH4flux.se = se(CH4flux),
-            CH4flux.sd = sd(CH4flux, na.rm=TRUE),
-            CH4flux.mean= mean(CH4flux, na.rm=TRUE))%>%
-  ggplot(aes(Habitat, CH4flux.mean, color= Habitat, shape= Treatment))+
-  geom_point(position = position_dodge(0.8), size=4 )+
-  geom_errorbar(aes(ymin=CH4flux.mean-CH4flux.sd, ymax=CH4flux.mean+CH4flux.sd), position = position_dodge(0.8), width=.4)+
-  scale_color_manual(values= c("#fc8d62", "#e5c494","#66c2a5", "#8da0cb"), 
-                     name = "Habitat")+
-  scale_shape_manual(values= c(19,17), name = "Treatment", labels = c("Control", "OTC"))+
-  geom_hline(yintercept =0, color= "grey")+
-  theme_classic()+
-  theme(legend.position = "bottom", axis.title = element_text(size = 14), axis.text = element_text(size =12), legend.text = element_text(size =11) )
-
+  geom_histogram(position="identity", colour="grey40", alpha=0.2, bins = 6)
 
 # ANOVA to test Treatment and Habitat effect 
 aov.rank <- aov( rank(CH4flux) ~ Habitat * Treatment, data = SR2021_CH4_env_clean,
@@ -686,6 +661,30 @@ em_out_category %>%
   pairs() %>% 
   test(joint = TRUE)
 pairs(em_out_category)
+
+
+SR2021_CH4_env_clean%>%
+  filter(CH4flux < 6)%>% # 33 measurements not plotted
+  ggplot(aes(Habitat, CH4flux, fill=Treatment))+
+  geom_boxplot()+
+  theme_classic()
+
+SR2021_CH4_env_clean%>%
+  group_by(Habitat, Treatment)%>%
+  summarise(CH4flux.se = se(CH4flux),
+            CH4flux.sd = sd(CH4flux, na.rm=TRUE),
+            CH4flux.mean= mean(CH4flux, na.rm=TRUE))%>%
+  ggplot(aes(Habitat, CH4flux.mean, color= Habitat, shape= Treatment))+
+  geom_point(position = position_dodge(0.8), size=4 )+
+  geom_errorbar(aes(ymin=CH4flux.mean-CH4flux.sd, ymax=CH4flux.mean+CH4flux.sd), position = position_dodge(0.8), width=.4)+
+  scale_color_manual(values= c("#fc8d62", "#e5c494","#66c2a5", "#8da0cb"), 
+                     name = "Habitat")+
+  scale_shape_manual(values= c(19,17), name = "Treatment", labels = c("Control", "OTC"))+
+  geom_hline(yintercept =0, color= "grey")+
+  theme_classic()+
+  theme(legend.position = "bottom", axis.title = element_text(size = 14), axis.text = element_text(size =12), legend.text = element_text(size =11) )
+
+
 
 
 
