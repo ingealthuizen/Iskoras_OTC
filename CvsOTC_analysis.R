@@ -590,8 +590,8 @@ SR2021_CH4_env<- SR2021_CH4_env%>%
 ########################################################################################################################################
 ### DATA CLEANING & visualitions
 SR20202021_CO2_env_clean<-SR20202021_CO2_env%>%
-  mutate(Month = as.factor(month(Date)),
-         Year = as.factor(year(Date)))%>%
+  mutate(Month = as.factor(lubridate::month(Date)),
+         Year = as.factor(lubridate::year(Date)))%>%
   filter(Comment != "redo")%>%
   filter(Habitat != "W")%>%
   filter(CO2flux > 0)%>% # remove negative values
@@ -625,7 +625,7 @@ aov.log <- aov( log(CO2flux) ~ Habitat * Treatment, data = SR20202021_CO2_env_cl
 Anova(aov.log, type = 'III')
 
 res.log = aov.log$resid
-qqnorm(  res.log, pch = 20, main = "Rank-Transformed",
+qqnorm(  res.log, pch = 20, main = "Log-Transformed",
          cex.lab = 1, cex.axis = 0.7, cex.main = 1)
 qqline(res.log)
 plot(aov.log, 1, main = "Log-Transformed")
@@ -636,7 +636,7 @@ em_out_category<-emmeans(aov.log,  ~ Treatment | Habitat)
 em_out_category %>% 
   pairs() %>% 
   test(joint = TRUE)
-pairs(em_out_category)
+rpairs(em_out_category)
 
 # SR for each habitat and treatment over summer seasons 2020 and 2021 
 SR20202021_CO2_env_clean%>%
@@ -684,8 +684,8 @@ SR20202021_CO2_env_clean%>%
 
 ##### CH4 
 SR2021_CH4_env_clean<-SR2021_CH4_env%>%
-  mutate(Month = as.factor(month(Date)),
-         Year = as.factor(year(Date)))%>%
+  mutate(Month = as.factor(lubridate::month(Date)),
+         Year = as.factor(lubridate::year(Date)))%>%
   filter(Habitat != "W")%>%
   mutate(Habitat = dplyr::recode(Habitat, M = "Thawslump", P= "Vegetated Palsa", S = "Soil Palsa", WG= "Vegetated Pond")) # recode Habitat
 SR2021_CH4_env_clean$Habitat <- factor(SR2021_CH4_env_clean$Habitat, levels = c("Vegetated Palsa", "Soil Palsa", "Thawslump", "Vegetated Pond"))
@@ -724,7 +724,6 @@ em_out_category %>%
   test(joint = TRUE)
 pairs(em_out_category)
 
-
 SR2021_CH4_env_clean%>%
   filter(CH4flux < 6)%>% # 33 measurements not plotted
   ggplot(aes(Habitat, CH4flux, fill=Treatment))+
@@ -746,8 +745,13 @@ SR2021_CH4_env_clean%>%
   theme_classic()+
   theme(legend.position = "bottom", axis.title = element_text(size = 14), axis.text = element_text(size =12), legend.text = element_text(size =11) )
 
-
-
+# Soiltemp SR CO2flux relationship
+SR20202021_CO2_env_clean%>%
+  ggplot(aes(x=SoilTemp1+273.15, y=CO2flux, col=Habitat, shape= Treatment, linetype=Treatment))+
+  geom_point(na.rm= TRUE)+
+  geom_smooth(method = "nls", formula= y~A*exp(-308.56/I(x-227.13)), method.args = list(start=c(A=0)), se=FALSE, na.rm= TRUE)+
+  facet_grid(~Habitat)+
+  theme_bw()
 
 
 ###########################################################################################################################################
