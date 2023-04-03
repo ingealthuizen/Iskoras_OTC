@@ -166,13 +166,13 @@ Traitdata%>%
 # create traitmatrix for calculating community weighted trait values based on species, habitat and treatment specific values
 SpeciesTrait<-  Traitdata%>%
   select(SampleID, Species, Habitat, Treatment, VH, LA, LT1, LA, SLA, LDMC1)%>%
-  mutate(Habitat = recode(Habitat, WG ="M"))%>% #recode WG to M as trait values do not vary between these habitats
+  mutate(Habitat = dplyr::recode(Habitat, WG ="M"))%>% #recode WG to M as trait values do not vary between these habitats
   group_by(Species, Treatment, Habitat)%>%
   summarise_if(is.numeric, mean, na.rm = TRUE)
 
 SpeciesCover<- VegComp2021%>%
   gather(Species, cover, And.pol:Eri.vag)%>%
-  mutate(Trait_Habitat = recode(Habitat, WG = "M"))
+  mutate(Trait_Habitat = dplyr::recode(Habitat, WG = "M"))
 
 CWMtraits <- left_join(SpeciesCover, SpeciesTrait, by= c("Species", "Treatment", "Trait_Habitat"="Habitat"))%>%
   drop_na(cover)%>%
@@ -225,6 +225,7 @@ PCAplot<- autoplot(TraitPCA, data = VegComp2021_Traits,  size = 4, fill= "Habita
 PCAplot
 
 plot_grid(PCAplot, CWMplot, labels= c("A", "B" ))
+#14, 22 and 24 same scores, 15, 23 and 27 same scores
 
 Vegetation_P<- VegComp2021_Traits%>%
   filter(Habitat == "P")
@@ -335,12 +336,16 @@ TomstData<-TomstData%>%
 # summary of microclimate across summer season June-August
 Summersummary<-TomstData%>%
   gather(Climate_variable, value, SoilTemperature:Soilmoisture_Volumetric)%>%
-  filter(Date > "2021-06-01" & Date <"2021-09-01")%>%
-  group_by(Habitat, Treatment, Climate_variable)%>%
-  summarise_at(vars(value), list(Min = min, Mean = mean, Max = max))%>%
-  filter(Climate_variable != "RawSoilmoisture")
+  filter(Date > "2021-07-01" & Date <"2021-09-01")%>%
+  group_by(PlotID, Habitat, Treatment, Date, Climate_variable)%>%
+  summarise_at(vars(value), list(Mean = mean, Sd = sd, se =se, Max = max, Min = min ))
 
-print(Summersummary, n=32)
+Summersummary%>%
+  filter(Climate_variable %in% c("AirTemperature", "SoilTemperature", "Soilmoisture_Volumetric"))%>%
+  ggplot(aes(Habitat, Mean, fill=Treatment))+
+  geom_boxplot()+
+  facet_wrap(~Climate_variable, scales = "free")
+
 
 # hourly climate data per plot
 TomstData_HourlyPlotID<- TomstData%>%
