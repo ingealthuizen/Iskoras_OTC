@@ -1081,7 +1081,7 @@ pairs(em_out_category)
 #### CH4 NEE
 # !!! NEED TO FIGURE OUT WHICH DISTRIBUTION TO USE
 NEE_CH4_clean<-NEE2021_CH4_env%>%
-  filter(Habitat %in% c("M", "P", "S", "WG"))%>%
+  filter(Habitat %in% c("M", "P", "WG"))%>%
   filter(Treatment %in% c("C", "OTC"))%>%
   filter(CH4flux<20)%>% #remove 4 outliers
   filter(CH4flux > -4)# remove 2 outlier
@@ -1090,8 +1090,8 @@ ggplot(NEE_CH4_clean, aes(Habitat, CH4flux, fill=Treatment))+
   geom_boxplot()+
   facet_wrap(~Habitat, scales = "free")
 
-ggplot(NEE_CH4_clean, aes(x=log(CH4flux+4.3)))+
-  geom_histogram(position="identity", colour="grey40", alpha=0.2, bins = 20)
+ggplot(NEE_CH4_clean, aes(x=rank(CH4flux)))+
+  geom_histogram(position="identity", colour="grey40", alpha=0.2, bins = 7)
 
 NEE_CH4_clean%>%
   group_by(Habitat, Treatment) %>%
