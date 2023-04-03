@@ -179,9 +179,7 @@ CWMtraits <- left_join(SpeciesCover, SpeciesTrait, by= c("Species", "Treatment",
   rename(LT = "LT1", LDMC = "LDMC1")%>%
   gather(Trait, value, VH:LDMC)%>%
   group_by(PlotID, Habitat, Treatment, Trait)%>%
-  summarise(CWM = weighted.mean(value, cover, na.rm = TRUE))%>%
-  mutate(Habitat =recode(Habitat, M = "Thawslump", P= "Vegetated Palsa", WG= "Vegetated Pond")) # recode Habitat
-CWMtraits$Habitat <- factor(CWMtraits$Habitat, levels = c("Vegetated Palsa", "Thawslump", "Vegetated Pond"))
+  summarise(CWM = weighted.mean(value, cover, na.rm = TRUE))
 
 CWMplot<- CWMtraits%>%
   group_by(Treatment, Habitat, Trait)%>%
@@ -201,9 +199,8 @@ CWMplot<- CWMtraits%>%
 #  column_to_rownames(var="Species_Habitat_Treatment")
 
 VegComp2021_Traits<- left_join(VegComp2021, CWMtraits, by = c("PlotID", "Habitat", "Treatment"))%>%
-  spread(Trait, CWM)%>%
-  mutate(Habitat =recode(Habitat, M = "Thawslump", P= "Vegetated Palsa", WG= "Vegetated Pond")) # recode Habitat
-VegComp2021_Traits$Habitat <- factor(VegComp2021_Traits$Habitat, levels = c("Vegetated Palsa", "Thawslump", "Vegetated Pond"))
+  spread(Trait, CWM)
+
 
 #PCA
 library(ggfortify)
@@ -213,7 +210,7 @@ library(cowplot)
 
 # Not sure about LT measurments
 TraitPCA<- VegComp2021_Traits%>%
-  select(VH, LA, SLA, LDMC)
+  dplyr::select(VH, LA, SLA, LDMC)
 TraitPCA <- princomp(TraitPCA, cor= TRUE, scores=TRUE) #, Temperature = T_summer_longterm, Precipitation = P_annual_longterm
 
 PCAplot<- autoplot(TraitPCA, data = VegComp2021_Traits,  size = 4, fill= "Habitat", shape = "Treatment",
@@ -229,10 +226,67 @@ PCAplot
 
 plot_grid(PCAplot, CWMplot, labels= c("A", "B" ))
 
-# leaf thickness in same direction as VH?
+Vegetation_P<- VegComp2021_Traits%>%
+  filter(Habitat == "P")
+
+Trait_P<- VegComp2021_Traits%>%
+  filter(Habitat == "P")%>%
+  select(VH, LA, SLA, LDMC)
+
+TraitPCA_P <- princomp(Trait_P, cor= TRUE, scores=TRUE) 
+
+palsaPCA<- autoplot(TraitPCA_P, data = Vegetation_P,  size = 4, fill= "Habitat", shape = "Treatment",
+                    loadings = TRUE, loadings.colour = 'black', loadings.label.colour = "black", 
+                    loadings.label = TRUE, loadings.label.size = 5, loadings.label.vjust = -.6, loadings.label.hjust = 0.9)+
+  scale_shape_manual(values= c(21, 24), name = "Treatment", labels = c("Control", "OTC"))+
+  scale_fill_manual(values= c("#fc8d62"), name = "Habitat", labels = c("Veg. Palsa"))+
+                    guides(fill=guide_legend(override.aes=list(shape=21)))+
+                    theme_classic()
+palsaPCA
+                                          
+Vegetation_M<- VegComp2021_Traits%>%
+                filter(Habitat == "M")
+
+Trait_M<- VegComp2021_Traits%>%
+          filter(Habitat == "M")%>%
+          select(VH, LA, SLA, LDMC)
+                                          
+TraitPCA_M <- princomp(Trait_M, cor= TRUE, scores=TRUE) 
+
+thawslumpPCA<- autoplot(TraitPCA_M, data = Vegetation_M,  size = 4, fill= "Habitat", shape = "Treatment",
+                        loadings = TRUE, loadings.colour = 'black', loadings.label.colour = "black",
+                        loadings.label = TRUE, loadings.label.size = 5, loadings.label.vjust = -.6, loadings.label.hjust = 0.9)+
+  scale_shape_manual(values= c(21, 24), name = "Treatment", labels = c("Control", "OTC"))+
+  scale_fill_manual(values= c( "#66c2a5"), name = "Habitat", labels = c("Thawslump"))+
+  guides(fill=guide_legend(override.aes=list(shape=21)))+
+  theme_classic()
+thawslumpPCA
+
+
+Vegetation_WG<- VegComp2021_Traits%>%
+  filter(Habitat == "WG")
+
+Trait_WG<- VegComp2021_Traits%>%
+  filter(Habitat == "WG")%>%
+  select(VH, LA, SLA, LDMC)
+
+TraitPCA_WG <- princomp(Trait_WG, cor= TRUE, scores=TRUE) #, Temperature = T_summer_longterm, Precipitation = P_annual_longterm
+
+VegetatedpondPCA<- autoplot(TraitPCA_WG, data = Vegetation_WG,  size = 4, fill= "Habitat", shape = "Treatment",
+                            loadings = TRUE, loadings.colour = 'black', loadings.label.colour = "black",
+                            loadings.label = TRUE, loadings.label.size = 5, loadings.label.vjust = -.6, loadings.label.hjust = 0.9)+
+  scale_shape_manual(values= c(21, 24), name = "Treatment", labels = c("Control", "OTC"))+
+  scale_fill_manual(values= c("#8da0cb"), name = "Habitat", labels = c("Veg. Pond"))+
+  guides(fill=guide_legend(override.aes=list(shape=21)))+
+  theme_classic()
+VegetatedpondPCA
+
+
+library(cowplot)
+plot_grid(palsaPCA, thawslumpPCA, VegetatedpondPCA, labels= c("A", "B", "C"), nrow = 1)
   
 
-# NDVI data
+#NDVI data
 # group by month and year!
 NDVIdata<-read.csv2("VegetationData\\NDVI_Greenseeker.csv")%>%
   mutate(Date = as.Date(Date, "%d.%m.%Y"),
@@ -278,6 +332,17 @@ TomstData<-TomstData%>%
          DateTime = as.POSIXct(strptime(Date_Time, tz = "UTC", "%Y-%m-%dT%H:%M:%SZ")),
          Hour = hour(DateTime))
 
+# summary of microclimate across summer season June-August
+Summersummary<-TomstData%>%
+  gather(Climate_variable, value, SoilTemperature:Soilmoisture_Volumetric)%>%
+  filter(Date > "2021-06-01" & Date <"2021-09-01")%>%
+  group_by(Habitat, Treatment, Climate_variable)%>%
+  summarise_at(vars(value), list(Min = min, Mean = mean, Max = max))%>%
+  filter(Climate_variable != "RawSoilmoisture")
+
+print(Summersummary, n=32)
+
+# hourly climate data per plot
 TomstData_HourlyPlotID<- TomstData%>%
   group_by(PlotID, Transect, Habitat, Treatment, Date, Hour)%>%
   summarise(SoilTemperature = mean(SoilTemperature, na.rm = TRUE), 
@@ -285,6 +350,63 @@ TomstData_HourlyPlotID<- TomstData%>%
             AirTemperature = mean(AirTemperature, na.rm = TRUE),
             Soilmoisture_Volumetric = mean(Soilmoisture_Volumetric, na.rm = TRUE))%>%
             ungroup()
+
+##### DAILY
+# Summary Daily Per Transect and Habitat
+TomstData_MeanDailyTransect<-TomstData%>%
+  gather(Climate_variable, value, SoilTemperature:Soilmoisture_Volumetric)%>%
+  group_by(Habitat, Treatment, Date, Climate_variable)%>%
+  summarise_at(vars(value), list(Min = min, Mean = mean, Max = max, Sd = sd, se =se))
+
+# plot summer period
+TomstData_MeanDailyTransect%>%
+  filter(Date > "2021-06-01" & Date <"2021-09-01")%>%
+  filter(Climate_variable %in% c("AirTemperature", "SoilTemperature", "Soilmoisture_Volumetric"))%>%
+  ggplot(aes(Date, Mean, col= Treatment))+
+  geom_line()+
+  geom_ribbon(aes(ymin = Mean-se, ymax = Mean+se, fill = Treatment), alpha=0.3) +
+  facet_grid(Climate_variable~Habitat, scales="free")
+
+TomstData_MeanDailyTransect%>%
+  filter(Date > "2022-06-01" & Date <"2022-09-01")%>%
+  filter(Climate_variable %in% c("Soilmoisture_Volumetric"))%>%
+  ggplot(aes(Date, Mean, col= Treatment))+
+  geom_line()+
+  geom_ribbon(aes(ymin = Mean-se, ymax = Mean+se, fill = Treatment), alpha=0.3) +
+  facet_grid(~Habitat, scales="free")
+
+# Summary per Habitat
+TomstData_MeanDailyHabitat<-TomstData%>%
+  gather(Climate_variable, value, SoilTemperature:Soilmoisture_Volumetric)%>%
+  group_by(Habitat,Treatment, Date, Climate_variable)%>%
+  summarise_at(vars(value), list(Min = min, Mean = mean, Max = max, Sd = sd))
+
+# plot summer period
+TomstData_MeanDailyHabitat%>%
+  filter(Date > "2022-06-01" & Date <"2022-09-01")%>%
+  filter(Climate_variable %in% c("AirTemperature", "SoilTemperature", "Soilmoisture_Volumetric"))%>%
+  ggplot(aes(Date, Mean, col= Treatment))+
+  geom_line()+
+  #geom_ribbon(aes(ymin = Mean-Sd, ymax = Mean+Sd, fill = Treatment), alpha=0.3) +
+  facet_grid(Climate_variable~Habitat, scales="free")
+
+
+# summary Hourly per Habitat
+TomstData_MeanHourlyHabitat<-TomstData%>%
+  gather(Climate_variable, value, SoilTemperature:Soilmoisture_Volumetric)%>%
+  filter(Date > "2021-06-01" & Date <"2021-09-01")%>%
+  group_by(Habitat, Treatment, Hour, Climate_variable)%>%
+  summarise_at(vars(value), list(Min = min, Mean = mean, Max = max, Sd = sd, se =se))
+
+# plot summer season hourly based on June-August data in 2021
+TomstData_MeanHourlyHabitat%>%
+  filter(Climate_variable %in% c("AirTemperature", "SoilTemperature"))%>%
+  ggplot(aes(Hour, Mean, col= Habitat, linetype =Treatment))+
+  geom_line()+
+  geom_ribbon(aes(ymin = Mean-se, ymax = Mean+se, fill = Habitat), alpha=0.3) +
+  facet_grid(Climate_variable~Habitat, scales="free")
+
+
 
 # calculate min, max and mean for each Climatic variable measured by TOMST
 ma <- function(x, n = 7){  stats::filter(x, rep(1 / n, n), sides = 2)} # moving average for 7 days 
@@ -351,67 +473,7 @@ TomstData_MeanHourlyTransect%>%
   facet_grid(Transect~Habitat, scales="free")
 
 
-# summary Hourly per Habitat
-TomstData_MeanHourlyHabitat<-TomstData%>%
-  gather(Climate_variable, value, SoilTemperature:Soilmoisture_Volumetric)%>%
-  filter(Date > "2021-06-01" & Date <"2021-09-01")%>%
-  group_by(Habitat, Treatment, Hour, Climate_variable)%>%
-  summarise_at(vars(value), list(Min = min, Mean = mean, Max = max, Sd = sd, se =se))
 
-# plot summer season hourly based on June-August data in 2021
-TomstData_MeanHourlyHabitat%>%
-  filter(Climate_variable %in% c("AirTemperature", "SoilTemperature"))%>%
-  ggplot(aes(Hour, Mean, col= Habitat, linetype =Treatment))+
-  geom_line()+
-  geom_ribbon(aes(ymin = Mean-se, ymax = Mean+se, fill = Habitat), alpha=0.3) +
-  facet_grid(Climate_variable~Habitat, scales="free")
-
-##### DAILY
-# Summary Daily Per Transect and Habitat
-TomstData_MeanDailyTransect<-TomstData%>%
-  gather(Climate_variable, value, SoilTemperature:Soilmoisture_Volumetric)%>%
-  group_by(Habitat, Treatment, Date, Climate_variable)%>%
-  summarise_at(vars(value), list(Min = min, Mean = mean, Max = max, Sd = sd, se =se))
-
-# plot summer period
-TomstData_MeanDailyTransect%>%
-  filter(Date > "2021-06-01" & Date <"2021-09-01")%>%
-  filter(Climate_variable %in% c("SoilTemperature"))%>%
-  ggplot(aes(Date, Mean, col= Treatment))+
-  geom_line()+
-  geom_ribbon(aes(ymin = Mean-se, ymax = Mean+se, fill = Treatment), alpha=0.3) +
-  facet_grid(Climate_variable~Habitat, scales="free")
-
- TomstData_MeanDailyTransect%>%
-  filter(Date > "2022-06-01" & Date <"2022-09-01")%>%
-  filter(Climate_variable %in% c("AirTemperature"))%>%
-  ggplot(aes(Date, Mean, col= Treatment))+
-  geom_line()+
-  geom_ribbon(aes(ymin = Mean-Sd, ymax = Mean+Sd, fill = Treatment), alpha=0.3) +
-  facet_grid(Transect~Habitat, scales="free")
-
-TomstData_MeanDailyTransect%>%
-  filter(Date > "2022-06-01" & Date <"2022-09-01")%>%
-  filter(Climate_variable %in% c("Soilmoisture_Volumetric"))%>%
-  ggplot(aes(Date, Mean, col= Treatment))+
-  geom_line()+
-  geom_ribbon(aes(ymin = Mean-se, ymax = Mean+se, fill = Treatment), alpha=0.3) +
-  facet_grid(~Habitat, scales="free")
-
-# Summary per Habitat
-TomstData_MeanDailyHabitat<-TomstData%>%
-  gather(Climate_variable, value, SoilTemperature:Soilmoisture_Volumetric)%>%
-  group_by(Habitat,Treatment, Date, Climate_variable)%>%
-  summarise_at(vars(value), list(Min = min, Mean = mean, Max = max, Sd = sd))
-
-# plot summer period
-TomstData_MeanDailyHabitat%>%
-  #filter(Date > "2022-06-01" & Date <"2022-09-01")%>%
-  filter(Climate_variable %in% c("AirTemperature", "SoilTemperature", "Soilmoisture_Volumetric"))%>%
-  ggplot(aes(Date, Mean, col= Treatment))+
-  geom_line()+
-  #geom_ribbon(aes(ymin = Mean-Sd, ymax = Mean+Sd, fill = Treatment), alpha=0.3) +
-  facet_grid(Climate_variable~Habitat, scales="free")
 
 
 #####################################################################################################################################
