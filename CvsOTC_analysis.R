@@ -917,11 +917,10 @@ NEE20202021_CO2_env%>%
 NEE2021_CH4_env%>%
   filter(Treatment %in% c("C", "OTC"))%>%
   filter(Habitat %in% c("S", "P", "M", "WG"))%>%
-  #filter(Cover == "RECO")%>%
   filter(CH4flux < 25)%>%
   filter(CH4flux >-30)%>%
   filter(Method.CH4 != "No flux")%>%
-  ggplot(aes(Habitat, CH4flux, col=Treatment))+ 
+  ggplot(aes(Habitat, CH4flux, fill=Treatment))+ 
   geom_boxplot()+
   geom_hline(yintercept = 0)+
   facet_wrap(~Habitat, scales="free")
@@ -943,7 +942,7 @@ NEE_CO2<-NEE20202021_CO2_env%>%
 
 # Recalculate PAR based on shading cover, 
 # need to check shading effect of covers
-GPP_CO2<-left_join(NEE_CO2, RECO_CO2, by=c("PlotID", "Date", "Year", "Month"))%>%
+GPP_CO2<-left_join(NEE_CO2, RECO_CO2, by=c("PlotID", "Habitat", "Treatment", "Date", "Year", "Month"))%>%
   mutate(GPPflux = (CO2flux- CO2flux_RECO)*(-1))%>%
   drop_na(GPPflux)%>%
   group_by(PlotID, Transect, Habitat, Treatment, Cover, Date, Hour, Month, Year)%>%
@@ -998,10 +997,6 @@ em_out_category %>%
 pairs(em_out_category)
 
 #RECO
-RECO_CO2%>%
-  ggplot(aes(Habitat, CO2flux_RECO, fill=Treatment))+
-  geom_boxplot()
-
 # Take out S plots
 RECO_CO2_clean<-RECO_CO2%>% 
   filter(Habitat != "S")
@@ -1015,6 +1010,10 @@ RECO_CO2_clean%>%
     sd = round(sd(CO2flux_RECO, na.rm = TRUE), 2),
     cv = round(sd/mean, 2)) %>%
   ungroup()
+
+RECO_CO2_clean%>%
+  ggplot(aes(Habitat, CO2flux_RECO, fill=Treatment))+
+  geom_boxplot()
 
 hist(log(RECO_CO2_clean$CO2flux_RECO)) # normal distribution
 
