@@ -187,7 +187,7 @@ CWMplot<- CWMtraits%>%
   ggplot(aes(Habitat, mean, color=Treatment, shape= Treatment))+ 
   geom_point(position=position_dodge(width = 0.5), stat="identity", size= 4)+
   geom_errorbar(aes(ymin=mean-se, ymax=mean+se), position=position_dodge(width = 0.5), width=.2)+
-  scale_color_manual(values= c("grey", "red"), name = "Treatment", labels = c("C", "OTC"))+
+  scale_color_manual(values= c("#67a9cf", "#ef8a62"), name = "Treatment", labels = c("C", "OTC"))+
   scale_shape_manual(values= c(19, 17), name = "Treatment", labels = c("C", "OTC"))+
   facet_grid(Trait~., scales = "free")+
   theme_bw()+
@@ -401,7 +401,9 @@ TomstData_MeanHourlyHabitat<-TomstData%>%
   gather(Climate_variable, value, SoilTemperature:Soilmoisture_Volumetric)%>%
   filter(Date > "2021-06-01" & Date <"2021-09-01")%>%
   group_by(Habitat, Treatment, Hour, Climate_variable)%>%
-  summarise_at(vars(value), list(Min = min, Mean = mean, Max = max, Sd = sd, se =se))
+  summarise_at(vars(value), list(Min = min, Mean = mean, Max = max, Sd = sd, se =se))%>%
+  mutate(Habitat =recode(Habitat, M = "Thawslump", P= "Vegetated Palsa", S = "Soil Palsa", WG= "Vegetated Pond")) # recode Habitat
+TomstData_MeanHourlyHabitat$Habitat <- factor(TomstData_MeanHourlyHabitat$Habitat, levels = c("Vegetated Palsa", "Soil Palsa", "Thawslump", "Vegetated Pond"))
 
 # plot summer season hourly based on June-August data in 2021
 TomstData_MeanHourlyHabitat%>%
@@ -409,7 +411,13 @@ TomstData_MeanHourlyHabitat%>%
   ggplot(aes(Hour, Mean, col= Habitat, linetype =Treatment))+
   geom_line()+
   geom_ribbon(aes(ymin = Mean-se, ymax = Mean+se, fill = Habitat), alpha=0.3) +
-  facet_grid(Climate_variable~Habitat, scales="free")
+  scale_color_manual(values= c("#fc8d62", "#e5c494","#66c2a5", "#8da0cb"), 
+                     name = "Habitat")+
+  scale_fill_manual(values= c("#fc8d62", "#e5c494","#66c2a5", "#8da0cb"), 
+                     name = "Habitat")+
+  facet_grid(Climate_variable~Habitat, scales="free")+
+  theme_bw()+
+  theme(legend.position = "right", axis.title = element_text(size = 14), axis.text = element_text(size =12), legend.text = element_text(size =11) )
 
 
 
