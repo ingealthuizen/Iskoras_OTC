@@ -187,7 +187,7 @@ CWMplot<- CWMtraits%>%
   ggplot(aes(Habitat, mean, color=Treatment, shape= Treatment))+ 
   geom_point(position=position_dodge(width = 0.5), stat="identity", size= 4)+
   geom_errorbar(aes(ymin=mean-se, ymax=mean+se), position=position_dodge(width = 0.5), width=.2)+
-  scale_color_manual(values= c("#67a9cf", "#ef8a62"), name = "Treatment", labels = c("C", "OTC"))+
+  scale_color_manual(values= c("grey70", "grey30"), name = "Treatment", labels = c("C", "OTC"))+
   scale_shape_manual(values= c(19, 17), name = "Treatment", labels = c("C", "OTC"))+
   facet_grid(Trait~., scales = "free")+
   theme_bw()+
