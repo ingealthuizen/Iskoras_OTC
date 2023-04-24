@@ -96,59 +96,6 @@ Traitdata%>%
   geom_boxplot()+
   facet_grid(Trait~Species, scales="free")
 
-
-library(glmmTMB)
-library(DHARMa)
-
-# What distribution to use?
-Traitmodel<- Traitdata%>%
-  filter(!Species %in% c("Arc.alp", "Eri.vag"))%>%
-  mutate(VHlog = log(VH),
-         LAlog = log(SLA),
-         LDMC1log = log(LDMC1),
-         SLAlog = log(SLA),
-         LTlog = log(LT))%>%
-  filter(Habitat != "WG")
-
-
-hist(log(Traitmodel$VH))
-hist(log(Traitmodel$LA))
-hist(log(Traitmodel$LDMC1))
-hist(log(Traitmodel$SLA))
-hist(log(Traitmodel$LT))
-
-# Not sure how to parameterize model to test OTC treatment effect on Traits across 
-m1 <- glmmTMB(VHlog ~ Habitat * Treatment + (1|Species ), family= gaussian(link = "identity"), data=Traitmodel)
-summary(m1)
-plotQQunif(m1)
-plotResiduals(m1)
-
-m2 <- glmmTMB(VHlog ~ Treatment + Species:Treatment + (1|Habitat ), family= gaussian(link = "identity"), data=Traitmodel)
-summary(m2)
-plotQQunif(m2)
-plotResiduals(m2)
-
-m1 <- glmmTMB(LAlog ~ Habitat * Treatment + (1|Species ), family= gaussian(link = "identity"), data=Traitmodel)
-summary(m1)
-plotQQunif(m1)
-plotResiduals(m1)
-
-m1 <- glmmTMB(LDMC1log ~ Habitat * Treatment + (1|Species ), family= gaussian(link = "identity"), data=Traitmodel)
-summary(m1)
-plotQQunif(m1)
-plotResiduals(m1)
-
-m1 <- glmmTMB(LTlog ~ Habitat * Treatment + (1|Species ), family= gaussian(link = "identity"), data=Traitmodel)
-summary(m1)
-plotQQunif(m1)
-plotResiduals(m1)
-
-m1 <- glmmTMB(SLAlog ~ Habitat * Treatment + (1|Species ), family= gaussian(link = "identity"), data=Traitmodel)
-summary(m1)
-plotQQunif(m1)
-plotResiduals(m1)
-
-
 #### Community weighted Trait Values
 # Mean trait data per species, Habitat and  Treatment
 # Plot mean + sd of trait values for each species in each habitat and treatment
