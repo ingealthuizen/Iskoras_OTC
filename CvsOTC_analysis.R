@@ -126,7 +126,8 @@ CWMtraits <- left_join(SpeciesCover, SpeciesTrait, by= c("Species", "Treatment",
   rename(LT = "LT1", LDMC = "LDMC1")%>%
   gather(Trait, value, VH:LDMC)%>%
   group_by(PlotID, Habitat, Treatment, Trait)%>%
-  summarise(CWM = weighted.mean(value, cover, na.rm = TRUE))
+  summarise(CWM = weighted.mean(value, cover, na.rm = TRUE))%>%
+  filter(Trait != "LT")
 
 CWMplot<- CWMtraits%>%
   group_by(Treatment, Habitat, Trait)%>%
@@ -139,6 +140,44 @@ CWMplot<- CWMtraits%>%
   facet_grid(Trait~., scales = "free")+
   theme_bw()+
   theme(legend.position = "bottom")
+
+# test differences between community weighted traits¨
+# non-parametric test for Treatment in each separate Habitat
+library(purrr)
+Outcomes <- c("LA", "LDMC", "LT", "SLA", "VH") # create vector with test subjects
+
+# separate datasets for different habitats
+PalsaCWM<-CWMtraits%>%
+  filter(Habitat == "P")%>%
+  spread(Trait, CWM)%>%
+  ungroup()
+
+ThawslumpCWM<-CWMtraits%>%
+  filter(Habitat == "M")%>%
+  spread(Trait, CWM)%>%
+  ungroup()
+
+ThawpondCWM<-CWMtraits%>%
+  filter(Habitat == "WG")%>%
+  spread(Trait, CWM)%>%
+  ungroup()
+
+
+map_dfr(setNames(Outcomes, Outcomes), function(my) {
+  f <- as.formula(paste(my, "~Treatment", sep=""))
+  broom::tidy(kruskal.test(f, data=PalsaCWM))
+}, .id = "Outcomes")
+
+map_dfr(setNames(Outcomes, Outcomes), function(my) {
+  f <- as.formula(paste(my, "~Treatment", sep=""))
+  broom::tidy(kruskal.test(f, data=ThawslumpCWM))
+}, .id = "Outcomes")
+
+map_dfr(setNames(Outcomes, Outcomes), function(my) {
+  f <- as.formula(paste(my, "~Treatment", sep=""))
+  broom::tidy(kruskal.test(f, data=ThawpondCWM))
+}, .id = "Outcomes")
+
 
 #%>%
 #  unite(Species_Habitat_Treatment, c("Species", "Habitat", "Treatment"))%>%
