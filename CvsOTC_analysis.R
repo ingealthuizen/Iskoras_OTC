@@ -571,7 +571,7 @@ SR2021_CH4_env<- SR2021_CH4_env%>%
 
 
 ########################################################################################################################################
-### DATA CLEANING & visualitions
+### DATA CLEANING & visualizations
 SR20202021_CO2_env_clean<-SR20202021_CO2_env%>%
   mutate(Month = as.factor(lubridate::month(Date)),
          Year = as.factor(lubridate::year(Date)))%>%
@@ -624,8 +624,11 @@ rpairs(em_out_category)
 # SR for each habitat and treatment over summer seasons 2020 and 2021 
 SR20202021_CO2_env_clean%>%
   ggplot(aes(Habitat, CO2flux, fill=Treatment))+
+  scale_fill_manual(values= c("grey70", "grey30"), name = "Treatment", labels = c("C", "OTC"))+
   geom_boxplot()+
-  theme_classic()
+  theme_classic()+
+  theme(legend.position = "bottom", axis.title = element_text(size = 14), axis.text = element_text(size =12), legend.text = element_text(size =11) )
+
 
 SR20202021_CO2_env_clean%>%
   group_by(Habitat, Treatment)%>%
@@ -710,8 +713,11 @@ pairs(em_out_category)
 SR2021_CH4_env_clean%>%
   filter(CH4flux < 6)%>% # 33 measurements not plotted
   ggplot(aes(Habitat, CH4flux, fill=Treatment))+
+  scale_fill_manual(values= c("grey70", "grey30"), name = "Treatment", labels = c("C", "OTC"))+
   geom_boxplot()+
-  theme_classic()
+  theme_classic()+
+  theme(legend.position = "bottom", axis.title = element_text(size = 14), axis.text = element_text(size =12), legend.text = element_text(size =11) )
+
 
 SR2021_CH4_env_clean%>%
   group_by(Habitat, Treatment)%>%
@@ -820,13 +826,19 @@ NEE2021_CO2_env<- left_join(NEE2021_CO2, NEEenvdata2021, by= c("FluxID", "Date",
 # bind together 2020 and 2021 NEE CO2 data
 NEE20202021_CO2_env<- rbind(NEE2020_CO2_env, NEE2021_CO2_env)%>%
   mutate(Month = lubridate::month(Date),
-         Year = lubridate::year(Date))
+         Year = lubridate::year(Date))%>%
+  mutate(Habitat = dplyr::recode(Habitat, M = "Thawslump", P= "Vegetated Palsa", S = "Soil Palsa", WG= "Vegetated Pond")) # recode Habitat
+NEE20202021_CO2_env$Habitat <- factor(NEE20202021_CO2_env$Habitat, levels = c("Vegetated Palsa", "Soil Palsa", "Thawslump", "Vegetated Pond"))
+
 
 NEE2021_CH4_env<- left_join(NEE2021_CH4, NEEenvdata2021, by= c("FluxID", "Date", "PlotID", "Transect", "Habitat", "Treatment", "Cover"))%>%
   mutate(Hour = as.integer(substr(Starttime, 1,2)),
          Date = as.Date(Date, "%d.%m.%Y"))%>%
   mutate(Habitat= dplyr::recode(Habitat, WGA = "WG", WGB = "WG"))%>%
-  dplyr::select(-FluxID)
+  dplyr::select(-FluxID)%>%
+  mutate(Habitat = dplyr::recode(Habitat, M = "Thawslump", P= "Vegetated Palsa", S = "Soil Palsa", WG= "Vegetated Pond")) # recode Habitat
+NEE2021_CH4_env$Habitat <- factor(NEE2021_CH4_env$Habitat, levels = c("Vegetated Palsa", "Soil Palsa", "Thawslump", "Vegetated Pond"))
+
 
 ## Add airtemp based on TOMSTloggerData for measurement hour
 #NEE2020_CO2_env<-left_join(NEE2020_CO2_env, TomstData_HourlyPlotID, by= c("Date", "Hour", "PlotID", "Transect" , "Habitat", "Treatment"))
@@ -875,7 +887,7 @@ NEE2021_CH4_env<- NEE2021_CH4_env%>%
 # RECO
 NEE20202021_CO2_env%>%
   filter(Treatment %in% c("C", "OTC"))%>%
-  filter(Habitat %in% c("S", "P", "M", "WG"))%>%
+  filter(Habitat %in% c("Vegetated Palsa", "Soil Palsa", "Thawslump", "Vegetated Pond"))%>%
   filter(Cover == "RECO")%>%
   filter(Comment != "redo")%>%
   filter(Method.CO2 != "No flux")%>%
@@ -886,7 +898,7 @@ NEE20202021_CO2_env%>%
 
 NEE20202021_CO2_env%>%
   filter(Treatment %in% c("C", "OTC"))%>%
-  filter(Habitat %in% c("S", "P", "M", "WG"))%>%
+  filter(Habitat %in% c("Vegetated Palsa", "Soil Palsa", "Thawslump", "Vegetated Pond"))%>%
   filter(Cover == "RECO")%>%
   filter(Comment != "redo")%>%
   filter(Method.CO2 != "No flux")%>%
@@ -899,7 +911,7 @@ NEE20202021_CO2_env%>%
 
 NEE2021_CH4_env%>%
   filter(Treatment %in% c("C", "OTC"))%>%
-  filter(Habitat %in% c("S", "P", "M", "WG"))%>%
+  filter(Habitat %in% c("Vegetated Palsa", "Soil Palsa", "Thawslump", "Vegetated Pond"))%>%
   filter(CH4flux < 25)%>%
   filter(CH4flux >-30)%>%
   filter(Method.CH4 != "No flux")%>%
@@ -945,7 +957,10 @@ hist(NEE_CO2$CO2flux) # normally distributed
 
 NEE_CO2%>%
   ggplot(aes(Habitat, CO2flux, fill=Treatment))+
-  geom_boxplot()
+  scale_fill_manual(values= c("grey70", "grey30"), name = "Treatment", labels = c("C", "OTC"))+
+  geom_boxplot()+
+  theme_classic()+
+  theme(legend.position = "bottom", axis.title = element_text(size = 14), axis.text = element_text(size =12), legend.text = element_text(size =11) )
 
 NEE_CO2%>%
   group_by(Habitat, Treatment) %>%
@@ -982,7 +997,7 @@ pairs(em_out_category)
 #RECO
 # Take out S plots
 RECO_CO2_clean<-RECO_CO2%>% 
-  filter(Habitat != "S")
+  filter(Habitat != "Soil Palsa")
 
 RECO_CO2_clean%>%
   group_by(Habitat, Treatment) %>%
@@ -996,7 +1011,12 @@ RECO_CO2_clean%>%
 
 RECO_CO2_clean%>%
   ggplot(aes(Habitat, CO2flux_RECO, fill=Treatment))+
-  geom_boxplot()
+  scale_fill_manual(values= c("grey70", "grey30"), name = "Treatment", labels = c("C", "OTC"))+
+  geom_boxplot()+
+  theme_classic()+
+  theme(legend.position = "bottom", axis.title = element_text(size = 14), axis.text = element_text(size =12), legend.text = element_text(size =11) )
+
+
 
 hist(log(RECO_CO2_clean$CO2flux_RECO)) # normal distribution
 
@@ -1023,14 +1043,20 @@ hist(log(GPP_CO2$GPPflux))
 
 GPP_CO2%>%
   ggplot(aes(Habitat, GPPflux, fill=Treatment))+
-  geom_boxplot()
+  scale_fill_manual(values= c("grey70", "grey30"), name = "Treatment", labels = c("C", "OTC"))+
+  geom_boxplot()+
+  theme_classic()+
+  theme(legend.position = "bottom", axis.title = element_text(size = 14), axis.text = element_text(size =12), legend.text = element_text(size =11) )
+
 
 # how are PAR values distributed for GPP measurements for C and OTC across habitats
 GPP_CO2%>%
   ggplot(aes(x=PAR.mean, fill=Treatment))+
   geom_density(alpha=0.5)+
+  scale_fill_manual(values= c("grey70", "grey30"), name = "Treatment", labels = c("C", "OTC"))+
   #geom_histogram(alpha=0.5, binwidth = 100)+
-  facet_grid(~Habitat)
+  facet_grid(~Habitat)+
+  theme_classic()
 
 GPP_CO2%>%
   group_by(Habitat, Treatment) %>%
@@ -1064,14 +1090,16 @@ pairs(em_out_category)
 #### CH4 NEE
 # !!! NEED TO FIGURE OUT WHICH DISTRIBUTION TO USE
 NEE_CH4_clean<-NEE2021_CH4_env%>%
-  filter(Habitat %in% c("M", "P", "WG"))%>%
+  filter(Habitat %in% c("Thawslump", "Vegetated Palsa", "Vegetated Pond"))%>%
   filter(Treatment %in% c("C", "OTC"))%>%
   filter(CH4flux<20)%>% #remove 4 outliers
   filter(CH4flux > -4)# remove 2 outlier
 
-ggplot(NEE_CH4_clean, aes(Habitat, CH4flux, fill=Treatment))+
+ggplot(NEE_CH4_clean, aes(Treatment, CH4flux, fill=Treatment))+
   geom_boxplot()+
-  facet_wrap(~Habitat, scales = "free")
+  scale_fill_manual(values= c("grey70", "grey30"), name = "Treatment", labels = c("C", "OTC"))+
+  facet_wrap(~Habitat, scales = "free")+
+  theme_classic()
 
 ggplot(NEE_CH4_clean, aes(x=rank(CH4flux)))+
   geom_histogram(position="identity", colour="grey40", alpha=0.2, bins = 7)
