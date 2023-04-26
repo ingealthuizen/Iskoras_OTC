@@ -326,13 +326,6 @@ Summersummary<-TomstData%>%
   group_by(PlotID, Habitat, Treatment, Date, Climate_variable)%>%
   summarise_at(vars(value), list(Mean = mean, Sd = sd, se =se, Max = max, Min = min ))
 
-Summersummary%>%
-  filter(Climate_variable %in% c("AirTemperature", "SoilTemperature", "Soilmoisture_Volumetric"))%>%
-  ggplot(aes(Habitat, Mean, fill=Treatment))+
-  geom_boxplot()+
-  facet_wrap(~Climate_variable, scales = "free")
-
-
 # hourly climate data per plot
 TomstData_HourlyPlotID<- TomstData%>%
   group_by(PlotID, Transect, Habitat, Treatment, Date, Hour)%>%
@@ -1141,14 +1134,40 @@ pairs(em_out_category)
 
 #### MODELLING GPP
 # Link NDVI data to GPP 
-GPP_NDVI<- left_join(GPP_CO2, NDVIdata, by=c("PlotID", "Treatment", "Habitat", "Transect",  "Year", "Month"))
+GPP_NDVI<- left_join(GPP_CO2, NDVIdata, by=c("PlotID", "Treatment", "Transect", "Year", "Month"))%>%
+  dplyr::select(-Habitat.y)
 
 CWMtraits_wide<- CWMtraits%>%
   spread(Trait, CWM)%>%
   ungroup()%>%
   select(-Habitat)
 
-GPP_NDVI_CWM<-left_join(GPP_NDVI, CWMtraits_wide, by= c("PlotID", "Treatment"))
+GPP_NDVI_CWM<-left_join(GPP_NDVI, CWMtraits_wide, by= c("PlotID", "Treatment"))%>%
+  drop_na(NDVI)
+
+ggplot(GPP_NDVI_CWM, aes(NDVI, GPPflux))+
+  geom_point(aes(col=Habitat.x))+
+  geom_smooth(method = "lm")
+
+ggplot(GPP_NDVI_CWM, aes(VH, GPPflux))+
+  geom_point(aes(col=Habitat.x))+
+  geom_smooth(method = "lm")
+
+ggplot(GPP_NDVI_CWM, aes(PAR.mean, GPPflux))+
+  geom_point(aes(col=Habitat.x))+
+  geom_smooth(method = "lm")
+
+fitGPP <- lmer(log(GPPflux) ~ VH + (1|PlotID),  data = GPP_NDVI_CWM)
+summary(fitGPP)
+plotQQunif(fitGPP) 
+plotResiduals(fitGPP) 
+
+GPP_NDVI_CWM$GPPpredicted<- predict(fitGPP)
+
+ggplot(GPP_NDVI_CWM, aes(x=GPPpredicted, y= log(GPPflux), col=Habitat.x, shape = Treatment)) +
+  geom_point() +
+  geom_abline(intercept=0, slope=1) +
+  labs(x='Predicted Values', y='Actual Values', title='Predicted vs. Actual Values')
 
 library(glmmTMB)
 library(lme4)
@@ -1156,7 +1175,10 @@ library(lmerTest)
 library(DHARMa)
 library(MuMIn)
 
+
 hist(log(GPP_NDVI_CWM$GPPflux))
+
+
 
 fitGPP <- lmer(log(GPPflux) ~ scale(PAR.mean) + SoilTemp.mean + SoilMoist.mean + NDVI + VH + LA + SLA +LDMC + (1|PlotID) ,  data = GPP_NDVI_CWM)
 summary(fitGPP)
@@ -1178,6 +1200,10 @@ plot(simulationOutput)
 # Bürkner, P.-C. Advanced bayesian multilevel modeling with the R Package brms. R J. 10, 395–411 (2018).
 # Mac Nally, R. & Walsh, C. J. Hierarchical partitioning public-domain software. Biodivers. Conserv. 13, 659 (2004).
 # Murray, K. & Conner, M. M. Methods to quantify variable importance: implications for the analysis of noisy ecological data. Ecology 90, 348–355 (2009).
+
+
+
+
 
 # Bayesion PAR model
 # These packages need to be loaded to run the model
@@ -1257,99 +1283,98 @@ library(patchwork)
 #### separate datasets per habitat and Treatment
 GPP_P_C <- GPP_CO2 %>%
   filter(Month %in% 7:8 )%>%
-  filter(Habitat == "P", Treatment == "C") %>% 
-  dplyr::select(GPPflux, PAR) %>% 
+  filter(Habitat == "Vegetated Palsa", Treatment == "C") %>% 
+  dplyr::select(GPPflux, PAR.mean) %>% 
   na.omit() 
 
 GPP_P_OTC <- GPP_CO2 %>% 
   filter(Month %in% 7:8 )%>%
-  filter(Habitat == "P", Treatment == "OTC") %>% 
-  dplyr::select(GPPflux, PAR) %>% 
+  filter(Habitat == "Vegetated Palsa", Treatment == "OTC") %>% 
+  dplyr::select(GPPflux, PAR.mean) %>% 
   na.omit() 
 
 GPP_M_C <- GPP_CO2 %>% 
   filter(Month %in% 7:8 )%>%
-  filter(Habitat == "M", Treatment == "C") %>% 
-  dplyr::select(GPPflux, PAR) %>% 
+  filter(Habitat == "Thawslump", Treatment == "C") %>% 
+  dplyr::select(GPPflux, PAR.mean) %>% 
   na.omit() 
 
 GPP_M_OTC <- GPP_CO2 %>% 
   filter(Month %in% 7:8 )%>%
-  filter(Habitat == "M", Treatment == "OTC") %>% 
-  dplyr::select(GPPflux, PAR) %>% 
+  filter(Habitat == "Thawslump", Treatment == "OTC") %>% 
+  dplyr::select(GPPflux, PAR.mean) %>% 
   na.omit() 
 
 GPP_WG_C <- GPP_CO2 %>% 
   filter(Month %in% 7:8 )%>%
-  filter(Habitat == "WG", Treatment == "C") %>% 
-  dplyr::select(GPPflux, PAR) %>% 
+  filter(Habitat == "Vegetated Pond", Treatment == "C") %>% 
+  dplyr::select(GPPflux, PAR.mean) %>% 
   na.omit() 
 
 GPP_WG_OTC <- GPP_CO2 %>% 
   filter(Month %in% 7:8 )%>%
-  filter(Habitat == "WG", Treatment == "OTC") %>% 
-  dplyr::select(GPPflux, PAR) %>% 
+  filter(Habitat == "Vegetated Pond", Treatment == "OTC") %>% 
+  dplyr::select(GPPflux, PAR.mean) %>% 
   na.omit() 
 
 
 ## get coefficients for each landscape unit model
 # model P
-fit_P_C <- nls( GPPflux ~  (aGPP*GPPmax*PAR)/(aGPP*PAR+GPPmax), data = GPP_P_C, start = list(aGPP=0.01, GPPmax=2))
+fit_P_C <- nls( GPPflux ~  (aGPP*GPPmax*PAR.mean)/(aGPP*PAR.mean+GPPmax), data = GPP_P_C, start = list(aGPP=0.01, GPPmax=2))
 aGPP_P_C <- coef(summary(fit_P_C))[1]
 GPPmax_P_C <- coef(summary(fit_P_C))[2]
 
-new.data <- data.frame(PAR=seq(1, 2000, by = 10))
+new.data <- data.frame(PAR.mean=seq(1, 2000, by = 10))
 fitted_P_C <- as_tibble(predFit(fit_P_C, newdata = new.data, interval = "confidence", level =0.9 ))%>%
-  mutate(PAR = new.data$PAR,
-         Habitat = "P",
+  mutate(PAR.mean = new.data$PAR.mean,
+         Habitat = "Vegetated Palsa",
          Treatment = "C")
 
-fit_P_OTC <- nls( GPPflux ~  (aGPP*GPPmax*PAR)/(aGPP*PAR+GPPmax), data = GPP_P_OTC, start = list(aGPP=0.01, GPPmax=2))
+fit_P_OTC <- nls( GPPflux ~  (aGPP*GPPmax*PAR.mean)/(aGPP*PAR.mean+GPPmax), data = GPP_P_OTC, start = list(aGPP=0.01, GPPmax=2))
 aGPP_P_OTC <- coef(summary(fit_P_OTC))[1]
 GPPmax_P_OTC <- coef(summary(fit_P_OTC))[2]
 
 fitted_P_OTC <- as_tibble(predFit(fit_P_OTC, newdata = new.data, interval = "confidence", level =0.9 ))%>%
-  mutate(PAR = new.data$PAR,
-         Habitat = "P",
+  mutate(PAR.mean = new.data$PAR.mean,
+         Habitat = "Vegetated Palsa",
          Treatment = "OTC")
 
 # model M
-fit_M_C <- nls( GPPflux ~  (aGPP*GPPmax*PAR)/(aGPP*PAR+GPPmax), data = GPP_M_C, start = list(aGPP=0.01, GPPmax=2)) 
+fit_M_C <- nls( GPPflux ~  (aGPP*GPPmax*PAR.mean)/(aGPP*PAR.mean+GPPmax), data = GPP_M_C, start = list(aGPP=0.01, GPPmax=2)) 
 aGPP_M_C <- coef(summary(fit_M_C))[1]
 GPPmax_M_C <- coef(summary(fit_M_C))[2]
 
 fitted_M_C <- as_tibble(predFit(fit_M_C, newdata = new.data, interval = "confidence", level =0.9 ))%>%
-  mutate(PAR = new.data$PAR,
-         Habitat = "M",
+  mutate(PAR.mean = new.data$PAR.mean,
+         Habitat = "Thawslump",
          Treatment = "C")
 
-fit_M_OTC <- nls( GPPflux ~  (aGPP*GPPmax*PAR)/(aGPP*PAR+GPPmax), data = GPP_M_OTC, start = list(aGPP=0.01, GPPmax=2))
+fit_M_OTC <- nls( GPPflux ~  (aGPP*GPPmax*PAR.mean)/(aGPP*PAR.mean+GPPmax), data = GPP_M_OTC, start = list(aGPP=0.01, GPPmax=2))
 aGPP_M_OTC <- coef(summary(fit_M_OTC))[1]
 GPPmax_M_OTC <- coef(summary(fit_M_OTC))[2]
 
 fitted_M_OTC <- as_tibble(predFit(fit_M_OTC, newdata = new.data, interval = "confidence", level =0.9 ))%>%
-  mutate(PAR = new.data$PAR,
-         Habitat = "M",
+  mutate(PAR.mean = new.data$PAR.mean,
+         Habitat = "Thawslump",
          Treatment = "OTC")
 
-
 # model WG
-fit_WG_C <- nls( GPPflux ~  (aGPP*GPPmax*PAR)/(aGPP*PAR+GPPmax), data = GPP_WG_C, start = list(aGPP=0.01, GPPmax=2))
+fit_WG_C <- nls( GPPflux ~  (aGPP*GPPmax*PAR.mean)/(aGPP*PAR.mean+GPPmax), data = GPP_WG_C, start = list(aGPP=0.01, GPPmax=2))
 aGPP_WG_C <- coef(summary(fit_WG_C))[1]
 GPPmax_WG_C <- coef(summary(fit_WG_C))[2]
 
 fitted_WG_C <- as_tibble(predFit(fit_WG_C, newdata = new.data, interval = "confidence", level =0.9 ))%>%
-  mutate(PAR = new.data$PAR,
-         Habitat = "WG",
+  mutate(PAR.mean = new.data$PAR.mean,
+         Habitat = "Vegetated Pond",
          Treatment = "C")
 
-fit_WG_OTC <- nls( GPPflux ~  (aGPP*GPPmax*PAR)/(aGPP*PAR+GPPmax), data = GPP_WG_OTC, start = list(aGPP=0.01, GPPmax=2))
+fit_WG_OTC <- nls( GPPflux ~  (aGPP*GPPmax*PAR.mean)/(aGPP*PAR.mean+GPPmax), data = GPP_WG_OTC, start = list(aGPP=0.01, GPPmax=2))
 aGPP_WG_OTC <- coef(summary(fit_WG_OTC))[1]
 GPPmax_WG_OTC <- coef(summary(fit_WG_OTC))[2]
 
 fitted_WG_OTC <- as_tibble(predFit(fit_WG_OTC, newdata = new.data, interval = "confidence", level =0.9 ))%>%
-  mutate(PAR = new.data$PAR,
-         Habitat = "WG",
+  mutate(PAR.mean = new.data$PAR.mean,
+         Habitat = "Vegetated Pond",
          Treatment = "OTC")
 
 
@@ -1358,11 +1383,11 @@ fitted_Habitat <- rbind(fitted_P_C, fitted_M_C, fitted_WG_C, fitted_P_OTC, fitte
 plotGPP<-GPP_CO2 %>%
   filter(Month %in% 7:8 )%>%
   ggplot() +  
-  geom_point(aes(x=PAR, y=GPPflux, col = Habitat, shape=Treatment)) + 
+  geom_point(aes(x=PAR.mean, y=GPPflux, col = Habitat, shape=Treatment)) + 
   xlab("PAR") + ylab("GPP")
 
-plotGPP +  geom_line(data=fitted_Habitat, aes(x = PAR, y = fit, color = Habitat, linetype=Treatment ))+
-  geom_ribbon(data=fitted_Habitat, aes(x=PAR, ymin=lwr, ymax=upr, fill= Treatment), alpha=0.3, inherit.aes=F)+
+plotGPP +  geom_line(data=fitted_Habitat, aes(x = PAR.mean, y = fit, color = Habitat, linetype=Treatment ))+
+  geom_ribbon(data=fitted_Habitat, aes(x=PAR.mean, ymin=lwr, ymax=upr, fill= Treatment), alpha=0.3, inherit.aes=F)+
   scale_fill_viridis(discrete = TRUE)+
   theme( axis.title.x = element_text(size = 14), axis.title.y = element_text(size = 14), axis.text.x = element_text(size = 12),
          axis.text.y = element_text(size = 12), panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
