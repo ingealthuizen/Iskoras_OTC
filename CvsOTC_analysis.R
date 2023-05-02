@@ -44,7 +44,7 @@ species.scores$species <- rownames(species.scores)
 
 ggplot() + 
   geom_point(data=data.scores.sites, aes(x=NMDS1, y=NMDS2, shape=Treatment, fill= Habitat), size=4) + # add the point markers
-  stat_ellipse(data=data.scores.sites, aes(x=NMDS1, y=NMDS2, linetype = Treatment, col = Habitat), linewidth = 1) +
+  stat_ellipse(data=data.scores.sites, aes(x=NMDS1, y=NMDS2, linetype = Treatment, col = Habitat), level=0.95,  linewidth = 1) +
   geom_text(data=species.scores, aes(x=NMDS1, y=NMDS2, label= species), alpha=0.9) +  # add the species labels
   scale_color_manual(values= c("#fc8d62", "#66c2a5", "#8da0cb"), name = "Habitat")+
   scale_fill_manual(values= c("#fc8d62", "#66c2a5", "#8da0cb"), name = "Habitat")+ 
@@ -144,7 +144,7 @@ CWMplot<- CWMtraits%>%
 # test differences between community weighted traits¨
 # non-parametric test for Treatment in each separate Habitat
 library(purrr)
-Outcomes <- c("LA", "LDMC", "LT", "SLA", "VH") # create vector with test subjects
+Outcomes <- c("LA", "LDMC", "SLA", "VH") # create vector with test subjects
 
 # separate datasets for different habitats
 PalsaCWM<-CWMtraits%>%
@@ -382,7 +382,10 @@ TomstData_MeanHourlyHabitat%>%
   theme_bw()+
   theme(legend.position = "right", axis.title = element_text(size = 14), axis.text = element_text(size =12), legend.text = element_text(size =11) )
 
-
+TomstData_MeanHourlyHabitat%>%
+  group_by(Habitat, Treatment)%>%
+  filter(Climate_variable %in% c("SoilTemperature"))%>%
+  summarise(max(Mean))
 
 # calculate min, max and mean for each Climatic variable measured by TOMST
 ma <- function(x, n = 7){  stats::filter(x, rep(1 / n, n), sides = 2)} # moving average for 7 days 
@@ -607,12 +610,13 @@ qqline(res.log)
 plot(aov.log, 1, main = "Log-Transformed")
 
 library(emmeans)
+library()
 emmeans(aov.log, pairwise ~ Habitat | Treatment)
 em_out_category<-emmeans(aov.log,  ~ Treatment | Habitat) 
 em_out_category %>% 
   pairs() %>% 
   test(joint = TRUE)
-rpairs(em_out_category)
+pairs(em_out_category)
 
 # SR for each habitat and treatment over summer seasons 2020 and 2021 
 SR20202021_CO2_env_clean%>%
@@ -931,7 +935,7 @@ NEE_CO2<-NEE20202021_CO2_env%>%
 # Recalculate PAR based on shading cover, 
 # need to check shading effect of covers
 GPP_CO2<-left_join(NEE_CO2, RECO_CO2, by=c("PlotID", "Habitat", "Treatment", "Date", "Year", "Month"))%>%
-  mutate(GPPflux = (CO2flux- CO2flux_RECO)*(-1))%>%
+  mutate(GPPflux = (CO2flux- CO2flux_RECO))%>%
   drop_na(GPPflux)%>%
   group_by(PlotID, Transect, Habitat, Treatment, Cover, Date, Hour, Month, Year)%>%
   gather(PAR, value, PAR1:PAR3)%>%
@@ -941,7 +945,7 @@ GPP_CO2<-left_join(NEE_CO2, RECO_CO2, by=c("PlotID", "Habitat", "Treatment", "Da
                          ifelse(Cover == 'NEE1', PAR.mean*0.67, PAR.mean)))%>%
   mutate(SoilTemp.mean = (SoilTemp1+ SoilTemp2)/2,
          SoilMoist.mean =(SoilMoist1+ SoilMoist2 +SoilMoist3)/3)%>%
-  filter(GPPflux > 0)%>%
+  filter(GPPflux < 0)%>%
   ungroup()
 
 
@@ -1062,7 +1066,7 @@ GPP_CO2%>%
   ungroup()
 #unbalanced might be problem
 
-GPP.log<- aov( log(GPPflux)~ Habitat * Treatment, data = GPP_CO2,
+GPP.log<- aov( log(-1*GPPflux)~ Habitat * Treatment, data = GPP_CO2,
                 contrasts = list(Habitat = 'contr.sum', Treatment = 'contr.sum' ))
 Anova(GPP.log, type = 'III')
 
@@ -1086,7 +1090,7 @@ NEE_CH4_clean<-NEE2021_CH4_env%>%
   filter(Habitat %in% c("Thawslump", "Vegetated Palsa", "Vegetated Pond"))%>%
   filter(Treatment %in% c("C", "OTC"))%>%
   filter(CH4flux<20)%>% #remove 4 outliers
-  filter(CH4flux > -4)# remove 2 outlier
+  filter(CH4flux > -0.5)# remove 5 outlier
 
 ggplot(NEE_CH4_clean, aes(Treatment, CH4flux, fill=Treatment))+
   geom_boxplot()+
@@ -1146,8 +1150,13 @@ GPP_NDVI_CWM<-left_join(GPP_NDVI, CWMtraits_wide, by= c("PlotID", "Treatment"))%
   drop_na(NDVI)
 
 ggplot(GPP_NDVI_CWM, aes(NDVI, GPPflux))+
-  geom_point(aes(col=Habitat.x))+
-  geom_smooth(method = "lm")
+  geom_point(aes(col=Habitat.x, shape = Treatment))+
+  scale_color_manual(values= c("#fc8d62", "#66c2a5", "#8da0cb"), 
+                     name = "Habitat")+
+  scale_shape_manual(values= c(19,17), name = "Treatment", labels = c("Control", "OTC"))+
+  geom_smooth(method = "lm", col="black", se=FALSE)+
+  theme_classic()+
+  theme( axis.title = element_text(size = 14), axis.text = element_text(size =12), legend.text = element_text(size =11) )
 
 ggplot(GPP_NDVI_CWM, aes(VH, GPPflux))+
   geom_point(aes(col=Habitat.x))+
@@ -1157,17 +1166,9 @@ ggplot(GPP_NDVI_CWM, aes(PAR.mean, GPPflux))+
   geom_point(aes(col=Habitat.x))+
   geom_smooth(method = "lm")
 
-fitGPP <- lmer(log(GPPflux) ~ VH + (1|PlotID),  data = GPP_NDVI_CWM)
-summary(fitGPP)
-plotQQunif(fitGPP) 
-plotResiduals(fitGPP) 
-
-GPP_NDVI_CWM$GPPpredicted<- predict(fitGPP)
-
-ggplot(GPP_NDVI_CWM, aes(x=GPPpredicted, y= log(GPPflux), col=Habitat.x, shape = Treatment)) +
-  geom_point() +
-  geom_abline(intercept=0, slope=1) +
-  labs(x='Predicted Values', y='Actual Values', title='Predicted vs. Actual Values')
+ggplot(GPP_NDVI_CWM, aes(SoilTemp.mean, GPPflux))+
+  geom_point(aes(col=Habitat.x))+
+  geom_smooth(method = "lm")
 
 library(glmmTMB)
 library(lme4)
@@ -1177,19 +1178,15 @@ library(MuMIn)
 
 
 hist(log(GPP_NDVI_CWM$GPPflux))
-
-
-
-fitGPP <- lmer(log(GPPflux) ~ scale(PAR.mean) + SoilTemp.mean + SoilMoist.mean + NDVI + VH + LA + SLA +LDMC + (1|PlotID) ,  data = GPP_NDVI_CWM)
+fitGPP <- lmer(log(GPPflux) ~ scale(PAR.mean) + SoilTemp.mean + NDVI + VH + (1|PlotID) ,  data = GPP_NDVI_CWM)
 summary(fitGPP)
 anova(fitGPP)
 MuMIn::r.squaredGLMM(fitGPP)
 simulationOutput <- simulateResiduals(fittedModel = fitGPP, plot = F)
 plot(simulationOutput)
 
-
 hist(log(GPP_NDVI_CWM$CO2flux_RECO))
-fitReco <- lmer(log(CO2flux_RECO) ~ SoilTemp.mean + SoilMoist.mean + NDVI + VH + LA + SLA +LDMC + (1|PlotID) ,  data = GPP_NDVI_CWM)
+fitReco <- lmer(log(CO2flux_RECO) ~ SoilTemp.mean + NDVI + (1|PlotID) ,  data = GPP_NDVI_CWM)
 summary(fitReco)
 anova(fitReco)
 MuMIn::r.squaredGLMM(fitReco)
