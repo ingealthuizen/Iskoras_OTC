@@ -623,6 +623,7 @@ SR20202021_CO2_env_clean%>%
   ggplot(aes(Habitat, CO2flux, fill=Treatment))+
   scale_fill_manual(values= c("grey70", "grey30"), name = "Treatment", labels = c("C", "OTC"))+
   geom_boxplot()+
+  ylab(expression(Soil~Respiration~CO[2]~(micromol/m^{2}/s))) + 
   theme_classic()+
   theme(legend.position = "bottom", axis.title = element_text(size = 14), axis.text = element_text(size =12), legend.text = element_text(size =11) )
 
@@ -712,6 +713,7 @@ SR2021_CH4_env_clean%>%
   ggplot(aes(Habitat, CH4flux, fill=Treatment))+
   scale_fill_manual(values= c("grey70", "grey30"), name = "Treatment", labels = c("C", "OTC"))+
   geom_boxplot()+
+  ylab(expression(Soil~Respiration~CH[4]~(nanomol/m^{2}/s))) + 
   theme_classic()+
   theme(legend.position = "bottom", axis.title = element_text(size = 14), axis.text = element_text(size =12), legend.text = element_text(size =11) )
 
@@ -956,6 +958,7 @@ NEE_CO2%>%
   ggplot(aes(Habitat, CO2flux, fill=Treatment))+
   scale_fill_manual(values= c("grey70", "grey30"), name = "Treatment", labels = c("C", "OTC"))+
   geom_boxplot()+
+  ylab(expression(Net~Ecosystem~Exchange~CO[2]~(micromol/m^{2}/s))) + 
   theme_classic()+
   theme(legend.position = "bottom", axis.title = element_text(size = 14), axis.text = element_text(size =12), legend.text = element_text(size =11) )
 
@@ -1010,6 +1013,7 @@ RECO_CO2_clean%>%
   ggplot(aes(Habitat, CO2flux_RECO, fill=Treatment))+
   scale_fill_manual(values= c("grey70", "grey30"), name = "Treatment", labels = c("C", "OTC"))+
   geom_boxplot()+
+  ylab(expression(Ecosystem~Respiration~CO[2]~(micromol/m^{2}/s))) + 
   theme_classic()+
   theme(legend.position = "bottom", axis.title = element_text(size = 14), axis.text = element_text(size =12), legend.text = element_text(size =11) )
 
@@ -1042,6 +1046,7 @@ GPP_CO2%>%
   ggplot(aes(Habitat, GPPflux, fill=Treatment))+
   scale_fill_manual(values= c("grey70", "grey30"), name = "Treatment", labels = c("C", "OTC"))+
   geom_boxplot()+
+  ylab(expression(Gross~Primary~Production~CO[2]~(micromol/m^{2}/s))) + 
   theme_classic()+
   theme(legend.position = "bottom", axis.title = element_text(size = 14), axis.text = element_text(size =12), legend.text = element_text(size =11) )
 
@@ -1094,6 +1099,7 @@ NEE_CH4_clean<-NEE2021_CH4_env%>%
 
 ggplot(NEE_CH4_clean, aes(Treatment, CH4flux, fill=Treatment))+
   geom_boxplot()+
+  ylab(expression(Ecosystem~Exchange~CH[4]~(nanomol/m^{2}/s))) + 
   scale_fill_manual(values= c("grey70", "grey30"), name = "Treatment", labels = c("C", "OTC"))+
   facet_wrap(~Habitat, scales = "free")+
   theme_classic()
