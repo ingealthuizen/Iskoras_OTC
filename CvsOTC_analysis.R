@@ -458,8 +458,6 @@ TomstData_MeanHourlyTransect%>%
 #####################################################################################################################################
 ####### Cflux data
 # SR 2021 data
-library(tidyverse)
-library(ggplot2)
 
 #Soil Respiration
 # ### HMR output based on V  in L, A in m2, CH4 in ppb, C02 in ppm
@@ -599,6 +597,8 @@ ggplot(SR20202021_CO2_env_clean, aes(x=log(CO2flux), fill=Treatment))+
 
 # ANOVA to test Treatment and Habitat effect 
 library(car)
+library(emmeans)
+
 aov.log <- aov( log(CO2flux) ~ Habitat * Treatment, data = SR20202021_CO2_env_clean,
                  contrasts = list(Habitat = 'contr.sum', Treatment = 'contr.sum' ))
 Anova(aov.log, type = 'III')
@@ -609,8 +609,6 @@ qqnorm(  res.log, pch = 20, main = "Log-Transformed",
 qqline(res.log)
 plot(aov.log, 1, main = "Log-Transformed")
 
-library(emmeans)
-library()
 emmeans(aov.log, pairwise ~ Habitat | Treatment)
 em_out_category<-emmeans(aov.log,  ~ Treatment | Habitat) 
 em_out_category %>% 
@@ -1019,7 +1017,7 @@ RECO_CO2_clean%>%
 
 
 
-hist(log(RECO_CO2_clean$CO2flux_RECO)) # normal distribution
+# hist(log(RECO_CO2_clean$CO2flux_RECO)) # normal distribution
 
 RECO.log<- aov( log(CO2flux_RECO)~ Habitat * Treatment, data = RECO_CO2_clean,
                contrasts = list(Habitat = 'contr.sum', Treatment = 'contr.sum' ))
