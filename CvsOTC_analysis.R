@@ -571,6 +571,7 @@ SR20202021_CO2_env_clean<-SR20202021_CO2_env%>%
          Year = as.factor(lubridate::year(Date)))%>%
   filter(Comment != "redo")%>%
   filter(Habitat != "W")%>%
+  filter(Habitat != "S")%>%
   filter(CO2flux > 0)%>% # remove negative values
   mutate(Habitat =dplyr::recode(Habitat, M = "Thawslump", P= "Vegetated Palsa", S = "Soil Palsa", WG= "Vegetated Pond")) # recode Habitat
 SR20202021_CO2_env_clean$Habitat <- factor(SR20202021_CO2_env_clean$Habitat, levels = c("Vegetated Palsa", "Soil Palsa", "Thawslump", "Vegetated Pond"))
@@ -669,6 +670,7 @@ SR2021_CH4_env_clean<-SR2021_CH4_env%>%
   mutate(Month = as.factor(lubridate::month(Date)),
          Year = as.factor(lubridate::year(Date)))%>%
   filter(Habitat != "W")%>%
+  filter(Habitat != "S")%>%
   mutate(Habitat = dplyr::recode(Habitat, M = "Thawslump", P= "Vegetated Palsa", S = "Soil Palsa", WG= "Vegetated Pond")) # recode Habitat
 SR2021_CH4_env_clean$Habitat <- factor(SR2021_CH4_env_clean$Habitat, levels = c("Vegetated Palsa", "Soil Palsa", "Thawslump", "Vegetated Pond"))
 
@@ -707,11 +709,12 @@ em_out_category %>%
 pairs(em_out_category)
 
 SR2021_CH4_env_clean%>%
-  filter(CH4flux < 6)%>% # 33 measurements not plotted
+  #filter(CH4flux < 10)%>% # 33 measurements not plotted
   ggplot(aes(Habitat, CH4flux, fill=Treatment))+
   scale_fill_manual(values= c("grey70", "grey30"), name = "Treatment", labels = c("C", "OTC"))+
   geom_boxplot()+
   ylab(expression(Soil~Respiration~CH[4]~(nanomol/m^{2}/s))) + 
+  facet_wrap(~Habitat, scales="free")+
   theme_classic()+
   theme(legend.position = "bottom", axis.title = element_text(size = 14), axis.text = element_text(size =12), legend.text = element_text(size =11) )
 
@@ -960,7 +963,7 @@ NEE_CO2%>%
   theme_classic()+
   theme(legend.position = "bottom", axis.title = element_text(size = 14), axis.text = element_text(size =12), legend.text = element_text(size =11) )
 
-NEE_CO2%>%
+NEE_summary<-NEE_CO2%>%
   group_by(Habitat, Treatment) %>%
   summarise(
     count = n(),
@@ -997,7 +1000,7 @@ pairs(em_out_category)
 RECO_CO2_clean<-RECO_CO2%>% 
   filter(Habitat != "Soil Palsa")
 
-RECO_CO2_clean%>%
+RECO_summary<-RECO_CO2_clean%>%
   group_by(Habitat, Treatment) %>%
   summarise(
     count = n(),
@@ -1005,6 +1008,8 @@ RECO_CO2_clean%>%
     median = round(median(CO2flux_RECO, na.rm = TRUE), 2),
     sd = round(sd(CO2flux_RECO, na.rm = TRUE), 2),
     cv = round(sd/mean, 2)) %>%
+  mutate(flux = "RECO",
+         GHG = "CO2")%>%
   ungroup()
 
 RECO_CO2_clean%>%
@@ -1058,7 +1063,7 @@ GPP_CO2%>%
   facet_grid(~Habitat)+
   theme_classic()
 
-GPP_CO2%>%
+GPP_summary<-GPP_CO2%>%
   group_by(Habitat, Treatment) %>%
   summarise(
     count = n(),
@@ -1066,8 +1071,14 @@ GPP_CO2%>%
     median = round(median(GPPflux, na.rm = TRUE), 2),
     sd = round(sd(GPPflux, na.rm = TRUE), 2),
     cv = round(sd/mean, 2)) %>%
+  mutate(flux = "GPP",
+         GHG = "CO2")%>%
   ungroup()
 #unbalanced might be problem
+
+fluxsummary<-rbind(GPP_summary, RECO_summary)
+ggplot(fluxsummary, aes(Habitat))
+
 
 GPP.log<- aov( log(-1*GPPflux)~ Habitat * Treatment, data = GPP_CO2,
                 contrasts = list(Habitat = 'contr.sum', Treatment = 'contr.sum' ))
@@ -1105,16 +1116,40 @@ ggplot(NEE_CH4_clean, aes(Treatment, CH4flux, fill=Treatment))+
 ggplot(NEE_CH4_clean, aes(x=rank(CH4flux)))+
   geom_histogram(position="identity", colour="grey40", alpha=0.2, bins = 7)
 
-NEE_CH4_clean%>%
+# summary on CH4 flux recalculated from nanomol to micromol (/1000) and multiplied by GWP of 100 years (84x) to compare to CO2
+CH4_summary<-NEE_CH4_clean%>%
   group_by(Habitat, Treatment) %>%
   summarise(
     count = n(),
-    mean = round(mean(CH4flux, na.rm = TRUE), 2),
-    median = round(median(CH4flux, na.rm = TRUE), 2),
-    sd = round(sd(CH4flux, na.rm = TRUE), 2),
+    mean = round(mean(CH4flux/1000*84, na.rm = TRUE), 2),
+    median = round(median(CH4flux/1000*84, na.rm = TRUE), 2),
+    sd = round(sd(CH4flux/1000*84, na.rm = TRUE), 2),
     cv = round(sd/mean, 2)) %>%
+  mutate(flux = "NEE",
+  GHG = "CH4")%>%
   ungroup()
 #unbalanced might be problem
+
+fluxsummary<-rbind(GPP_summary, RECO_summary, CH4_summary)
+
+ggplot(fluxsummary, aes(Habitat, mean, color= Treatment, shape= GHG)) +
+  geom_point(position = position_dodge(0.8), size=4) +
+  geom_errorbar(aes(ymin=mean-sd, ymax=mean+sd), position = position_dodge(0.8), width=.4)+
+  scale_color_manual(values= c("grey70", "grey30"), name = "Treatment", labels = c("C", "OTC"))+
+  #scale_shape_manual(values= c(19,17), name = "Treatment", labels = c("Control", "OTC"))+
+  labs(x = "Habitat", y= "GHG flux")+
+  geom_hline(yintercept = 0)+
+  theme_classic()+
+  theme(legend.position = "right", axis.title = element_text(size = 14), axis.text = element_text(size =12), legend.text = element_text(size =11) )
+
+ggplot(fluxsummary, aes(fill=GHG, y=mean, x=Treatment)) + 
+  geom_bar(position="stack", stat="identity")+
+  #geom_errorbar(aes(ymin = mean-sd, ymax = mean+sd), width = 0.3, position = "identity")+
+  facet_grid(~Habitat)+
+  geom_hline(yintercept = 0)+
+  theme_classic()+
+  theme(legend.position = "right", axis.title = element_text(size = 14), axis.text = element_text(size =12), legend.text = element_text(size =11) )
+
 
 CH4.rank<- aov( rank(CH4flux)~ Habitat * Treatment, data = NEE_CH4_clean,
                contrasts = list(Habitat = 'contr.sum', Treatment = 'contr.sum' ))
