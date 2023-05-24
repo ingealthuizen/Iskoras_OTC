@@ -36,10 +36,16 @@ NEE_CH4data<- NEE_CH4data%>%
   unite(PlotID, c(PlotID, Treatment), sep = "_", remove = FALSE)%>%
   mutate(Date = as.Date(Date, format="%d.%m.%Y"))
 
-ggplot(NEE_CO2data, aes(f0, Habitat, color = Treatment))+
+ggplot(NEE_CO2data, aes(Habitat, f0, fill = Treatment))+
   geom_boxplot()+
   facet_wrap(~Habitat)
 
+NEE_CH4data%>%
+  filter(Habitat =="WG")%>%
+  filter(f0<1000)%>%
+  ggplot(aes(Treatment, f0, fill = Treatment))+
+  geom_boxplot()+
+  facet_wrap(~Habitat,scales = "free")
 
 ## SR data
 CO2files_SR <- dir(path = "C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\Cflux\\2022\\NewMetaData", 
