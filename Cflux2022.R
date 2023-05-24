@@ -18,6 +18,8 @@ NEE_CO2data <- map_df(set_names(CO2files_NEE), function(file) {
 
 NEE_CO2data<- NEE_CO2data%>%
   separate(Series, sep = "_", c("PlotID", "Treatment", "Cover", "Date", "FluxID", "H2O"))%>%
+  mutate(Transect = str_sub(PlotID, 1, 1),
+         Habitat = str_sub(PlotID, 2,3))%>%
   unite(PlotID, c(PlotID, Treatment), sep = "_", remove = FALSE)%>%
   mutate(Date = as.Date(Date, format="%d.%m.%Y"))
 
@@ -29,8 +31,14 @@ NEE_CH4data <- map_df(set_names(CH4files_NEE), function(file) {
 
 NEE_CH4data<- NEE_CH4data%>%
   separate(Series, sep = "_", c("PlotID", "Treatment", "Cover", "Date", "FluxID", "H2O"))%>%
+  mutate(Transect = str_sub(PlotID, 1, 1),
+         Habitat = str_sub(PlotID, 2,3))%>%
   unite(PlotID, c(PlotID, Treatment), sep = "_", remove = FALSE)%>%
   mutate(Date = as.Date(Date, format="%d.%m.%Y"))
+
+ggplot(NEE_CO2data, aes(f0, Habitat, color = Treatment))+
+  geom_boxplot()+
+  facet_wrap(~Habitat)
 
 
 ## SR data
@@ -49,6 +57,8 @@ SR_CO2data <- map_df(set_names(CO2files_SR), function(file) {
 
 SR_CO2data<- SR_CO2data%>%
   separate(Series, sep = "_", c("PlotID", "Treatment", "Cover", "Date", "FluxID", "H2O"))%>%
+  mutate(Transect = str_sub(PlotID, 1, 1),
+         Habitat = str_sub(PlotID, 2,3))%>%
   unite(PlotID, c(PlotID, Treatment), sep = "_", remove = FALSE)%>%
   mutate(Date = as.Date(Date, format="%d.%m.%Y"))
 
@@ -60,5 +70,10 @@ SR_CH4data <- map_df(set_names(CH4files_SR), function(file) {
 
 SR_CH4data<- SR_CH4data%>%
   separate(Series, sep = "_", c("PlotID", "Treatment", "Cover", "Date", "FluxID", "H2O"))%>%
+  mutate(Transect = str_sub(PlotID, 1, 1),
+         Habitat = str_sub(PlotID, 2,3))%>%
   unite(PlotID, c(PlotID, Treatment), sep = "_", remove = FALSE)%>%
   mutate(Date = as.Date(Date, format="%d.%m.%Y"))
+
+
+
