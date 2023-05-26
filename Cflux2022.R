@@ -40,12 +40,30 @@ ggplot(NEE_CO2data, aes(Habitat, f0, fill = Treatment))+
   geom_boxplot()+
   facet_wrap(~Habitat)
 
-NEE_CH4data%>%
+WG_CH4data<- NEE_CH4data%>%
   filter(Habitat =="WG")%>%
-  filter(f0<1000)%>%
+  filter(Method != "No flux")%>%
+  filter(f0<800)%>%
+  filter(f0>0)
+
+WG_CH4data%>%
   ggplot(aes(Treatment, f0, fill = Treatment))+
   geom_boxplot()+
   facet_wrap(~Habitat,scales = "free")
+
+# ANOVA test
+library(car)
+library(emmeans)
+CH4.rank<- aov( rank(f0)~ factor(Treatment), data = WG_CH4data,
+                contrasts = list(Treatment = 'contr.sum' ))
+Anova(CH4.rank, type = 'III')
+
+res.CH4.rank = CH4.rank$resid
+qqnorm(  res.CH4.rank, pch = 20, main = "Ranked CH4 Data",
+         cex.lab = 1, cex.axis = 0.7, cex.main = 1)
+qqline(res.CH4.rank)
+plot(CH4.rank, 1, main = "Ranked CH4 Data")
+
 
 ## SR data
 CO2files_SR <- dir(path = "C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\Cflux\\2022\\NewMetaData", 
@@ -80,6 +98,5 @@ SR_CH4data<- SR_CH4data%>%
          Habitat = str_sub(PlotID, 2,3))%>%
   unite(PlotID, c(PlotID, Treatment), sep = "_", remove = FALSE)%>%
   mutate(Date = as.Date(Date, format="%d.%m.%Y"))
-
 
 
