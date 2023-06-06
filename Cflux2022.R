@@ -164,33 +164,163 @@ SR2022_CH4_env_T<- SR2022_CH4_env_T%>%
          CH4flux.LR = LR.f0/(0.08205*(273.15+AirTemperature)))
 
 
+####################### 2020-2021 NEEdata #################################
+
+# NEE chamber  V = 2.5 L, A = 0.0625 m2, CH4 in ppb, C02 in ppm
+NEE2020_CO2<- read.csv("C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\Cflux\\2020\\NEE2020_CO2_HMRoutput.csv", sep= ",")%>%
+  rename(FluxID = X)%>%
+  mutate(Date = as.Date(Date, "%Y-%m-%d"))%>%
+  mutate(PlotID = dplyr::recode(PlotID, "3WGA_OTC" = "3WGB_OTC"))
+
+# load environmental metadata
+metafiles_NEE2020 <- dir(path = "C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\2020\\LiCOR850\\", 
+                     pattern = "^NEEmetadata.*\\.csv$", full.names = TRUE, recursive = TRUE)
+
+# Function to combine metadata files into one dataframe
+NEE_envdata2020 <- map_df(set_names(metafiles_NEE2020), function(file) {
+  file %>% 
+    map_df(~ read.csv(file = file, header = TRUE, sep = ";", dec = ",", fill = T) %>% 
+             mutate(Transect = as.character(Transect),
+                    Date = as.Date(Date, "%d.%m.%Y")))
+}, .id = "File")
+
+# combine SR2021data with environmental data
+NEE2020_CO2_env<- left_join(NEE2020_CO2, NEE_envdata2020, by= c("Date", "PlotID", "Transect" , "Habitat", "Treatment", "Cover"))%>%
+  distinct(FluxID, .keep_all = TRUE)%>% # remove duplicated rows
+  mutate(Hour = as.integer(substr(Starttime, 1,2)))%>%
+  mutate(Habitat= dplyr::recode(Habitat, WGA = "WG", WGB = "WG"))%>%
+  dplyr::select(-FluxID)%>%
+  mutate(CO2flux = f0/(0.08205*(273.15+SoilTemp1)),
+         CO2flux.LR = LR/(0.08205*(273.15+SoilTemp1)))
+
+# also add one month of li7810 data?
 
 
-# basic plots
-ggplot(NEE_CO2data, aes(Habitat, f0, fill = Treatment))+
-  geom_boxplot()+
-  facet_wrap(~Habitat)
+########## 2021 
+NEE2021_CO2<-read.csv("C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\Cflux\\2021\\HMRoutput_NEE2021_CO2.csv")%>%
+  separate(Series, sep = "_", into = c("PlotID", "Treatment", "Cover", "Date", "FluxID"))%>%
+  mutate(Transect = substring(PlotID,1,1),
+         Habitat = substring(PlotID, 2,3))%>%
+  unite(PlotID, PlotID:Treatment, remove =FALSE )
 
-WG_CH4data<- NEE_CH4data%>%
-  filter(Habitat =="WG")%>%
-  filter(Method != "No flux")%>%
-  filter(f0<800)%>%
-  filter(f0>0)
+NEE2021_CH4<-read.csv("C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\Cflux\\2021\\HMRoutput_NEE2021_CH4.csv")%>%
+  separate(Series, sep = "_", into = c("PlotID", "Treatment", "Cover", "Date", "FluxID"))%>%
+  mutate(Transect = substring(PlotID,1,1),
+         Habitat = substring(PlotID, 2,3))%>%
+  unite(PlotID, PlotID:Treatment, remove =FALSE )
 
-WG_CH4data%>%
-  ggplot(aes(Treatment, f0, fill = Treatment))+
-  geom_boxplot()+
-  facet_wrap(~Habitat,scales = "free")
+## read in metadata
+metafiles_NEE2021 <- dir(path = "C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\2021\\Cfluxdata\\", 
+                        pattern = "^NEEmetadata.*\\.csv$", full.names = TRUE, recursive = TRUE)
 
-# ANOVA test
-library(car)
-library(emmeans)
-CH4.rank<- aov( rank(f0)~ factor(Treatment), data = WG_CH4data,
-                contrasts = list(Treatment = 'contr.sum' ))
-Anova(CH4.rank, type = 'III')
+NEE_envdata2021 <- map_df(set_names(metafiles_NEE2021), function(file) {
+  file %>% 
+    map_df(~ read.csv(file = file, header = TRUE, sep = ";", dec = ",", fill = T) %>% 
+             mutate(Transect = as.character(Transect),
+                    FluxID = as.character(FluxID),
+                    SoilTemp2 = dplyr::recode(SoilTemp2, '100.6' = 10.6L)))#correct typo on data
+}, .id = "File")
 
-res.CH4.rank = CH4.rank$resid
-qqnorm(  res.CH4.rank, pch = 20, main = "Ranked CH4 Data",
-         cex.lab = 1, cex.axis = 0.7, cex.main = 1)
-qqline(res.CH4.rank)
-plot(CH4.rank, 1, main = "Ranked CH4 Data")
+
+# link Environmental data and CO2fluxdata
+NEE2021_CO2_env<- left_join(NEE2021_CO2, NEE_envdata2021, by= c("FluxID", "Date", "PlotID", "Transect", "Habitat", "Treatment", "Cover"))%>%
+  mutate(Hour = as.integer(substr(Starttime, 1,2)),
+         Date = as.Date(Date, "%d.%m.%Y"))%>%
+  mutate(Habitat= dplyr::recode(Habitat, WGA = "WG", WGB = "WG"))%>%
+  dplyr::select(-FluxID)%>%
+  mutate(CO2flux = f0/(0.08205*(273.15+SoilTemp1)),
+         CO2flux.LR = LR/(0.08205*(273.15+SoilTemp1)))
+
+NEE2021_CH4_env<- left_join(NEE2021_CH4, NEE_envdata2021, by= c("FluxID", "Date", "PlotID", "Transect", "Habitat", "Treatment", "Cover"))%>%
+  mutate(Hour = as.integer(substr(Starttime, 1,2)),
+         Date = as.Date(Date, "%d.%m.%Y"))%>%
+  mutate(Habitat= dplyr::recode(Habitat, WGA = "WG", WGB = "WG"))%>%
+  dplyr::select(-FluxID)%>%
+  mutate(CH4flux = f0/(0.08205*(273.15+SoilTemp1)),
+         CH4flux.LR = LR/(0.08205*(273.15+SoilTemp1)))
+
+######### 2019 data
+# MAYBE REDO 2019 FLUX PROCESSSING?
+#import metadata
+NEE_metadata <- read_xlsx("C:\\Users\\ial008\\OneDrive - NORCE\\Iskoras\\Data\\NEE_chamber_data\\Chamber_fluxes_metaIA.xlsx")
+NEE_metadata <- NEE_metadata %>%
+  mutate(yday = yday(Date))%>%
+  mutate_at(vars(Date), funs(year, month, day))%>%
+  filter(!NOTES == "delete" | is.na(NOTES)) # remove plots that were dropped
+
+# import all flux data
+# C in ppm = mg/L, V in m3, A in m2, t in s; micromol/mol to micromol/m3 is *1000
+NEE_fluxdata <- read_xlsx("C:\\Users\\ial008\\OneDrive - NORCE\\Iskoras\\Data\\NEE_chamber_data\\NEE_2019_IA.xlsx") 
+NEE_fluxdata <- NEE_fluxdata%>%
+  mutate_at(vars(Date), funs(year, month, day))%>%
+  filter(!Comment == "delete" | is.na(Comment))%>% # remove plots that were dropped
+  select(year, month, day, Transect, Habitat, PlotID, Treatment, Flux, f0, f0.se, Method, LR.f0, LR.f0.se, Comment, Redo)%>%
+  mutate(f0 = as.numeric(f0)*100, 
+         f0.se = as.numeric(f0.se)*100,
+         LR.f0 = as.numeric(LR.f0)*100,
+         LR.f0.se = as.numeric(LR.f0.se)*100) 
+
+# bind meta and flux data
+# recalculate fluxes 
+#It is critical that chamber volume (V) and area (A) were entered in L and m2, respectively, in the HMR csv file, prior to HMR analysis. If so, then you should just need this bit of code.  
+# recalculate fluxes from uL/L to umol/m2
+## essentially V = nRT / p, where n=1 and p=1, so that V=RT
+
+NEE_flux2019 <- right_join(NEE_metadata, NEE_fluxdata, by= c("year", "month", "day", "Transect", "Habitat", "PlotID", "Treatment", "Flux", "Redo"))%>%
+  #filter(!Treatment == "OTC")%>%
+  unite(measurementID, PlotID, Flux, Treatment, year, month, day, sep = "_", remove = FALSE)%>%
+  mutate(CO2_umol_s = f0 / (0.08205*(273.15+Ibutton_airtemp))) 
+
+
+######### Combine 2019-2022 data
+
+
+# bind together 2020 and 2021 NEE CO2 data
+NEE20202021_CO2_env<- rbind(NEE2020_CO2_env, NEE2021_CO2_env)%>%
+  mutate(Month = lubridate::month(Date),
+         Year = lubridate::year(Date))%>%
+  mutate(Habitat = dplyr::recode(Habitat, M = "Thawslump", P= "Vegetated Palsa", S = "Soil Palsa", WG= "Vegetated Pond")) # recode Habitat
+NEE20202021_CO2_env$Habitat <- factor(NEE20202021_CO2_env$Habitat, levels = c("Vegetated Palsa", "Soil Palsa", "Thawslump", "Vegetated Pond"))
+
+
+##############
+
+## Add airtemp based on TOMSTloggerData for measurement hour
+#NEE2020_CO2_env<-left_join(NEE2020_CO2_env, TomstData_HourlyPlotID, by= c("Date", "Hour", "PlotID", "Transect" , "Habitat", "Treatment"))
+
+# NEED TO CORRECT FLUXES WITH IBUTTON TEMPERATURE TOMSTDATA not available for all dates !!!
+#NEELi7810_notHMR<-read.csv("2020\\LiCOR7810\\NEEflux_2020_Li7810.csv")%>%
+#  dplyr::select(Date, Transect, Habitat, Treatment, PlotID, Cover, Airtemp)%>%
+#  mutate(Date = as.Date(Date, "%d.%m.%Y"))
+
+#NEELi850_notHMR<-read.csv("2020\\LiCOR850\\NEEflux_2020_Li850.csv")%>%
+#  dplyr::select(Date, Transect, Habitat, Treatment, PlotID, Cover, Airtemp)%>%
+#  mutate(Date = as.Date(Date, "%d.%m.%Y"))
+
+#NEE_ibuttonTemp<- rbind(NEELi7810_notHMR, NEELi850_notHMR)%>%
+#  dplyr::rename(ChamberAirtemp= Airtemp)%>%
+#  mutate(Habitat= dplyr::recode(Habitat, WGA = "WG", WGB = "WG"))
+
+# match chamber airtemp to NEE data
+#NEE2020_CO2_env<- left_join(NEE2020_CO2_env, NEE_ibuttonTemp, by= c("Date", "Transect", "Habitat", "Treatment", "PlotID", "Cover"))%>%
+#  distinct(FluxID, .keep_all = TRUE)
+
+# match EC tower airtemp with fluxes
+#ECtower<-read.csv("Climate\\Mobileflux1_level1_30min.csv")%>%
+#  mutate(Date = as.Date(index, "%Y-%m-%d"),
+#         Hour = as.integer(substr(index, 12,13)))%>%
+#  group_by(Date, Hour)%>%
+#  summarise(ECairtemp = mean(air_temperature))%>%
+# dplyr::select(Date, Hour, ECairtemp)
+
+#NEE2020_CO2_env<- left_join(NEE2020_CO2_env, ECtower, by= c("Date", "Hour"))
+# Flux conversion HMR microL/m2/s > micromol/m2/s HMRoutput/(0.08205*(273.15+Air_temp))
+# (0.08205*273.15) equals 22.4 L/mol, which is the standard molar volume at standard conditions (temp = 0 and 1 atm pressure)
+# for now using soilTemp1 but better with either chamber ibutton data/ TOMST logger data or EC airtemp data
+NEE20202021_CO2_env<-NEE20202021_CO2_env%>%
+  mutate(CO2flux = f0/(0.08205*(273.15+SoilTemp1)),
+         CO2flux.LR = LR/(0.08205*(273.15+SoilTemp1)))
+
+NEE2021_CH4_env<- NEE2021_CH4_env%>%
+  mutate(CH4flux = f0/(0.08205*(273.15+SoilTemp1)),
+         CH4flux.LR = LR/(0.08205*(273.15+SoilTemp1)))
