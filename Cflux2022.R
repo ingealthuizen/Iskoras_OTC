@@ -85,11 +85,11 @@ NEE_CH4data<- NEE_CH4data%>%
 
 
 # combine NEE2022data with environmental data
-NEE2022_CO2_env<- left_join(NEE_CO2data, NEE_envdata2022, by= c("Date", "PlotID", "Transect" , "Habitat", "Treatment", "FluxID"))%>%
+NEE2022_CO2_env<- left_join(NEE_CO2data, NEE_envdata2022, by= c("Date", "PlotID", "Transect" , "Habitat", "Treatment", "FluxID", "Cover"))%>%
   mutate(Date = as.Date(Date, format="%d.%m.%Y"))%>%
     mutate(Hour = as.integer(substr(Starttime, 1,2)))
 
-NEE2022_CH4_env<- left_join(NEE_CH4data, NEE_envdata2022, by= c("Date", "PlotID", "Transect" , "Habitat", "Treatment", "FluxID"))%>%
+NEE2022_CH4_env<- left_join(NEE_CH4data, NEE_envdata2022, by= c("Date", "PlotID", "Transect" , "Habitat", "Treatment", "FluxID", "Cover"))%>%
   mutate(Date = as.Date(Date, format="%d.%m.%Y"))%>%
   mutate(Hour = as.integer(substr(Starttime, 1,2)))
 
@@ -191,7 +191,7 @@ NEE2020_CO2_env<- left_join(NEE2020_CO2, NEE_envdata2020, by= c("Date", "PlotID"
   mutate(Habitat= dplyr::recode(Habitat, WGA = "WG", WGB = "WG"))%>%
   dplyr::select(-FluxID)%>%
   mutate(CO2flux = f0/(0.08205*(273.15+SoilTemp1)),
-         CO2flux.LR = LR/(0.08205*(273.15+SoilTemp1)))
+         CO2flux.LR = LR.f0/(0.08205*(273.15+SoilTemp1)))
 
 # also add one month of li7810 data?
 
@@ -229,7 +229,7 @@ NEE2021_CO2_env<- left_join(NEE2021_CO2, NEE_envdata2021, by= c("FluxID", "Date"
   mutate(Habitat= dplyr::recode(Habitat, WGA = "WG", WGB = "WG"))%>%
   dplyr::select(-FluxID)%>%
   mutate(CO2flux = f0/(0.08205*(273.15+SoilTemp1)),
-         CO2flux.LR = LR/(0.08205*(273.15+SoilTemp1)))
+         CO2flux.LR = LR.f0/(0.08205*(273.15+SoilTemp1)))
 
 NEE2021_CH4_env<- left_join(NEE2021_CH4, NEE_envdata2021, by= c("FluxID", "Date", "PlotID", "Transect", "Habitat", "Treatment", "Cover"))%>%
   mutate(Hour = as.integer(substr(Starttime, 1,2)),
@@ -237,28 +237,62 @@ NEE2021_CH4_env<- left_join(NEE2021_CH4, NEE_envdata2021, by= c("FluxID", "Date"
   mutate(Habitat= dplyr::recode(Habitat, WGA = "WG", WGB = "WG"))%>%
   dplyr::select(-FluxID)%>%
   mutate(CH4flux = f0/(0.08205*(273.15+SoilTemp1)),
-         CH4flux.LR = LR/(0.08205*(273.15+SoilTemp1)))
+         CH4flux.LR = LR.f0/(0.08205*(273.15+SoilTemp1)))
+
+
+
+#combine all NEE data
+# CO2
+NEE2020_CO2_env_combi<- NEE2020_CO2_env%>%
+  select(Date, PlotID, Transect, Habitat, Treatment, Cover, f0, f0.se, f0.p, Method, LR.f0, LR.f0.se, LR.f0.p, 
+         PAR1, PAR2, PAR3, SoilTemp1, SoilTemp2, SoilMoist1, SoilMoist2, SoilMoist3, Hour)
+
+NEE2021_CO2_env_combi<- NEE2021_CO2_env%>%
+  select(Date, PlotID, Transect, Habitat, Treatment, Cover, f0, f0.se, f0.p, Method, LR.f0, LR.f0.se, LR.f0.p, 
+         PAR1, PAR2, PAR3, SoilTemp1, SoilTemp2, SoilMoist1, SoilMoist2, SoilMoist3, Hour)
+
+NEE2022_CO2_env_combi<- NEE2022_CO2_env%>%
+  select(Date, PlotID, Transect, Habitat, Treatment, Cover, f0, f0.se, f0.p, Method, LR.f0, LR.f0.se, LR.f0.p, 
+         PAR1, PAR2, PAR3, SoilTemp1, SoilTemp2, SoilMoist1, SoilMoist2, SoilMoist3, Hour)
+
+NEE_CO2_all<- rbind(NEE2020_CO2_env_combi, NEE2021_CO2_env_combi, NEE2022_CO2_env_combi)
+
+# CH4
+#NEE2020_CH4_env_combi<- NEE2020_CH4_env%>%
+#  select(Date, PlotID, Transect, Habitat, Treatment, Cover, f0, f0.se, f0.p, Method, LR.f0, LR.f0.se, LR.f0.p, 
+#         PAR1, PAR2, PAR3, SoilTemp1, SoilTemp2, SoilMoist1, SoilMoist2, SoilMoist3, Hour)
+
+NEE2021_CH4_env_combi<- NEE2021_CH4_env%>%
+  select(Date, PlotID, Transect, Habitat, Treatment, Cover, f0, f0.se, f0.p, Method, LR.f0, LR.f0.se, LR.f0.p, 
+         PAR1, PAR2, PAR3, SoilTemp1, SoilTemp2, SoilMoist1, SoilMoist2, SoilMoist3, Hour)
+
+NEE2022_CH4_env_combi<- NEE2022_CH4_env%>%
+  select(Date, PlotID, Transect, Habitat, Treatment, Cover, f0, f0.se, f0.p, Method, LR.f0, LR.f0.se, LR.f0.p, 
+         PAR1, PAR2, PAR3, SoilTemp1, SoilTemp2, SoilMoist1, SoilMoist2, SoilMoist3, Hour)
+
+NEE_CH4_all<- rbind(NEE2021_CH4_env_combi, NEE2022_CH4_env_combi)
+
+
+
+
+#select(Date, PlotID, Transect, Habitat, Treatment, Cover, f0, f0.se, f0.p, Method, LR.f0. LR.f0.se, LR.f0.p, PAR1, PAR2, PAR3, SoilTemp1, SoilTemp2, SoilMoist1, SoilMoist2, SoilMoist3, Hour)
 
 ######### 2019 data
 # MAYBE REDO 2019 FLUX PROCESSSING?
+
+library(readxl)
 #import metadata
-NEE_metadata <- read_xlsx("C:\\Users\\ial008\\OneDrive - NORCE\\Iskoras\\Data\\NEE_chamber_data\\Chamber_fluxes_metaIA.xlsx")
-NEE_metadata <- NEE_metadata %>%
-  mutate(yday = yday(Date))%>%
-  mutate_at(vars(Date), funs(year, month, day))%>%
+NEE_envdata2019 <- read_xlsx("C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\2019NEEdata\\Chamber_fluxes_metaIA.xlsx")
+NEE_envdata2019 <- NEE_envdata2019 %>%
+  mutate(PlotID = paste(PlotID, Treatment, sep = "_"))%>%
   filter(!NOTES == "delete" | is.na(NOTES)) # remove plots that were dropped
 
 # import all flux data
 # C in ppm = mg/L, V in m3, A in m2, t in s; micromol/mol to micromol/m3 is *1000
-NEE_fluxdata <- read_xlsx("C:\\Users\\ial008\\OneDrive - NORCE\\Iskoras\\Data\\NEE_chamber_data\\NEE_2019_IA.xlsx") 
-NEE_fluxdata <- NEE_fluxdata%>%
-  mutate_at(vars(Date), funs(year, month, day))%>%
-  filter(!Comment == "delete" | is.na(Comment))%>% # remove plots that were dropped
-  select(year, month, day, Transect, Habitat, PlotID, Treatment, Flux, f0, f0.se, Method, LR.f0, LR.f0.se, Comment, Redo)%>%
-  mutate(f0 = as.numeric(f0)*100, 
-         f0.se = as.numeric(f0.se)*100,
-         LR.f0 = as.numeric(LR.f0)*100,
-         LR.f0.se = as.numeric(LR.f0.se)*100) 
+NEE2019_CO2 <- read_csv("C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\2019NEEdata\\HMRflux_PARcorrection.csv")%>%
+  ungroup()%>%
+  select(Date, PlotID, Transect, Habitat, Treatment, Cover, f0, f0.se, f0.p, LR.f0, LR.f0.se, LR.f0.p, PAR.match)
+  
 
 # bind meta and flux data
 # recalculate fluxes 
@@ -266,10 +300,11 @@ NEE_fluxdata <- NEE_fluxdata%>%
 # recalculate fluxes from uL/L to umol/m2
 ## essentially V = nRT / p, where n=1 and p=1, so that V=RT
 
-NEE_flux2019 <- right_join(NEE_metadata, NEE_fluxdata, by= c("year", "month", "day", "Transect", "Habitat", "PlotID", "Treatment", "Flux", "Redo"))%>%
-  #filter(!Treatment == "OTC")%>%
-  unite(measurementID, PlotID, Flux, Treatment, year, month, day, sep = "_", remove = FALSE)%>%
-  mutate(CO2_umol_s = f0 / (0.08205*(273.15+Ibutton_airtemp))) 
+NEE2019_CO2_env <- right_join(NEE2019_CO2, NEE_envdata2019 , by= c("Date", "PlotID", "Transect", "Habitat", "Treatment", "Cover"))%>%
+  drop_na(f0)
+# still some duplicates
+
+  distinct(f0, .keep_all = TRUE) # remove duplicated rows
 
 
 ######### Combine 2019-2022 data
@@ -324,3 +359,19 @@ NEE20202021_CO2_env<-NEE20202021_CO2_env%>%
 NEE2021_CH4_env<- NEE2021_CH4_env%>%
   mutate(CH4flux = f0/(0.08205*(273.15+SoilTemp1)),
          CH4flux.LR = LR/(0.08205*(273.15+SoilTemp1)))
+
+NEE_CH4_all%>%
+  mutate(Treatment = ifelse(Habitat == "R", "R", Treatment))%>%
+  mutate(Treatment = ifelse(Habitat == "RZ", "R", Treatment))%>%
+  mutate(Habitat = dplyr::recode(Habitat, "R" = "WG"),
+         Habitat = dplyr::recode(Habitat, "RZ" = "WG"),
+         Treatment = dplyr::recode(Treatment, "RZ" = "R"))%>%
+  filter(Habitat =="WG")%>%
+  mutate(Year = year(Date),
+         Month = month(Date))%>%
+  filter(f0>0)%>%
+  filter(f0< 400)%>%
+  filter(Month != "3")%>%
+  ggplot(aes(as.factor(Month), f0, col=Treatment))+
+  geom_boxplot()+
+  geom_point(position=position_jitterdodge())
