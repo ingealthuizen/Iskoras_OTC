@@ -210,19 +210,19 @@ NEE_CO2_19_20_21_22_means_TOMST<-left_join(NEE_CO2_19_20_21_22_means, TomstData_
 # read in ECtower data
 ECdata<-read.csv("C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\Climate\\Mobileflux1_level1_30min_forCasper_update2022.csv")%>%
   separate(index, into = c("Date", "Time"), sep = " " )%>%
-  mutate(hour = as.integer(substring(Time, 1, 2)),
+  mutate(Hour = as.integer(substring(Time, 1, 2)),
          Date = as.Date(Date),
          PAR_EC = shortwave_incoming * 2.114)%>% # calculate PAR based on incoming shortwave radiation
   mutate(PAR_EC = ifelse(PAR_EC< 0, 0, PAR_EC))%>% # set PAR to zero if negative
-  group_by(Date, hour)%>%
+  group_by(Date, Hour)%>%
   summarise_all(mean)%>%
-  select(Date, hour, PAR_EC, air_temperature, relative_humidity, air_pressure, shortwave_incoming)%>%
+  select(Date, Hour, PAR_EC, air_temperature, relative_humidity, air_pressure, shortwave_incoming)%>%
   ungroup()
 
 ##### 
-NEE_CO2_19_20_21_22_means_TOMST_EC<- left_join(NEE_CO2_19_20_21_22_means_TOMST, ECdata, by= c("Date", "hour"))%>%
+NEE_CO2_19_20_21_22_means_TOMST_EC<- left_join(NEE_CO2_19_20_21_22_means_TOMST, ECdata, by= c("Date", "Hour"))%>%
   mutate(PAR_mean = ifelse(Cover == "RECO", 0, PAR_mean),
-         PAR.match = ifelse(PAR_mean == "NaN", PAR_EC, PAR_mean))
+         PAR_ideal = ifelse(PAR_mean == "NaN", PAR_EC, PAR_mean))
 
 
 
