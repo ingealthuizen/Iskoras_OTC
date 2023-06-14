@@ -2,14 +2,15 @@
 # load TOMSTloggerID information
 library(tidyverse)
 library(lubridate)
+#install.packages(myClim)
+
 #library(here)
 setwd("C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\")
 
-TomstID<-read.csv2("Climate\\TOMST\\TOMSTloggerID.csv")%>%
-  select(-X)
+TomstID<-read.csv2("Climate\\TOMST\\TOMSTloggerID2023.csv")
 
 ### Read in tomst logger files
-files <- dir(path = "Climate\\TOMST\\TOMSTdata_04102022", 
+files <- dir(path = "Climate\\TOMST\\TOMST2023", 
              pattern = "^data.*\\.csv$", full.names = TRUE, recursive = TRUE)
 
 # Function to read in data
@@ -163,5 +164,5 @@ ggplot(winter_microclimate2020, aes(Habitat, value, fill= Treatment))+
 # correct for high soilmoisture values? rescale saturated moisture to 1?
 
 # Save file
-#write_csv(TomstData_SoilMoistureCorrect, "C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\AnalysisR\\TOMSTdata_SMcalculated.csv")
+#write_csv(TomstData_Clean, "C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\AnalysisR\\TOMSTdata_SMcalculated.csv")
 
