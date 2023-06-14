@@ -23,7 +23,7 @@ TomstData_HourlyPlotID<- TomstData%>%
             Soilmoisture_Volumetric = mean(Soilmoisture_Volumetric, na.rm = TRUE))%>%
   ungroup()
 
-
+################################## NEEdata 2022 ############################################################################
 # read in Metadata NEE
 ### Read in HMR output files
 metafiles_NEE <- dir(path = "C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\Cflux\\2022\\NewMetaData", 
@@ -35,18 +35,6 @@ NEE_envdata2022 <- map_df(set_names(metafiles_NEE), function(file) {
     map_df(~ read.csv(file = file, header = TRUE, sep = ";", dec = ",", fill = T) %>% 
              mutate(Transect = as.character(Transect)))
 }, .id = "File")
-
-# read in Metadata SR
-metafiles_SR <-dir(path = "C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\Cflux\\2022\\NewMetaData", 
-                   pattern = "^SRmetadata.*\\.csv$", full.names = TRUE, recursive = TRUE)
-
-# Function to combine metadata files into one dataframe
-SR_envdata2022 <- map_df(set_names(metafiles_SR), function(file) {
-  file %>% 
-    map_df(~ read.csv(file = file, header = TRUE, sep = ";", dec = ",", fill = T) %>% 
-             mutate(Transect = as.character(Transect)))
-}, .id = "File")
-
 
 #### NEE data 2022 
 ### Read in HMR output files
@@ -68,7 +56,8 @@ NEE_CO2data<- NEE_CO2data%>%
   mutate(Transect = str_sub(PlotID, 1, 1),
          Habitat = str_sub(PlotID, 2,3),
          FluxID = as.integer(FluxID))%>%
-  unite(PlotID, c(PlotID, Treatment), sep = "_", remove = FALSE)
+  unite(PlotID, c(PlotID, Treatment), sep = "_", remove = FALSE)%>%
+  mutate(PlotID =recode(PlotID, "2WG_OTC" = "2WGB_OTC")) 
 
 NEE_CH4data <- map_df(set_names(CH4files_NEE), function(file) {
   file %>% 
@@ -81,7 +70,8 @@ NEE_CH4data<- NEE_CH4data%>%
   mutate(Transect = str_sub(PlotID, 1, 1),
          Habitat = str_sub(PlotID, 2,3),
          FluxID = as.integer(FluxID))%>%
-  unite(PlotID, c(PlotID, Treatment), sep = "_", remove = FALSE)
+  unite(PlotID, c(PlotID, Treatment), sep = "_", remove = FALSE)%>%
+  mutate(PlotID =recode(PlotID, "2WG_OTC" = "2WGB_OTC")) 
 
 
 # combine NEE2022data with environmental data
@@ -93,78 +83,8 @@ NEE2022_CH4_env<- left_join(NEE_CH4data, NEE_envdata2022, by= c("Date", "PlotID"
   mutate(Date = as.Date(Date, format="%d.%m.%Y"))%>%
   mutate(Hour = as.integer(substr(Starttime, 1,2)))
 
-## Add airtemp based on TOMSTloggerData for measurement hour
-NEE2022_CO2_env_T<-left_join(NEE2022_CO2_env, TomstData_HourlyPlotID, by= c("Date", "Hour", "PlotID", "Transect" , "Habitat", "Treatment"))
-NEE2022_CH4_env_T<-left_join(NEE2022_CH4_env, TomstData_HourlyPlotID, by= c("Date", "Hour", "PlotID", "Transect" , "Habitat", "Treatment"))
 
-# Flux conversion HMR microL/m2/s > micromol/m2/s HMRoutput/(0.08205*(273.15+Air_temp))
-NEE2022_CO2_env_T<- NEE2022_CO2_env_T%>%
-  mutate(CO2flux = f0/(0.08205*(273.15+AirTemperature)),
-         CO2flux.LR = LR.f0/(0.08205*(273.15+AirTemperature)))
-
-NEE2022_CH4_env_T<- NEE2022_CH4_env_T%>%
-  mutate(CH4flux = f0/(0.08205*(273.15+AirTemperature)),
-         CH4flux.LR = LR.f0/(0.08205*(273.15+AirTemperature)))
-
-##############################################################################################################################################
-##### SR data 2022
-CO2files_SR <- dir(path = "C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\Cflux\\2022\\NewMetaData", 
-                    pattern = "^HMR - HMRinput_SR.*\\CO2.csv$", full.names = TRUE, recursive = TRUE)
-
-CH4files_SR <- dir(path = "C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\Cflux\\2022\\NewMetaData", 
-                    pattern = "^HMR - HMRinput_SR.*\\CH4.csv$", full.names = TRUE, recursive = TRUE)
-
-# Function to read in data
-SR_CO2data <- map_df(set_names(CO2files_SR), function(file) {
-  file %>% 
-    set_names() %>% 
-    map_df(~ read.csv(file = file, header = TRUE, sep = ",", dec = "."))
-}, .id = "File")
-
-SR_CO2data<- SR_CO2data%>%
-  separate(Series, sep = "_", c("PlotID", "Treatment", "Cover", "Date", "FluxID", "H2O"))%>%
-  mutate(Transect = str_sub(PlotID, 1, 1),
-         Habitat = str_sub(PlotID, 2,3),
-         FluxID = as.integer(FluxID))%>%
-  unite(PlotID, c(PlotID, Treatment), sep = "_", remove = FALSE)
-
-SR_CH4data <- map_df(set_names(CH4files_SR), function(file) {
-  file %>% 
-    set_names() %>% 
-    map_df(~ read.csv(file = file, header = TRUE, sep = ",", dec = "."))
-}, .id = "File")
-
-SR_CH4data<- SR_CH4data%>%
-  separate(Series, sep = "_", c("PlotID", "Treatment", "Cover", "Date", "FluxID", "H2O"))%>%
-  mutate(Transect = str_sub(PlotID, 1, 1),
-         Habitat = str_sub(PlotID, 2,3),
-         FluxID = as.integer(FluxID))%>%
-  unite(PlotID, c(PlotID, Treatment), sep = "_", remove = FALSE)
-
-# combine NEE2022data with environmental data
-SR2022_CO2_env<- left_join(SR_CO2data, SR_envdata2022, by= c("Date", "PlotID", "Transect" , "Habitat", "Treatment", "FluxID"))%>%
-  mutate(Date = as.Date(Date, format="%d.%m.%Y"))%>%
-  mutate(Hour = as.integer(substr(Starttime, 1,2)))
-
-SR2022_CH4_env<- left_join(SR_CH4data, SR_envdata2022, by= c("Date", "PlotID", "Transect" , "Habitat", "Treatment", "FluxID"))%>%
-  mutate(Date = as.Date(Date, format="%d.%m.%Y"))%>%
-  mutate(Hour = as.integer(substr(Starttime, 1,2)))
-
-## Add airtemp based on TOMSTloggerData for measurement hour
-SR2022_CO2_env_T<-left_join(SR2022_CO2_env, TomstData_HourlyPlotID, by= c("Date", "Hour", "PlotID", "Transect" , "Habitat", "Treatment"))
-SR2022_CH4_env_T<-left_join(SR2022_CH4_env, TomstData_HourlyPlotID, by= c("Date", "Hour", "PlotID", "Transect" , "Habitat", "Treatment"))
-
-# Flux conversion HMR microL/m2/s > micromol/m2/s HMRoutput/(0.08205*(273.15+Air_temp))
-SR2022_CO2_env_T<- SR2022_CO2_env_T%>%
-  mutate(CO2flux = f0/(0.08205*(273.15+AirTemperature)),
-         CO2flux.LR = LR.f0/(0.08205*(273.15+AirTemperature)))
-
-SR2022_CH4_env_T<- SR2022_CH4_env_T%>%
-  mutate(CH4flux = f0/(0.08205*(273.15+AirTemperature)),
-         CH4flux.LR = LR.f0/(0.08205*(273.15+AirTemperature)))
-
-
-####################### 2020-2021 NEEdata #################################
+####################### 2020 NEEdata #################################
 
 # NEE chamber  V = 2.5 L, A = 0.0625 m2, CH4 in ppb, C02 in ppm
 NEE2020_CO2<- read.csv("C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\Cflux\\2020\\NEE2020_CO2_HMRoutput.csv", sep= ",")%>%
@@ -188,15 +108,11 @@ NEE_envdata2020 <- map_df(set_names(metafiles_NEE2020), function(file) {
 NEE2020_CO2_env<- left_join(NEE2020_CO2, NEE_envdata2020, by= c("Date", "PlotID", "Transect" , "Habitat", "Treatment", "Cover"))%>%
   distinct(FluxID, .keep_all = TRUE)%>% # remove duplicated rows
   mutate(Hour = as.integer(substr(Starttime, 1,2)))%>%
-  mutate(Habitat= dplyr::recode(Habitat, WGA = "WG", WGB = "WG"))%>%
-  dplyr::select(-FluxID)%>%
-  mutate(CO2flux = f0/(0.08205*(273.15+SoilTemp1)),
-         CO2flux.LR = LR.f0/(0.08205*(273.15+SoilTemp1)))
-
-# also add one month of li7810 data?
+  mutate(Habitat= dplyr::recode(Habitat, WGA = "WG", WGB = "WG"))
 
 
-########## 2021 
+####################### 2021 NEEdata #################################
+
 NEE2021_CO2<-read.csv("C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\Cflux\\2021\\HMRoutput_NEE2021_CO2.csv")%>%
   separate(Series, sep = "_", into = c("PlotID", "Treatment", "Cover", "Date", "FluxID"))%>%
   mutate(Transect = substring(PlotID,1,1),
@@ -226,19 +142,12 @@ NEE_envdata2021 <- map_df(set_names(metafiles_NEE2021), function(file) {
 NEE2021_CO2_env<- left_join(NEE2021_CO2, NEE_envdata2021, by= c("FluxID", "Date", "PlotID", "Transect", "Habitat", "Treatment", "Cover"))%>%
   mutate(Hour = as.integer(substr(Starttime, 1,2)),
          Date = as.Date(Date, "%d.%m.%Y"))%>%
-  mutate(Habitat= dplyr::recode(Habitat, WGA = "WG", WGB = "WG"))%>%
-  dplyr::select(-FluxID)%>%
-  mutate(CO2flux = f0/(0.08205*(273.15+SoilTemp1)),
-         CO2flux.LR = LR.f0/(0.08205*(273.15+SoilTemp1)))
+  mutate(Habitat= dplyr::recode(Habitat, WGA = "WG", WGB = "WG"))
 
 NEE2021_CH4_env<- left_join(NEE2021_CH4, NEE_envdata2021, by= c("FluxID", "Date", "PlotID", "Transect", "Habitat", "Treatment", "Cover"))%>%
   mutate(Hour = as.integer(substr(Starttime, 1,2)),
          Date = as.Date(Date, "%d.%m.%Y"))%>%
-  mutate(Habitat= dplyr::recode(Habitat, WGA = "WG", WGB = "WG"))%>%
-  dplyr::select(-FluxID)%>%
-  mutate(CH4flux = f0/(0.08205*(273.15+SoilTemp1)),
-         CH4flux.LR = LR.f0/(0.08205*(273.15+SoilTemp1)))
-
+  mutate(Habitat= dplyr::recode(Habitat, WGA = "WG", WGB = "WG"))
 
 
 #combine all NEE data
@@ -255,7 +164,7 @@ NEE2022_CO2_env_combi<- NEE2022_CO2_env%>%
   select(Date, PlotID, Transect, Habitat, Treatment, Cover, f0, f0.se, f0.p, Method, LR.f0, LR.f0.se, LR.f0.p, 
          PAR1, PAR2, PAR3, SoilTemp1, SoilTemp2, SoilMoist1, SoilMoist2, SoilMoist3, Hour)
 
-NEE_CO2_all<- rbind(NEE2020_CO2_env_combi, NEE2021_CO2_env_combi, NEE2022_CO2_env_combi)
+NEE_CO2_20_21_22<- rbind(NEE2020_CO2_env_combi, NEE2021_CO2_env_combi, NEE2022_CO2_env_combi)
 
 # CH4
 #NEE2020_CH4_env_combi<- NEE2020_CH4_env%>%
@@ -270,7 +179,7 @@ NEE2022_CH4_env_combi<- NEE2022_CH4_env%>%
   select(Date, PlotID, Transect, Habitat, Treatment, Cover, f0, f0.se, f0.p, Method, LR.f0, LR.f0.se, LR.f0.p, 
          PAR1, PAR2, PAR3, SoilTemp1, SoilTemp2, SoilMoist1, SoilMoist2, SoilMoist3, Hour)
 
-NEE_CH4_all<- rbind(NEE2021_CH4_env_combi, NEE2022_CH4_env_combi)
+NEE_CH4_21_22<- rbind(NEE2021_CH4_env_combi, NEE2022_CH4_env_combi)
 
 
 
@@ -321,6 +230,19 @@ NEE20202021_CO2_env$Habitat <- factor(NEE20202021_CO2_env$Habitat, levels = c("V
 
 
 ##############
+
+## Add airtemp based on TOMSTloggerData for measurement hour
+NEE2022_CO2_env_T<-left_join(NEE2022_CO2_env, TomstData_HourlyPlotID, by= c("Date", "Hour", "PlotID", "Transect" , "Habitat", "Treatment"))
+NEE2022_CH4_env_T<-left_join(NEE2022_CH4_env, TomstData_HourlyPlotID, by= c("Date", "Hour", "PlotID", "Transect" , "Habitat", "Treatment"))
+
+# Flux conversion HMR microL/m2/s > micromol/m2/s HMRoutput/(0.08205*(273.15+Air_temp))
+NEE2022_CO2_env_T<- NEE2022_CO2_env_T%>%
+  mutate(CO2flux = f0/(0.08205*(273.15+AirTemperature)),
+         CO2flux.LR = LR.f0/(0.08205*(273.15+AirTemperature)))
+
+NEE2022_CH4_env_T<- NEE2022_CH4_env_T%>%
+  mutate(CH4flux = f0/(0.08205*(273.15+AirTemperature)),
+         CH4flux.LR = LR.f0/(0.08205*(273.15+AirTemperature)))
 
 ## Add airtemp based on TOMSTloggerData for measurement hour
 #NEE2020_CO2_env<-left_join(NEE2020_CO2_env, TomstData_HourlyPlotID, by= c("Date", "Hour", "PlotID", "Transect" , "Habitat", "Treatment"))
@@ -377,3 +299,75 @@ NEE_CH4_all%>%
   ggplot(aes(as.factor(Month), f0, col=Treatment))+
   geom_boxplot()+
   geom_point(position=position_jitterdodge())
+
+
+##############################################################################################################################################
+##### SR data 2022
+# read in Metadata SR
+metafiles_SR <-dir(path = "C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\Cflux\\2022\\NewMetaData", 
+                   pattern = "^SRmetadata.*\\.csv$", full.names = TRUE, recursive = TRUE)
+
+# Function to combine metadata files into one dataframe
+SR_envdata2022 <- map_df(set_names(metafiles_SR), function(file) {
+  file %>% 
+    map_df(~ read.csv(file = file, header = TRUE, sep = ";", dec = ",", fill = T) %>% 
+             mutate(Transect = as.character(Transect)))
+}, .id = "File")
+
+
+CO2files_SR <- dir(path = "C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\Cflux\\2022\\NewMetaData", 
+                   pattern = "^HMR - HMRinput_SR.*\\CO2.csv$", full.names = TRUE, recursive = TRUE)
+
+CH4files_SR <- dir(path = "C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\Cflux\\2022\\NewMetaData", 
+                   pattern = "^HMR - HMRinput_SR.*\\CH4.csv$", full.names = TRUE, recursive = TRUE)
+
+# Function to read in data
+SR_CO2data <- map_df(set_names(CO2files_SR), function(file) {
+  file %>% 
+    set_names() %>% 
+    map_df(~ read.csv(file = file, header = TRUE, sep = ",", dec = "."))
+}, .id = "File")
+
+SR_CO2data<- SR_CO2data%>%
+  separate(Series, sep = "_", c("PlotID", "Treatment", "Cover", "Date", "FluxID", "H2O"))%>%
+  mutate(Transect = str_sub(PlotID, 1, 1),
+         Habitat = str_sub(PlotID, 2,3),
+         FluxID = as.integer(FluxID))%>%
+  unite(PlotID, c(PlotID, Treatment), sep = "_", remove = FALSE)
+
+SR_CH4data <- map_df(set_names(CH4files_SR), function(file) {
+  file %>% 
+    set_names() %>% 
+    map_df(~ read.csv(file = file, header = TRUE, sep = ",", dec = "."))
+}, .id = "File")
+
+SR_CH4data<- SR_CH4data%>%
+  separate(Series, sep = "_", c("PlotID", "Treatment", "Cover", "Date", "FluxID", "H2O"))%>%
+  mutate(Transect = str_sub(PlotID, 1, 1),
+         Habitat = str_sub(PlotID, 2,3),
+         FluxID = as.integer(FluxID))%>%
+  unite(PlotID, c(PlotID, Treatment), sep = "_", remove = FALSE)
+
+# combine NEE2022data with environmental data
+SR2022_CO2_env<- left_join(SR_CO2data, SR_envdata2022, by= c("Date", "PlotID", "Transect" , "Habitat", "Treatment", "FluxID"))%>%
+  mutate(Date = as.Date(Date, format="%d.%m.%Y"))%>%
+  mutate(Hour = as.integer(substr(Starttime, 1,2)))
+
+SR2022_CH4_env<- left_join(SR_CH4data, SR_envdata2022, by= c("Date", "PlotID", "Transect" , "Habitat", "Treatment", "FluxID"))%>%
+  mutate(Date = as.Date(Date, format="%d.%m.%Y"))%>%
+  mutate(Hour = as.integer(substr(Starttime, 1,2)))
+
+## Add airtemp based on TOMSTloggerData for measurement hour
+SR2022_CO2_env_T<-left_join(SR2022_CO2_env, TomstData_HourlyPlotID, by= c("Date", "Hour", "PlotID", "Transect" , "Habitat", "Treatment"))
+SR2022_CH4_env_T<-left_join(SR2022_CH4_env, TomstData_HourlyPlotID, by= c("Date", "Hour", "PlotID", "Transect" , "Habitat", "Treatment"))
+
+# Flux conversion HMR microL/m2/s > micromol/m2/s HMRoutput/(0.08205*(273.15+Air_temp))
+SR2022_CO2_env_T<- SR2022_CO2_env_T%>%
+  mutate(CO2flux = f0/(0.08205*(273.15+AirTemperature)),
+         CO2flux.LR = LR.f0/(0.08205*(273.15+AirTemperature)))
+
+SR2022_CH4_env_T<- SR2022_CH4_env_T%>%
+  mutate(CH4flux = f0/(0.08205*(273.15+AirTemperature)),
+         CH4flux.LR = LR.f0/(0.08205*(273.15+AirTemperature)))
+
+
