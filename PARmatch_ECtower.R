@@ -1,5 +1,5 @@
 # match ECtower PAR to fluxdata
-
+library(readxl)
 # Load 2019 data
 flux2019_HMR<-read.csv("C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\2020\\LiCOR850\\HMRfiles\\HMR_NEEflux2019.csv")%>%
   unite(PlotID, c(PlotID, Treatment), sep = "_", remove = FALSE)%>%
@@ -23,19 +23,19 @@ flux2019_HMRenv<- left_join(flux2019_HMR, metadata2019, by= c("Date", "PlotID", 
   mutate(SoilMoist = mean(moisture, na.rm = TRUE))%>%
   distinct(Date, Transect, Habitat, Treatment, PlotID, Cover, f0, .keep_all = TRUE)%>%
   select(-par, -value, -soilT, -temp, -soilM, -moisture)%>%
-  #summarise(across(where(is.numeric), ~ mean(.x, na.rm = TRUE)))%>% # remove duplicate measurements by taking mean
+  summarise(across(where(is.numeric), ~ mean(.x, na.rm = TRUE)))%>% # remove duplicate measurements by taking mean
   ungroup()%>%
-  filter((Comment != "delete") %>% replace_na(TRUE))%>%
-  select(-Comment, -Method)
+  filter((Comment != "delete") %>% replace_na(TRUE))#%>%
+  #select(-Comment, -Method)
 
 # replace NaN for PAR, soil with PAR from EC tower
 ########################################
 #2019 data missing a lot of data !!!!!
 
 #bind 2019 and 2020 NEE chamber data together
-NEEflux_20192020<- rbind(flux2019_HMRenv, flux2020_HMR)
+#NEEflux_20192020<- rbind(flux2019_HMRenv, flux2020_HMR)
 
-ECdata<-read.csv("C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\Climate\\Mobileflux1_level1_30min.csv")%>%
+ECdata<-read.csv("C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\Climate\\Mobileflux1_level1_30min_forCasper_update2022.csv")%>%
   separate(index, into = c("Date", "Time"), sep = " " )%>%
   mutate(hour = as.integer(substring(Time, 1, 2)),
          Date = as.Date(Date),
@@ -51,20 +51,18 @@ HMRflux_2019_ECpar<- left_join(flux2019_HMRenv, ECdata, by= c("Date", "hour"))%>
   mutate(PAR_measured = ifelse(Cover == "RECO", 0, PAR_measured),
          PAR.match = ifelse(PAR_measured == "NaN", PAR_EC, PAR_measured))
 
-write.csv(HMRflux_2019_ECpar, "C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\2019NEEdata\\HMRflux_PARcorrection.csv")
+write.csv(HMRflux_2019_ECpar, "C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\Cflux\\2019\\2019HMRflux_PARcorrection.csv")
 
- including EC tower PAR data for May and July
+# including EC tower PAR data for May and July
 HMR_parCorrection<-read.csv("C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\2019NEEdata\\HMRflux_PARcorrection.csv")%>%
   separate(PlotID, c("PlotID", "Treatment"))%>%
   mutate(Date = as.Date(Date, "%Y-%m-%d"),
         Flux_type = Cover)%>%
   select(Date, PlotID, Flux_type, PAR.match) 
 
-load("2019_GPP_w_PAR0_ER_data_for_modelling_UPDATE_2022_10_17.Rdata")
+load("C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\AnalysisR\\Thawgradient\\GPP\\2019_GPP_w_PAR0_ER_data_for_modelling_UPDATE_2022_10_17.Rdata")
 flux2019 <- GPP_reduced_w_PAR0 %>% 
-  rename(
-    Flux_type = Flux
-  )
+  rename(Flux_type = Flux)
 
 flux2019_May<- flux2019%>%
   filter(Date == "2019-05-22")
@@ -93,4 +91,4 @@ flux2019_PAR<- left_join(flux2019, flux2019_PARcorrect, by = c("PlotID_Date", "G
   mutate(PAR = coalesce(PAR, PAR.match))%>%
   select(-PAR.match)
 
-write.csv(flux2019_PAR, "C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\AnalysisR\\2019HMRflux_PARcorrection.csv")
+#write.csv(flux2019_PAR, "C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\AnalysisR\\2019HMRflux_PARcorrection.csv")
