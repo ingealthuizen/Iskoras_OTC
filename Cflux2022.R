@@ -240,6 +240,8 @@ NEE_CO2_19_20_21_22_means_TOMST_EC_new<- NEE_CO2_19_20_21_22_means_TOMST_EC%>%
          CO2flux.LR_EC = LR.f0/(0.08205*(273.15+air_temperature)))%>%
   mutate(CO2flux_final = ifelse(is.na(CO2flux) == TRUE, CO2flux_EC, CO2flux))
 
+#write.csv(NEE_CO2_19_20_21_22_means_TOMST_EC_new, "C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\AnalysisR\\Thawgradient\\NEE_2019-2022.csv")
+
 
 
 # CH4
