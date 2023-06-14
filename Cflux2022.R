@@ -207,6 +207,7 @@ NEE_CO2_19_20_21_22_means_TOMST<-left_join(NEE_CO2_19_20_21_22_means, TomstData_
 
 
 # join NEEdata with ECtower data based on date and hour of day
+#! Find reference for shortwave conversion to flux back
 # read in ECtower data
 ECdata<-read.csv("C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\Climate\\Mobileflux1_level1_30min_forCasper_update2022.csv")%>%
   separate(index, into = c("Date", "Time"), sep = " " )%>%
@@ -219,10 +220,25 @@ ECdata<-read.csv("C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\Climate\\Mob
   select(Date, Hour, PAR_EC, air_temperature, relative_humidity, air_pressure, shortwave_incoming)%>%
   ungroup()
 
-##### 
+
 NEE_CO2_19_20_21_22_means_TOMST_EC<- left_join(NEE_CO2_19_20_21_22_means_TOMST, ECdata, by= c("Date", "Hour"))%>%
   mutate(PAR_mean = ifelse(Cover == "RECO", 0, PAR_mean),
          PAR_ideal = ifelse(PAR_mean == "NaN", PAR_EC, PAR_mean))
+
+
+### Recalculate PAR based on shading
+NEE_CO2_19_20_21_22_means_TOMST_EC<- NEE_CO2_19_20_21_22_means_TOMST_EC%>%
+  mutate(PAR_real = ifelse(Cover == "NEE1", PAR_ideal*0.67, 
+                         ifelse(Cover == "NEE2", PAR_ideal*0.33, PAR_ideal)))
+
+### fluxconversion based on airtemp 
+# TOMST aitemp if possible, otherwise EC if available, otherwise soiltemp point measurements? 
+NEE_CO2_19_20_21_22_means_TOMST_EC_new<- NEE_CO2_19_20_21_22_means_TOMST_EC%>%
+  mutate(CO2flux = f0/(0.08205*(273.15+AirTemperature)),
+         CO2flux.LR = LR.f0/(0.08205*(273.15+AirTemperature)),
+         CO2flux_EC = f0/(0.08205*(273.15+air_temperature)),
+         CO2flux.LR_EC = LR.f0/(0.08205*(273.15+air_temperature)))%>%
+  mutate(CO2flux_final = ifelse(is.na(CO2flux) == TRUE, CO2flux_EC, CO2flux))
 
 
 
