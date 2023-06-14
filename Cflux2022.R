@@ -149,9 +149,31 @@ NEE2021_CH4_env<- left_join(NEE2021_CH4, NEE_envdata2021, by= c("FluxID", "Date"
          Date = as.Date(Date, "%d.%m.%Y"))%>%
   mutate(Habitat= dplyr::recode(Habitat, WGA = "WG", WGB = "WG"))
 
+########### 2019 NEE data
+
+NEE2019_CO2<-read.csv("C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\2020\\LiCOR850\\HMRfiles\\HMR_NEEflux2019.csv")%>%
+  unite(PlotID, c(PlotID, Treatment), sep = "_", remove = FALSE)%>%
+  mutate(Cover = recode(Cover, ER = "RECO"))%>%
+  mutate(Date = as.Date(Date, "%d.%m.%Y"))%>%
+  select(Date, PlotID, Cover, Transect, Habitat, Treatment, f0:Method, Comment, LR.f0:LR.f0.up95)
+
+# 2019 metadata
+NEE_envdata2019<-read_xlsx("C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\2019NEEdata\\Chamber_fluxes_metaIA.xlsx")%>%  
+  unite(PlotID, c(PlotID, Treatment), sep = "_", remove = FALSE)%>%
+  mutate(Date = as.Date(Date))%>%
+  select(Date, hour, PlotID, Cover, PAR1, PAR2, PAR3, Soiltemp1, Soiltemp2, SoilMoist1, SoilMoist2, SoilMoist3, Airtemp, Redo)
+
+NEE2019_CO2_env<- left_join(flux2019_HMR, metadata2019, by= c("Date", "PlotID",  "Cover"))%>%
+  distinct(f0, .keep_all = TRUE)%>%
+  dplyr::rename(SoilTemp1 = Soiltemp1, SoilTemp2= Soiltemp2, Hour = hour )
+
 
 #combine all NEE data
 # CO2
+NEE2019_CO2_env_combi<- NEE2019_CO2_env%>%
+  select(Date, PlotID, Transect, Habitat, Treatment, Cover, f0, f0.se, f0.p, Method, LR.f0, LR.f0.se, LR.f0.p, 
+         PAR1, PAR2, PAR3, SoilTemp1, SoilTemp2, SoilMoist1, SoilMoist2, SoilMoist3, Hour)
+
 NEE2020_CO2_env_combi<- NEE2020_CO2_env%>%
   select(Date, PlotID, Transect, Habitat, Treatment, Cover, f0, f0.se, f0.p, Method, LR.f0, LR.f0.se, LR.f0.p, 
          PAR1, PAR2, PAR3, SoilTemp1, SoilTemp2, SoilMoist1, SoilMoist2, SoilMoist3, Hour)
@@ -164,7 +186,45 @@ NEE2022_CO2_env_combi<- NEE2022_CO2_env%>%
   select(Date, PlotID, Transect, Habitat, Treatment, Cover, f0, f0.se, f0.p, Method, LR.f0, LR.f0.se, LR.f0.p, 
          PAR1, PAR2, PAR3, SoilTemp1, SoilTemp2, SoilMoist1, SoilMoist2, SoilMoist3, Hour)
 
-NEE_CO2_20_21_22<- rbind(NEE2020_CO2_env_combi, NEE2021_CO2_env_combi, NEE2022_CO2_env_combi)
+NEE_CO2_19_20_21_22<- rbind(NEE2019_CO2_env_combi, NEE2020_CO2_env_combi, NEE2021_CO2_env_combi, NEE2022_CO2_env_combi)
+
+
+# calculate mean PAR, Soiltemp and SoilMoist of flux measurement based on point measurements accompanying flux measurements 
+NEE_CO2_19_20_21_22_means<-NEE_CO2_19_20_21_22%>%
+  group_by(Date, PlotID, Transect, Habitat, Treatment, Cover, f0, f0.se, f0.p, Method, LR.f0, LR.f0.se, LR.f0.p)%>%
+  gather(key = par, value = value, PAR1, PAR2, PAR3)%>%
+  mutate(PAR_mean = mean(value, na.rm = TRUE))%>%
+  gather(key = soilT, value = temp, SoilTemp1 , SoilTemp2)%>%
+  mutate(SoilT_mean = mean(temp, na.rm = TRUE))%>%
+  gather(key = soilM, value = moisture, SoilMoist1 , SoilMoist2, SoilMoist3)%>%
+  mutate(SoilMoist_mean = mean(moisture, na.rm = TRUE))%>%
+  distinct(Date, PlotID, Transect, Habitat, Treatment, Cover, f0, f0.se, f0.p, Method, LR.f0, LR.f0.se, LR.f0.p, .keep_all = TRUE)%>%
+  select(-par, -value, -soilT, -temp, -soilM, -moisture)%>%
+  ungroup()
+
+# join NEEdata with TOMSTlogger data based on PlotID, date and hour of day
+NEE_CO2_19_20_21_22_means_TOMST<-left_join(NEE_CO2_19_20_21_22_means, TomstData_HourlyPlotID, by= c("Date", "Hour", "PlotID", "Transect" , "Habitat", "Treatment"))
+
+
+# join NEEdata with ECtower data based on date and hour of day
+# read in ECtower data
+ECdata<-read.csv("C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\Climate\\Mobileflux1_level1_30min_forCasper_update2022.csv")%>%
+  separate(index, into = c("Date", "Time"), sep = " " )%>%
+  mutate(hour = as.integer(substring(Time, 1, 2)),
+         Date = as.Date(Date),
+         PAR_EC = shortwave_incoming * 2.114)%>% # calculate PAR based on incoming shortwave radiation
+  mutate(PAR_EC = ifelse(PAR_EC< 0, 0, PAR_EC))%>% # set PAR to zero if negative
+  group_by(Date, hour)%>%
+  summarise_all(mean)%>%
+  select(Date, hour, PAR_EC, air_temperature, relative_humidity, air_pressure, shortwave_incoming)%>%
+  ungroup()
+
+##### 
+NEE_CO2_19_20_21_22_means_TOMST_EC<- left_join(NEE_CO2_19_20_21_22_means_TOMST, ECdata, by= c("Date", "hour"))%>%
+  mutate(PAR_mean = ifelse(Cover == "RECO", 0, PAR_mean),
+         PAR.match = ifelse(PAR_mean == "NaN", PAR_EC, PAR_mean))
+
+
 
 # CH4
 #NEE2020_CH4_env_combi<- NEE2020_CH4_env%>%
@@ -181,44 +241,25 @@ NEE2022_CH4_env_combi<- NEE2022_CH4_env%>%
 
 NEE_CH4_21_22<- rbind(NEE2021_CH4_env_combi, NEE2022_CH4_env_combi)
 
-
+NEE_CH4_21_22_means<-NEE_CH4_21_22%>%
+  group_by(Date, PlotID, Transect, Habitat, Treatment, Cover, f0, f0.se, f0.p, Method, LR.f0, LR.f0.se, LR.f0.p)%>%
+  gather(key = par, value = value, PAR1, PAR2, PAR3)%>%
+  mutate(PAR_mean = mean(value, na.rm = TRUE))%>%
+  gather(key = soilT, value = temp, SoilTemp1 , SoilTemp2)%>%
+  mutate(SoilT_mean = mean(temp, na.rm = TRUE))%>%
+  gather(key = soilM, value = moisture, SoilMoist1 , SoilMoist2, SoilMoist3)%>%
+  mutate(SoilMoist_mean = mean(moisture, na.rm = TRUE))%>%
+  distinct(Date, PlotID, Transect, Habitat, Treatment, Cover, f0, f0.se, f0.p, Method, LR.f0, LR.f0.se, LR.f0.p, .keep_all = TRUE)%>%
+  select(-par, -value, -soilT, -temp, -soilM, -moisture)%>%
+  ungroup()
 
 
 #select(Date, PlotID, Transect, Habitat, Treatment, Cover, f0, f0.se, f0.p, Method, LR.f0. LR.f0.se, LR.f0.p, PAR1, PAR2, PAR3, SoilTemp1, SoilTemp2, SoilMoist1, SoilMoist2, SoilMoist3, Hour)
 
-######### 2019 data
-# load 2019 HMR data with PAR correction based on ECtower data
 
 
 
-library(readxl)
-#import metadata
-NEE_envdata2019 <- read_xlsx("C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\2019NEEdata\\Chamber_fluxes_metaIA.xlsx")
-NEE_envdata2019 <- NEE_envdata2019 %>%
-  mutate(PlotID = paste(PlotID, Treatment, sep = "_"))%>%
-  filter(!NOTES == "delete" | is.na(NOTES)) # remove plots that were dropped
 
-# import all flux data
-# C in ppm = mg/L, V in m3, A in m2, t in s; micromol/mol to micromol/m3 is *1000
-NEE2019_CO2 <- read_csv("C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\2019NEEdata\\HMRflux_PARcorrection.csv")%>%
-  ungroup()%>%
-  select(Date, PlotID, Transect, Habitat, Treatment, Cover, f0, f0.se, f0.p, LR.f0, LR.f0.se, LR.f0.p, PAR.match)
-  
-
-# bind meta and flux data
-# recalculate fluxes 
-#It is critical that chamber volume (V) and area (A) were entered in L and m2, respectively, in the HMR csv file, prior to HMR analysis. If so, then you should just need this bit of code.  
-# recalculate fluxes from uL/L to umol/m2
-## essentially V = nRT / p, where n=1 and p=1, so that V=RT
-
-NEE2019_CO2_env <- right_join(NEE2019_CO2, NEE_envdata2019 , by= c("Date", "PlotID", "Transect", "Habitat", "Treatment", "Cover"))%>%
-  drop_na(f0)
-# still some duplicates
-
-  distinct(f0, .keep_all = TRUE) # remove duplicated rows
-
-
-######### Combine 2019-2022 data
 
 
 # bind together 2020 and 2021 NEE CO2 data
