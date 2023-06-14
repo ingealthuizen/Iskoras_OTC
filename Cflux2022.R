@@ -173,7 +173,7 @@ NEE2020_CO2<- read.csv("C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\Cflux\
   mutate(PlotID = dplyr::recode(PlotID, "3WGA_OTC" = "3WGB_OTC"))
 
 # load environmental metadata
-metafiles_NEE2020 <- dir(path = "C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\2020\\LiCOR850\\", 
+metafiles_NEE2020 <- dir(path = "C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\Cflux\\2020\\", 
                      pattern = "^NEEmetadata.*\\.csv$", full.names = TRUE, recursive = TRUE)
 
 # Function to combine metadata files into one dataframe
@@ -278,7 +278,9 @@ NEE_CH4_all<- rbind(NEE2021_CH4_env_combi, NEE2022_CH4_env_combi)
 #select(Date, PlotID, Transect, Habitat, Treatment, Cover, f0, f0.se, f0.p, Method, LR.f0. LR.f0.se, LR.f0.p, PAR1, PAR2, PAR3, SoilTemp1, SoilTemp2, SoilMoist1, SoilMoist2, SoilMoist3, Hour)
 
 ######### 2019 data
-# MAYBE REDO 2019 FLUX PROCESSSING?
+# load 2019 HMR data with PAR correction based on ECtower data
+
+
 
 library(readxl)
 #import metadata
