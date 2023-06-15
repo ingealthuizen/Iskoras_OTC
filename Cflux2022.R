@@ -1,6 +1,7 @@
 # combine Iskoras 2022 flux data
 library(tidyverse)
 library(lubridate)
+library(readxl)
 
 # function to calculate standard error
 se <- function(x) sd(x)/sqrt(length(x))
@@ -163,7 +164,7 @@ NEE_envdata2019<-read_xlsx("C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\20
   mutate(Date = as.Date(Date))%>%
   select(Date, hour, PlotID, Cover, PAR1, PAR2, PAR3, Soiltemp1, Soiltemp2, SoilMoist1, SoilMoist2, SoilMoist3, Airtemp, Redo)
 
-NEE2019_CO2_env<- left_join(flux2019_HMR, metadata2019, by= c("Date", "PlotID",  "Cover"))%>%
+NEE2019_CO2_env<- left_join(NEE2019_CO2, NEE_envdata2019, by= c("Date", "PlotID",  "Cover"))%>%
   distinct(f0, .keep_all = TRUE)%>%
   dplyr::rename(SoilTemp1 = Soiltemp1, SoilTemp2= Soiltemp2, Hour = hour )
 
@@ -242,7 +243,23 @@ NEE_CO2_19_20_21_22_means_TOMST_EC_new<- NEE_CO2_19_20_21_22_means_TOMST_EC%>%
          CO2flux.LR_EC = LR.f0/(0.08205*(273.15+air_temperature)))%>%
   mutate(CO2flux_final = ifelse(is.na(CO2flux) == TRUE, CO2flux_EC, CO2flux))
 
-#write.csv(NEE_CO2_19_20_21_22_means_TOMST_EC_new, "C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\AnalysisR\\Thawgradient\\NEE_2019-2022.csv")
+write.csv(NEE_CO2_19_20_21_22_means_TOMST_EC_new, "C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\AnalysisR\\Thawgradient\\NEE_2019-2022.csv", row.names = FALSE)
+
+#¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤ Calculate GPP ¤¤¤¤¤¤¤¤¤¤
+NEE_CO2_19_20_21_22_means_TOMST_EC_new<- read.csv("C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\AnalysisR\\Thawgradient\\NEE_2019-2022.csv")
+
+RECO_CO2 <- NEE_CO2_19_20_21_22_means_TOMST_EC_new%>%
+  filter(Cover == "RECO")%>%
+  select(X,Date, PlotID, Transect, Habitat, Treatment, RECOflux = CO2flux_final )
+
+NEE_CO2 <- NEE_CO2_19_20_21_22_means_TOMST_EC_new%>%
+  filter(Cover != "RECO")
+
+GPP_CO2 <- left_join(NEE_CO2, RECO_CO2, by = c("Date", "PlotID", "Transect", "Habitat", "Treatment"))%>%
+  distinct(X.x, .keep_all=TRUE)%>%
+  rename( NEEflux = CO2flux_final )%>%
+  mutate(GPPflux = (-1*NEEflux) + RECOflux) # GPP = NEE + RECO, multiple NEE by -1 to get positive numbers
+
 
 
 
