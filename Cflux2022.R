@@ -244,7 +244,7 @@ NEE_CO2_19_20_21_22_means_TOMST_EC_new<- NEE_CO2_19_20_21_22_means_TOMST_EC%>%
   mutate(CO2flux_final = ifelse(is.na(CO2flux) == TRUE, CO2flux_EC, CO2flux))%>%
   mutate(Cover = recode(Cover, Reco ="RECO"))
 
-write.csv(NEE_CO2_19_20_21_22_means_TOMST_EC_new, "C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\AnalysisR\\Thawgradient\\NEE_2019-2022.csv", row.names = FALSE)
+#write.csv(NEE_CO2_19_20_21_22_means_TOMST_EC_new, "C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\AnalysisR\\Thawgradient\\NEE_2019-2022.csv")
 
 #¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤ Calculate GPP ¤¤¤¤¤¤¤¤¤¤
 NEE_CO2_19_20_21_22_means_TOMST_EC_new<- read.csv("C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\AnalysisR\\Thawgradient\\NEE_2019-2022.csv")
@@ -261,7 +261,7 @@ GPP_CO2 <- left_join(NEE_CO2, RECO_CO2, by = c("Date", "PlotID", "Transect", "Ha
   rename( NEEflux = CO2flux_final )%>%
   mutate(GPPflux = (-1*NEEflux) + RECOflux) # GPP = NEE + RECO, multiple NEE by -1 to get positive numbers
 
-
+#write.csv(GPP_CO2, "C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\AnalysisR\\Thawgradient\\GPP_2019-2022.csv", row.names = FALSE)
 
 
 # CH4
