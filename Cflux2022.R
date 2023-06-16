@@ -111,6 +111,11 @@ NEE2020_CO2_env<- left_join(NEE2020_CO2, NEE_envdata2020, by= c("Date", "PlotID"
   mutate(Hour = as.integer(substr(Starttime, 1,2)))%>%
   mutate(Habitat= dplyr::recode(Habitat, WGA = "WG", WGB = "WG"))
 
+# count number of measurements
+NEE2020_CO2_env%>%
+  filter(Cover == "RECO")%>%
+  filter(Method != "No flux")%>%
+  count()
 
 ####################### 2021 NEEdata #################################
 
@@ -118,42 +123,41 @@ NEE2021_CO2<-read.csv("C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\Cflux\\
 
 # data cleaning
 # Only filtering for faulty Reco and NEE based on visual inspection
-NEE2021_CO2  <- NEE2021_CO2 %>%
-  filter(
-    Series != "3S_C_RECO_20.07.2021_12",
-    Series != "3S_C_RECO_03.06.2021_15",
-    Series != "3S_C_RECO_03.06.2021_14",
-    Series != "3S_C_RECO_02.07.2021_25",
-    Series != "2WGB_C_RECO_21.07.2021_6",
-    Series != "2S_C_RECO_03.06.2021_46",
-    Series != "BM_C_RECO_23.07.2021_36",
-    Series != "AS_OTC_RECO_20.07.2021_14",
-    Series != "AS_OTC_RECO_17.08.2021_18",
-    Series != "AS_C_RECO_20.07.2021_15",
-    Series != "AS_C_RECO_03.06.2021_17",
-    Series != "AR_C_RECO_23.07.2021_26",
-    Series != "AR_C_RECO_12.09.2021_11",
-    Series != "4S_C_RECO_20.07.2021_21",
-    Series != "4S_C_RECO_03.06.2021_18",
-    Series != "4S_C_RECO_02.07.2021_17",
-    Series != "BP_C_RECO_23.07.2021_32",
-    Series != "BP_C_RECO_23.07.2021_31",
-    Series != "BWG_R_RECO_21.08.2021_34",
-    Series != "BS_C_RECO_23.07.2021_40",
-    Series != "BS_C_RECO_18.08.2021_24",
-    Series != "BS_C_RECO_11.09.2021_71",
-    Series != "BR_C_RECO_23.07.2021_34",
-    Series != "BR_C_RECO_12.09.2021_21",
-    Series != "BR_C_RECO_03.07.2021_50" , 
+faulty_CO2_2021 <- c(
+     "3S_C_RECO_20.07.2021_12",
+     "3S_C_RECO_03.06.2021_15",
+     "3S_C_RECO_03.06.2021_14",
+     "3S_C_RECO_02.07.2021_25",
+     "2WGB_C_RECO_21.07.2021_6",
+     "2S_C_RECO_03.06.2021_46",
+     "BM_C_RECO_23.07.2021_36",
+     "AS_OTC_RECO_20.07.2021_14",
+     "AS_OTC_RECO_17.08.2021_18",
+     "AS_C_RECO_20.07.2021_15",
+     "AS_C_RECO_03.06.2021_17",
+     "AR_C_RECO_23.07.2021_26",
+     "AR_C_RECO_12.09.2021_11",
+     "4S_C_RECO_20.07.2021_21",
+     "4S_C_RECO_03.06.2021_18",
+     "4S_C_RECO_02.07.2021_17",
+     "BP_C_RECO_23.07.2021_32",
+     "BP_C_RECO_23.07.2021_31",
+     "BWG_R_RECO_21.08.2021_34",
+     "BS_C_RECO_23.07.2021_40",
+     "BS_C_RECO_18.08.2021_24",
+     "BS_C_RECO_11.09.2021_71",
+     "BR_C_RECO_23.07.2021_34",
+     "BR_C_RECO_12.09.2021_21",
+     "BR_C_RECO_03.07.2021_50" , 
     # Bad NEE measurements 
-    Series != "BP_OTC_NEE_04.06.2021_11",    
-    Series != "4P_C_NEE1_03.06.2021_39",
-    Series != "4P_C_NEE2_03.06.2021_40",
-    Series != "1WG_C_NEE2_03.06.2021_52"
-      )  
-
+     "BP_OTC_NEE_04.06.2021_11",    
+     "4P_C_NEE1_03.06.2021_39",
+     "4P_C_NEE2_03.06.2021_40",
+     "1WG_C_NEE2_03.06.2021_52"
+  )  
 
 NEE2021_CO2<- NEE2021_CO2%>%
+  filter(!Series %in% faulty_CO2_2021)%>%
   separate(Series, sep = "_", into = c("PlotID", "Treatment", "Cover", "Date", "FluxID"))%>%
   mutate(Transect = substring(PlotID,1,1),
          Habitat = substring(PlotID, 2,3))%>%
@@ -164,7 +168,7 @@ NEE2021_CO2<- NEE2021_CO2%>%
 NEE2021_CH4<-read.csv("C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\Cflux\\2021\\HMRoutput_NEE2021_CH4.csv")
 
 ## FAULTY CH4 visually inspected fluxes 
-faulty_CH4_ECOFLUX <- c(
+faulty_CH4_2021 <- c(
   "1M_C_NEE_11.09.2021_51" ,
   "1M_OTC_NEE_23.07.2021_11",
   "1R_C_RECO_23.07.2021_6",
@@ -237,10 +241,7 @@ faulty_CH4_ECOFLUX <- c(
   "BS_OTC_RECO_23.07.2021_39")
 
 NEE2021_CH4 <- NEE2021_CH4 %>% 
-  filter(!Series %in% faulty_CH4_ECOFLUX)
-         
-
-NEE2021_CH4<- NEE2021_CH4%>%
+  filter(!Series %in% faulty_CH4_2021)%>%
   separate(Series, sep = "_", into = c("PlotID", "Treatment", "Cover", "Date", "FluxID"))%>%
   mutate(Transect = substring(PlotID,1,1),
          Habitat = substring(PlotID, 2,3))%>%
@@ -309,6 +310,14 @@ NEE2022_CO2_env_combi<- NEE2022_CO2_env%>%
 
 NEE_CO2_19_20_21_22<- rbind(NEE2019_CO2_env_combi, NEE2020_CO2_env_combi, NEE2021_CO2_env_combi, NEE2022_CO2_env_combi)
 
+# count number of measurements
+NEE_CO2_19_20_21_22%>%
+  mutate(Date = ymd(Date),
+         Year = year(Date))%>%
+  filter(Cover == "RECO")%>%
+  filter(Method != "No flux")%>%
+  group_by(Year)%>%
+  count()
 
 # calculate mean PAR, Soiltemp and SoilMoist of flux measurement based on point measurements accompanying flux measurements 
 NEE_CO2_19_20_21_22_means<-NEE_CO2_19_20_21_22%>%
