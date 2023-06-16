@@ -114,13 +114,133 @@ NEE2020_CO2_env<- left_join(NEE2020_CO2, NEE_envdata2020, by= c("Date", "PlotID"
 
 ####################### 2021 NEEdata #################################
 
-NEE2021_CO2<-read.csv("C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\Cflux\\2021\\HMRoutput_NEE2021_CO2.csv")%>%
+NEE2021_CO2<-read.csv("C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\Cflux\\2021\\HMRoutput_NEE2021_CO2.csv")
+
+# data cleaning
+# Only filtering for faulty Reco and NEE based on visual inspection
+NEE2021_CO2  <- NEE2021_CO2 %>%
+  filter(
+    Series != "3S_C_RECO_20.07.2021_12",
+    Series != "3S_C_RECO_03.06.2021_15",
+    Series != "3S_C_RECO_03.06.2021_14",
+    Series != "3S_C_RECO_02.07.2021_25",
+    Series != "2WGB_C_RECO_21.07.2021_6",
+    Series != "2S_C_RECO_03.06.2021_46",
+    Series != "BM_C_RECO_23.07.2021_36",
+    Series != "AS_OTC_RECO_20.07.2021_14",
+    Series != "AS_OTC_RECO_17.08.2021_18",
+    Series != "AS_C_RECO_20.07.2021_15",
+    Series != "AS_C_RECO_03.06.2021_17",
+    Series != "AR_C_RECO_23.07.2021_26",
+    Series != "AR_C_RECO_12.09.2021_11",
+    Series != "4S_C_RECO_20.07.2021_21",
+    Series != "4S_C_RECO_03.06.2021_18",
+    Series != "4S_C_RECO_02.07.2021_17",
+    Series != "BP_C_RECO_23.07.2021_32",
+    Series != "BP_C_RECO_23.07.2021_31",
+    Series != "BWG_R_RECO_21.08.2021_34",
+    Series != "BS_C_RECO_23.07.2021_40",
+    Series != "BS_C_RECO_18.08.2021_24",
+    Series != "BS_C_RECO_11.09.2021_71",
+    Series != "BR_C_RECO_23.07.2021_34",
+    Series != "BR_C_RECO_12.09.2021_21",
+    Series != "BR_C_RECO_03.07.2021_50" , 
+    # Bad NEE measurements 
+    Series != "BP_OTC_NEE_04.06.2021_11",    
+    Series != "4P_C_NEE1_03.06.2021_39",
+    Series != "4P_C_NEE2_03.06.2021_40",
+    Series != "1WG_C_NEE2_03.06.2021_52"
+      )  
+
+
+NEE2021_CO2<- NEE2021_CO2%>%
   separate(Series, sep = "_", into = c("PlotID", "Treatment", "Cover", "Date", "FluxID"))%>%
   mutate(Transect = substring(PlotID,1,1),
          Habitat = substring(PlotID, 2,3))%>%
   unite(PlotID, PlotID:Treatment, remove =FALSE )
 
-NEE2021_CH4<-read.csv("C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\Cflux\\2021\\HMRoutput_NEE2021_CH4.csv")%>%
+
+#CH4
+NEE2021_CH4<-read.csv("C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\Cflux\\2021\\HMRoutput_NEE2021_CH4.csv")
+
+## FAULTY CH4 visually inspected fluxes 
+faulty_CH4_ECOFLUX <- c(
+  "1M_C_NEE_11.09.2021_51" ,
+  "1M_OTC_NEE_23.07.2021_11",
+  "1R_C_RECO_23.07.2021_6",
+  "1S_C_RECO_21.07.2021_11",
+  "1WG_C_NEE2_03.06.2021_52",
+  "1WG_C_RECO_18.08.2021_22",
+  "1WG_R_NEE_21.08.2021_3",
+  "2P_C_NEE_11.09.2021_73",
+  "2P_C_NEE_23.07.2021_41",
+  "2S_C_RECO_03.06.2021_46",
+  "2S_C_RECO_18.08.2021_10",
+  "2S_C_RECO_21.07.2021_1",
+  "2S_OTC_RECO_11.09.2021_34",
+  "2S_OTC_RECO_21.07.2021_2",
+  "2WGB_C_RECO_18.08.2021_15",
+  "2WGB_C_RECO_21.07.2021_6",
+  "3M_C_NEE_20.07.2021_9",
+  "3M_OTC_RECO_02.07.2021_31",
+  "3P_C_NEE_02.07.2021_28",
+  "3P_C_NEE_03.06.2021_5",
+  "3P_C_NEE_20.07.2021_3",
+  "3P_C_NEE1_03.06.2021_6",
+  "3P_C_NEE2_03.06.2021_7",
+  "3P_C_RECO_02.07.2021_29",
+  "3P_C_RECO_20.07.2021_4",
+  "3S_C_RECO_02.07.2021_25",
+  "3S_C_RECO_03.06.2021_14",
+  "4M_OTC_NEE1_03.06.2021_29",
+  "4P_C_NEE_02.07.2021_1",
+  "4P_C_NEE_03.06.2021_38",
+  "4P_C_NEE_18.08.2021_3",
+  "4P_C_NEE1_02.07.2021_2",
+  "4P_C_NEE1_03.06.2021_39",
+  "4P_C_NEE2_03.06.2021_40",
+  "4P_C_RECO_03.06.2021_41",
+  "4P_C_RECO_20.07.2021_32",
+  "4P_OTC_NEE_03.06.2021_34",
+  "4P_OTC_NEE1_03.06.2021_35",
+  "4P_OTC_NEE2_03.06.2021_36",
+  "4S_C_RECO_02.07.2021_17",
+  "4S_C_RECO_03.06.2021_18",
+  "4S_C_RECO_11.09.2021_14",
+  "4S_C_RECO_20.07.2021_21",
+  "4S_OTC_RECO_02.07.2021_16",
+  "4S_OTC_RECO_03.06.2021_19",
+  "AM_C_NEE_11.09.2021_61",
+  "AP_C_NEE_03.07.2021_35",
+  "AP_C_NEE2_03.06.2021_68",
+  "AP_C_RECO_03.07.2021_36",
+  "AR_C_NEE_12.09.2021_10",
+  "AR_C_RECO_12.09.2021_11",
+  "AS_C_RECO_02.07.2021_18",
+  "AS_C_RECO_03.06.2021_17",
+  "AS_C_RECO_11.09.2021_15",
+  "AS_OTC_RECO_02.07.2021_19",
+  "AS_OTC_RECO_20.07.2021_14",
+  "AWG_R_NEE_21.08.2021_27",
+  "BM_C_NEE_23.07.2021_35",
+  "BM_C_RECO_23.07.2021_36",
+  "BP_C_NEE_21.08.2021_31",
+  "BP_C_NEE_23.07.2021_29",
+  "BP_C_NEE_23.07.2021_30",
+  "BP_C_RECO_21.08.2021_32",
+  "BP_C_RECO_23.07.2021_31",
+  "BP_C_RECO_23.07.2021_32",
+  "BS_C_RECO_04.06.2021_5",
+  "BS_C_RECO_11.09.2021_71",
+  "BS_C_RECO_23.07.2021_40",
+  "BS_OTC_RECO_11.09.2021_72",
+  "BS_OTC_RECO_23.07.2021_39")
+
+NEE2021_CH4 <- NEE2021_CH4 %>% 
+  filter(!Series %in% faulty_CH4_ECOFLUX)
+         
+
+NEE2021_CH4<- NEE2021_CH4%>%
   separate(Series, sep = "_", into = c("PlotID", "Treatment", "Cover", "Date", "FluxID"))%>%
   mutate(Transect = substring(PlotID,1,1),
          Habitat = substring(PlotID, 2,3))%>%
@@ -448,5 +568,89 @@ SR2022_CO2_env_T<- SR2022_CO2_env_T%>%
 SR2022_CH4_env_T<- SR2022_CH4_env_T%>%
   mutate(CH4flux = f0/(0.08205*(273.15+AirTemperature)),
          CH4flux.LR = LR.f0/(0.08205*(273.15+AirTemperature)))
+
+
+###Data cleaning SR data 2021
+# SR CO2
+sr_raw_hmr_CO2_prepped <- sr_raw_hmr_CO2 %>% 
+   filter(
+    # 
+    # Unique_plot != "1M_C_2021-07-22_9848.13",
+    # Unique_plot != "1M_C_2021-09-12_10863.95",
+    # Unique_plot != "1P_C_2021-07-22_9768.14",
+    # Unique_plot != "1S_OTC_2021-07-22_9668.225",
+    # Unique_plot != "1WG_C_2021-06-30_11480.04",
+    # Unique_plot != "1WG_OTC_2021-06-04_14068.55",
+    # Unique_plot != "2S_C_2021-06-04_13808.4",
+    # Unique_plot != "2WGA_C_2021-06-30_12471.75",
+    # Unique_plot != "2WGA_C_2021-06-30_13364.25",
+    # Unique_plot != "2WGA_C_2021-07-22_9548.44",
+    # Unique_plot != "2WGB_OTC_2021-07-22_9702.385",
+    # Unique_plot != "2WGB_OTC_2021-06-30_13753.85",
+    # Unique_plot != "2WGB_C_2021-09-12_9375.075",
+    # Unique_plot != "2WGB_C_2021-08-18_13768.35",
+    # Unique_plot != "2WGB_C_2021-07-22_9784.835",
+    # Unique_plot != "2WGB_C_2021-07-22_9731.99",
+    # Unique_plot != "2WGB_C_2021-06-30_12820.2",
+    # Unique_plot != "2WGA_C_2021-06-30_13364.25",
+    # Unique_plot != "3M_C_2021-09-12_9108.77",
+    # Unique_plot != "3W_C_2021-06-04_16948.05",
+    # Unique_plot != "3WGA_C_2021-06-04_13586.85",
+    # Unique_plot != "3WGA_C_2021-08-18_13845.5",
+    # Unique_plot != "3WGA_C_2021-09-12_10306.955",
+    # Unique_plot != "3WGB_C_2021-06-30_13709.85",
+    # Unique_plot != "3WGB_C_2021-07-22_10023.39",
+    # Unique_plot != "3WGB_C_2021-08-18_11112.2",
+    # Unique_plot != "3WGB_C_2021-09-12_10567.135",
+    # Unique_plot != "3WGB_OTC_2021-06-30_14682.25",
+    # Unique_plot != "3WGB_OTC_2021-09-12_9377.785",
+    # Unique_plot != "4P_C_2021-07-22_9499.22",
+    # Unique_plot != "4WG_OTC_2021-06-30_12822.85",
+    # Unique_plot != "4WG_OTC_2021-07-22_10238.31",
+    # Unique_plot != "4WG_OTC_2021-08-18_10719.9",
+    # Unique_plot != "4WG_OTC_2021-08-18_11005.15",
+    # Unique_plot != "AS_C_2021-07-22_10303.75",
+    # Unique_plot != "4WG_OTC_2021-09-12_8928.845",
+    # Unique_plot != "AM_C_2021-06-30_14680.45",
+    # Unique_plot != "AM_C_2021-07-22_9636.345",
+    # Unique_plot != "AM_OTC_2021-06-04_17586.25",
+    # Unique_plot != "BM_C_2021-09-12_10175.62"
+  )
+
+
+# SR CH4
+
+## faulty CH4 SR fluxe
+faulty_sr_CH4 <- c("1M_C_2021-09-12_10548.96" ,
+                   "1S_C_2021-07-22_9432.465" ,
+                   "1S_OTC_2021-07-22_9668.225" ,
+                   "1WG_C_2021-07-22_9608.2" ,
+                   "2S_C_2021-07-22_9479.05" ,
+                   "2S_OTC_2021-07-22_9441.28" ,
+                   "2WGA_C_2021-07-22_9548.44" ,
+                   "2WGB_C_2021-07-22_9784.835" ,
+                   "2WGB_OTC_2021-07-22_9455.935" ,
+                   "3S_C_2021-07-22_9808.385" ,
+                   "3WGB_C_2021-07-22_10023.39" ,
+                   "4M_OTC_2021-06-30_12990.55" ,
+                   "4M_OTC_2021-07-22_9482.91" ,
+                   "4P_OTC_2021-06-30_12209.75" ,
+                   "4S_C_2021-07-22_9866.48" ,
+                   "4S_OTC_2021-07-22_9921.275" ,
+                   "4WG_OTC_2021-06-30_12822.85" ,
+                   "4WG_OTC_2021-07-22_10238.31" ,
+                   "AM_C_2021-07-22_9636.345" ,
+                   "AP_C_2021-06-04_17506.3" ,
+                   "AS_C_2021-07-22_10303.75" ,
+                   "BM_C_2021-08-18_12788.75" ,
+                   "BM_C_2021-09-12_10175.62" ,
+                   "BM_OTC_2021-07-22_9478.295" ,
+                   "BP_C_2021-06-04_14151" ,
+                   "BS_OTC_2021-07-22_9509.07"
+)
+
+sr_raw_hmr_CH4_prepped <- sr_raw_hmr_CH4 %>% 
+  filter(!Series %in% faulty_sr_CH4)
+
 
 
