@@ -311,7 +311,7 @@ NEE2022_CO2_env_combi<- NEE2022_CO2_env%>%
 NEE_CO2_19_20_21_22<- rbind(NEE2019_CO2_env_combi, NEE2020_CO2_env_combi, NEE2021_CO2_env_combi, NEE2022_CO2_env_combi)
 
 # count number of measurements
-NEE_CO2_19_20_21_22%>%
+NEE_CO2_19_20_21_222_means_TOMST_EC_new%>%
   mutate(Date = ymd(Date),
          Year = year(Date))%>%
   filter(Cover == "RECO")%>%
@@ -373,6 +373,18 @@ NEE_CO2_19_20_21_22_means_TOMST_EC_new<- NEE_CO2_19_20_21_22_means_TOMST_EC%>%
   mutate(CO2flux_final = ifelse(is.na(CO2flux) == TRUE, CO2flux_EC, CO2flux))%>%
   mutate(Cover = recode(Cover, Reco ="RECO"))
 
+# count number of measurements
+NEE_CO2_19_20_21_22_means_TOMST_EC_new%>%
+  mutate(Date = ymd(Date),
+         Year = year(Date))%>%
+  drop_na(CO2flux_final)%>%
+  filter(Cover == "RECO")%>%
+  filter(Method != "No flux")%>%
+  filter(Habitat != "S")%>%
+  filter(Treatment == "C")%>%
+  group_by(Year)%>%
+  count()
+
 #write.csv(NEE_CO2_19_20_21_22_means_TOMST_EC_new, "C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\AnalysisR\\Thawgradient\\NEE_2019-2022.csv")
 
 #¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤ Calculate GPP ¤¤¤¤¤¤¤¤¤¤
@@ -393,11 +405,148 @@ GPP_CO2 <- left_join(NEE_CO2, RECO_CO2, by = c("Date", "PlotID", "Transect", "Ha
 #write.csv(GPP_CO2, "C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\AnalysisR\\Thawgradient\\GPP_2019-2022.csv", row.names = FALSE)
 
 
-# CH4
-#NEE2020_CH4_env_combi<- NEE2020_CH4_env%>%
-#  select(Date, PlotID, Transect, Habitat, Treatment, Cover, f0, f0.se, f0.p, Method, LR.f0, LR.f0.se, LR.f0.p, 
-#         PAR1, PAR2, PAR3, SoilTemp1, SoilTemp2, SoilMoist1, SoilMoist2, SoilMoist3, Hour)
+################### CH4
 
+# read in Metadata NEE
+### Read in HMR output files
+metafiles_NEE <- dir(path = "C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\Cflux\\2022\\NewMetaData", 
+                     pattern = "^NEEmetadata.*\\.csv$", full.names = TRUE, recursive = TRUE)
+
+# Function to combine metadata files into one dataframe
+NEE_envdata2022 <- map_df(set_names(metafiles_NEE), function(file) {
+  file %>% 
+    map_df(~ read.csv(file = file, header = TRUE, sep = ";", dec = ",", fill = T) %>% 
+             mutate(Transect = as.character(Transect)))
+}, .id = "File")
+
+#### NEE data 2022 
+CH4files_NEE <- dir(path = "C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\Cflux\\2022\\NewMetaData", 
+                    pattern = "^HMR - HMRinput_NEE.*\\CH4.csv$", full.names = TRUE, recursive = TRUE)
+
+# Function to read in data
+NEE_CH4data <- map_df(set_names(CH4files_NEE), function(file) {
+  file %>% 
+    set_names() %>% 
+    map_df(~ read.csv(file = file, header = TRUE, sep = ",", dec = "."))
+}, .id = "File")
+
+NEE_CH4data<- NEE_CH4data%>%
+  separate(Series, sep = "_", c("PlotID", "Treatment", "Cover", "Date", "FluxID", "H2O"))%>%
+  mutate(Transect = str_sub(PlotID, 1, 1),
+         Habitat = str_sub(PlotID, 2,3),
+         FluxID = as.integer(FluxID))%>%
+  unite(PlotID, c(PlotID, Treatment), sep = "_", remove = FALSE)%>%
+  mutate(PlotID =recode(PlotID, "2WG_OTC" = "2WGB_OTC")) 
+
+
+# combine NEE2022data with environmental data
+NEE2022_CH4_env<- left_join(NEE_CH4data, NEE_envdata2022, by= c("Date", "PlotID", "Transect" , "Habitat", "Treatment", "FluxID", "Cover"))%>%
+  mutate(Date = as.Date(Date, format="%d.%m.%Y"))%>%
+  mutate(Hour = as.integer(substr(Starttime, 1,2)))
+
+#CH4
+NEE2021_CH4<-read.csv("C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\Cflux\\2021\\HMRoutput_NEE2021_CH4.csv")
+
+## FAULTY CH4 visually inspected fluxes 
+faulty_CH4_2021 <- c(
+  "1M_C_NEE_11.09.2021_51" ,
+  "1M_OTC_NEE_23.07.2021_11",
+  "1R_C_RECO_23.07.2021_6",
+  "1S_C_RECO_21.07.2021_11",
+  "1WG_C_NEE2_03.06.2021_52",
+  "1WG_C_RECO_18.08.2021_22",
+  "1WG_R_NEE_21.08.2021_3",
+  "2P_C_NEE_11.09.2021_73",
+  "2P_C_NEE_23.07.2021_41",
+  "2S_C_RECO_03.06.2021_46",
+  "2S_C_RECO_18.08.2021_10",
+  "2S_C_RECO_21.07.2021_1",
+  "2S_OTC_RECO_11.09.2021_34",
+  "2S_OTC_RECO_21.07.2021_2",
+  "2WGB_C_RECO_18.08.2021_15",
+  "2WGB_C_RECO_21.07.2021_6",
+  "3M_C_NEE_20.07.2021_9",
+  "3M_OTC_RECO_02.07.2021_31",
+  "3P_C_NEE_02.07.2021_28",
+  "3P_C_NEE_03.06.2021_5",
+  "3P_C_NEE_20.07.2021_3",
+  "3P_C_NEE1_03.06.2021_6",
+  "3P_C_NEE2_03.06.2021_7",
+  "3P_C_RECO_02.07.2021_29",
+  "3P_C_RECO_20.07.2021_4",
+  "3S_C_RECO_02.07.2021_25",
+  "3S_C_RECO_03.06.2021_14",
+  "4M_OTC_NEE1_03.06.2021_29",
+  "4P_C_NEE_02.07.2021_1",
+  "4P_C_NEE_03.06.2021_38",
+  "4P_C_NEE_18.08.2021_3",
+  "4P_C_NEE1_02.07.2021_2",
+  "4P_C_NEE1_03.06.2021_39",
+  "4P_C_NEE2_03.06.2021_40",
+  "4P_C_RECO_03.06.2021_41",
+  "4P_C_RECO_20.07.2021_32",
+  "4P_OTC_NEE_03.06.2021_34",
+  "4P_OTC_NEE1_03.06.2021_35",
+  "4P_OTC_NEE2_03.06.2021_36",
+  "4S_C_RECO_02.07.2021_17",
+  "4S_C_RECO_03.06.2021_18",
+  "4S_C_RECO_11.09.2021_14",
+  "4S_C_RECO_20.07.2021_21",
+  "4S_OTC_RECO_02.07.2021_16",
+  "4S_OTC_RECO_03.06.2021_19",
+  "AM_C_NEE_11.09.2021_61",
+  "AP_C_NEE_03.07.2021_35",
+  "AP_C_NEE2_03.06.2021_68",
+  "AP_C_RECO_03.07.2021_36",
+  "AR_C_NEE_12.09.2021_10",
+  "AR_C_RECO_12.09.2021_11",
+  "AS_C_RECO_02.07.2021_18",
+  "AS_C_RECO_03.06.2021_17",
+  "AS_C_RECO_11.09.2021_15",
+  "AS_OTC_RECO_02.07.2021_19",
+  "AS_OTC_RECO_20.07.2021_14",
+  "AWG_R_NEE_21.08.2021_27",
+  "BM_C_NEE_23.07.2021_35",
+  "BM_C_RECO_23.07.2021_36",
+  "BP_C_NEE_21.08.2021_31",
+  "BP_C_NEE_23.07.2021_29",
+  "BP_C_NEE_23.07.2021_30",
+  "BP_C_RECO_21.08.2021_32",
+  "BP_C_RECO_23.07.2021_31",
+  "BP_C_RECO_23.07.2021_32",
+  "BS_C_RECO_04.06.2021_5",
+  "BS_C_RECO_11.09.2021_71",
+  "BS_C_RECO_23.07.2021_40",
+  "BS_OTC_RECO_11.09.2021_72",
+  "BS_OTC_RECO_23.07.2021_39")
+
+NEE2021_CH4 <- NEE2021_CH4 %>% 
+  filter(!Series %in% faulty_CH4_2021)%>%
+  separate(Series, sep = "_", into = c("PlotID", "Treatment", "Cover", "Date", "FluxID"))%>%
+  mutate(Transect = substring(PlotID,1,1),
+         Habitat = substring(PlotID, 2,3))%>%
+  unite(PlotID, PlotID:Treatment, remove =FALSE )
+
+## read in metadata
+metafiles_NEE2021 <- dir(path = "C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\2021\\Cfluxdata\\", 
+                         pattern = "^NEEmetadata.*\\.csv$", full.names = TRUE, recursive = TRUE)
+
+NEE_envdata2021 <- map_df(set_names(metafiles_NEE2021), function(file) {
+  file %>% 
+    map_df(~ read.csv(file = file, header = TRUE, sep = ";", dec = ",", fill = T) %>% 
+             mutate(Transect = as.character(Transect),
+                    FluxID = as.character(FluxID),
+                    SoilTemp2 = dplyr::recode(SoilTemp2, '100.6' = 10.6L)))#correct typo on data
+}, .id = "File")
+
+
+# link Environmental data and CO2fluxdata
+NEE2021_CH4_env<- left_join(NEE2021_CH4, NEE_envdata2021, by= c("FluxID", "Date", "PlotID", "Transect", "Habitat", "Treatment", "Cover"))%>%
+  mutate(Hour = as.integer(substr(Starttime, 1,2)),
+         Date = as.Date(Date, "%d.%m.%Y"))%>%
+  mutate(Habitat= dplyr::recode(Habitat, WGA = "WG", WGB = "WG"))
+
+# combine 2021 and 2022 data
 NEE2021_CH4_env_combi<- NEE2021_CH4_env%>%
   select(Date, PlotID, Transect, Habitat, Treatment, Cover, f0, f0.se, f0.p, Method, LR.f0, LR.f0.se, LR.f0.p, 
          PAR1, PAR2, PAR3, SoilTemp1, SoilTemp2, SoilMoist1, SoilMoist2, SoilMoist3, Hour)
@@ -420,6 +569,63 @@ NEE_CH4_21_22_means<-NEE_CH4_21_22%>%
   select(-par, -value, -soilT, -temp, -soilM, -moisture)%>%
   ungroup()
 
+# join NEEdata with TOMSTlogger data based on PlotID, date and hour of day
+
+NEE_CH4_21_22_means_TOMST<-left_join(NEE_CH4_21_22_means, TomstData_HourlyPlotID, by= c("Date", "Hour", "PlotID", "Transect" , "Habitat", "Treatment"))
+
+
+# join NEEdata with ECtower data based on date and hour of day
+#! Find reference for shortwave conversion to flux back
+# read in ECtower data
+#ref par calculation: https://www.sciencedirect.com/science/article/pii/0002157176900807
+
+ECdata<-read.csv("C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\Climate\\Mobileflux1_level1_30min_forCasper_update2022.csv")%>%
+  separate(index, into = c("Date", "Time"), sep = " " )%>%
+  mutate(Hour = as.integer(substring(Time, 1, 2)),
+         Date = as.Date(Date),
+         PAR_EC = shortwave_incoming * 2.114)%>% # calculate PAR based on incoming shortwave radiation
+  mutate(PAR_EC = ifelse(PAR_EC< 0, 0, PAR_EC))%>% # set PAR to zero if negative
+  group_by(Date, Hour)%>%
+  summarise_all(mean)%>%
+  select(Date, Hour, PAR_EC, air_temperature, relative_humidity, air_pressure, shortwave_incoming)%>%
+  ungroup()
+
+
+NEE_CH4_21_22_means_TOMST_EC<- left_join(NEE_CH4_21_22_means_TOMST, ECdata, by= c("Date", "Hour"))%>%
+  mutate(PAR_mean = ifelse(Cover == "RECO", 0, PAR_mean),
+         PAR_ideal = ifelse(PAR_mean == "NaN", PAR_EC, PAR_mean))
+
+
+### Recalculate PAR based on shading
+NEE_CH4_21_22_means_TOMST_EC<- NEE_CH4_21_22_means_TOMST_EC%>%
+  mutate(PAR_real = ifelse(Cover == "NEE1", PAR_ideal*0.67, 
+                           ifelse(Cover == "NEE2", PAR_ideal*0.33, PAR_ideal)))
+
+### fluxconversion based on airtemp 
+# 
+# TOMST aitemp if possible, otherwise EC if available, otherwise soiltemp point measurements? 
+NEE_CH4_21_22_means_TOMST_EC_new<- NEE_CH4_21_22_means_TOMST_EC%>%
+  mutate(CH4flux = f0/(0.08205*(273.15+AirTemperature)),
+         CH4flux.LR = LR.f0/(0.08205*(273.15+AirTemperature)),
+         CH4flux_EC = f0/(0.08205*(273.15+air_temperature)),
+         CH4flux.LR_EC = LR.f0/(0.08205*(273.15+air_temperature)))%>%
+  mutate(CH4flux_final = ifelse(is.na(CH4flux) == TRUE, CH4flux_EC, CH4flux))%>%
+  mutate(Cover = recode(Cover, Reco ="RECO"))
+
+# count number of measurements
+NEE_CH4_21_22_means_TOMST_EC_new%>%
+  mutate(Date = ymd(Date),
+         Year = year(Date))%>%
+  drop_na(CH4flux_final)%>%
+  #filter(Cover == "RECO")%>%
+  filter(Method != "No flux")%>%
+  #filter(Habitat != "S")%>%
+  filter(Treatment == "C")%>%
+  group_by(Year)%>%
+  count()
+
+
+#write.csv(NEE_CH4_21_22_means_TOMST_EC_new, "C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\AnalysisR\\Thawgradient\\NEE_CH4_2021-2022.csv")
 
 #select(Date, PlotID, Transect, Habitat, Treatment, Cover, f0, f0.se, f0.p, Method, LR.f0. LR.f0.se, LR.f0.p, PAR1, PAR2, PAR3, SoilTemp1, SoilTemp2, SoilMoist1, SoilMoist2, SoilMoist3, Hour)
 
