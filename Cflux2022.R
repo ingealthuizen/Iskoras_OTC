@@ -115,6 +115,7 @@ NEE_envdata2020 <- map_df(set_names(metafiles_NEE2020), function(file) {
   file %>% 
     map_df(~ read.csv(file = file, header = TRUE, sep = ";", dec = ",", fill = T) %>% 
              mutate(Transect = as.character(Transect),
+                    Habitat = dplyr::recode(Habitat, WGA = "WG", WGB = "WG"), 
                     Date = as.Date(Date, "%d.%m.%Y")))
 }, .id = "File")
 
@@ -295,7 +296,7 @@ NEE_CO2_19_20_21_22_means_TOMST_EC_new<- NEE_CO2_19_20_21_22_means_TOMST_EC%>%
 NEE_CO2_19_20_21_22_means_TOMST_EC_new%>%
   mutate(Date = ymd(Date),
          Year = year(Date))%>%
-  drop_na(CO2flux_final)%>%
+  #drop_na(CO2flux_final)%>%
   filter(Cover == "RECO")%>%
   filter(Method != "No flux")%>%
   filter(Habitat != "S")%>%
@@ -303,7 +304,7 @@ NEE_CO2_19_20_21_22_means_TOMST_EC_new%>%
   group_by(Year)%>%
   count()
 
-#write.csv(NEE_CO2_19_20_21_22_means_TOMST_EC_new, "C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\AnalysisR\\Thawgradient\\NEE_2019-2022.csv")
+write.csv(NEE_CO2_19_20_21_22_means_TOMST_EC_new, "C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\AnalysisR\\Thawgradient\\NEE_2019-2022.csv")
 
 #B$B$B$B$B$B$B$B$B$B$B$B$B$B$B$B$B$B$B$B$B$B$B$B$B$B$B$B$B$B$B$B$B$ Calculate GPP B$B$B$B$B$B$B$B$B$B$
 NEE_CO2_19_20_21_22_means_TOMST_EC_new<- read.csv("C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\AnalysisR\\Thawgradient\\NEE_2019-2022.csv")
@@ -320,7 +321,7 @@ GPP_CO2 <- left_join(NEE_CO2, RECO_CO2, by = c("Date", "PlotID", "Transect", "Ha
   rename( NEEflux = CO2flux_final )%>%
   mutate(GPPflux = (-1*NEEflux) + RECOflux) # GPP = NEE + RECO, multiple NEE by -1 to get positive numbers
 
-#write.csv(GPP_CO2, "C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\AnalysisR\\Thawgradient\\GPP_2019-2022.csv", row.names = FALSE)
+write.csv(GPP_CO2, "C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\AnalysisR\\Thawgradient\\GPP_2019-2022.csv", row.names = FALSE)
 
 
 #¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤
