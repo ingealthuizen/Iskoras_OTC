@@ -88,10 +88,23 @@ NEE2022_CH4_env<- left_join(NEE_CH4data, NEE_envdata2022, by= c("Date", "PlotID"
 ####################### 2020 NEEdata #################################
 
 # NEE chamber  V = 2.5 L, A = 0.0625 m2, CH4 in ppb, C02 in ppm
-NEE2020_CO2<- read.csv("C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\Cflux\\2020\\NEE2020_CO2_HMRoutput.csv", sep= ",")%>%
-  rename(FluxID = X)%>%
-  mutate(Date = as.Date(Date, "%Y-%m-%d"))%>%
-  mutate(PlotID = dplyr::recode(PlotID, "3WGA_OTC" = "3WGB_OTC"))
+CO2files_NEE_2020 <- dir(path = "C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\Cflux\\2020", 
+                    pattern = "^HMR - HMRinput.*\\.csv$", full.names = TRUE, recursive = TRUE)
+
+# Function to read in data
+NEE_CO2data_2020 <- map_df(set_names(CO2files_NEE_2020), function(file) {
+  file %>% 
+    set_names() %>% 
+    map_df(~ read.csv(file = file, header = TRUE, sep = ",", dec = "."))
+}, .id = "File")
+
+NEE2020_CO2<- NEE_CO2data_2020%>%
+  separate(Series, sep = "_", c("PlotID", "Treatment", "Cover", "Date", "H2O"))%>%
+  mutate(Transect = str_sub(PlotID, 1, 1),
+         Habitat = str_sub(PlotID, 2,3),
+         Date =ymd(Date))%>%
+  unite(PlotID, c(PlotID, Treatment), sep = "_", remove = FALSE)
+
 
 # load environmental metadata
 metafiles_NEE2020 <- dir(path = "C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\Cflux\\2020\\", 
@@ -107,7 +120,7 @@ NEE_envdata2020 <- map_df(set_names(metafiles_NEE2020), function(file) {
 
 # combine SR2021data with environmental data
 NEE2020_CO2_env<- left_join(NEE2020_CO2, NEE_envdata2020, by= c("Date", "PlotID", "Transect" , "Habitat", "Treatment", "Cover"))%>%
-  distinct(FluxID, .keep_all = TRUE)%>% # remove duplicated rows
+  distinct(f0, .keep_all = TRUE)%>% # remove duplicated rows
   mutate(Hour = as.integer(substr(Starttime, 1,2)))%>%
   mutate(Habitat= dplyr::recode(Habitat, WGA = "WG", WGB = "WG"))
 
@@ -119,7 +132,7 @@ NEE2020_CO2_env%>%
 
 ####################### 2021 NEEdata #################################
 
-NEE2021_CO2<-read.csv("C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\Cflux\\2021\\HMRoutput_NEE2021_CO2.csv")
+NEE2021_CO2<-read.csv("C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\Cflux\\2021\\HMR - HMRinput_NEE_2021_CO2.csv")
 
 # data cleaning
 # Only filtering for faulty Reco and NEE based on visual inspection
@@ -163,90 +176,6 @@ NEE2021_CO2<- NEE2021_CO2%>%
          Habitat = substring(PlotID, 2,3))%>%
   unite(PlotID, PlotID:Treatment, remove =FALSE )
 
-
-#CH4
-NEE2021_CH4<-read.csv("C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\Cflux\\2021\\HMRoutput_NEE2021_CH4.csv")
-
-## FAULTY CH4 visually inspected fluxes 
-faulty_CH4_2021 <- c(
-  "1M_C_NEE_11.09.2021_51" ,
-  "1M_OTC_NEE_23.07.2021_11",
-  "1R_C_RECO_23.07.2021_6",
-  "1S_C_RECO_21.07.2021_11",
-  "1WG_C_NEE2_03.06.2021_52",
-  "1WG_C_RECO_18.08.2021_22",
-  "1WG_R_NEE_21.08.2021_3",
-  "2P_C_NEE_11.09.2021_73",
-  "2P_C_NEE_23.07.2021_41",
-  "2S_C_RECO_03.06.2021_46",
-  "2S_C_RECO_18.08.2021_10",
-  "2S_C_RECO_21.07.2021_1",
-  "2S_OTC_RECO_11.09.2021_34",
-  "2S_OTC_RECO_21.07.2021_2",
-  "2WGB_C_RECO_18.08.2021_15",
-  "2WGB_C_RECO_21.07.2021_6",
-  "3M_C_NEE_20.07.2021_9",
-  "3M_OTC_RECO_02.07.2021_31",
-  "3P_C_NEE_02.07.2021_28",
-  "3P_C_NEE_03.06.2021_5",
-  "3P_C_NEE_20.07.2021_3",
-  "3P_C_NEE1_03.06.2021_6",
-  "3P_C_NEE2_03.06.2021_7",
-  "3P_C_RECO_02.07.2021_29",
-  "3P_C_RECO_20.07.2021_4",
-  "3S_C_RECO_02.07.2021_25",
-  "3S_C_RECO_03.06.2021_14",
-  "4M_OTC_NEE1_03.06.2021_29",
-  "4P_C_NEE_02.07.2021_1",
-  "4P_C_NEE_03.06.2021_38",
-  "4P_C_NEE_18.08.2021_3",
-  "4P_C_NEE1_02.07.2021_2",
-  "4P_C_NEE1_03.06.2021_39",
-  "4P_C_NEE2_03.06.2021_40",
-  "4P_C_RECO_03.06.2021_41",
-  "4P_C_RECO_20.07.2021_32",
-  "4P_OTC_NEE_03.06.2021_34",
-  "4P_OTC_NEE1_03.06.2021_35",
-  "4P_OTC_NEE2_03.06.2021_36",
-  "4S_C_RECO_02.07.2021_17",
-  "4S_C_RECO_03.06.2021_18",
-  "4S_C_RECO_11.09.2021_14",
-  "4S_C_RECO_20.07.2021_21",
-  "4S_OTC_RECO_02.07.2021_16",
-  "4S_OTC_RECO_03.06.2021_19",
-  "AM_C_NEE_11.09.2021_61",
-  "AP_C_NEE_03.07.2021_35",
-  "AP_C_NEE2_03.06.2021_68",
-  "AP_C_RECO_03.07.2021_36",
-  "AR_C_NEE_12.09.2021_10",
-  "AR_C_RECO_12.09.2021_11",
-  "AS_C_RECO_02.07.2021_18",
-  "AS_C_RECO_03.06.2021_17",
-  "AS_C_RECO_11.09.2021_15",
-  "AS_OTC_RECO_02.07.2021_19",
-  "AS_OTC_RECO_20.07.2021_14",
-  "AWG_R_NEE_21.08.2021_27",
-  "BM_C_NEE_23.07.2021_35",
-  "BM_C_RECO_23.07.2021_36",
-  "BP_C_NEE_21.08.2021_31",
-  "BP_C_NEE_23.07.2021_29",
-  "BP_C_NEE_23.07.2021_30",
-  "BP_C_RECO_21.08.2021_32",
-  "BP_C_RECO_23.07.2021_31",
-  "BP_C_RECO_23.07.2021_32",
-  "BS_C_RECO_04.06.2021_5",
-  "BS_C_RECO_11.09.2021_71",
-  "BS_C_RECO_23.07.2021_40",
-  "BS_OTC_RECO_11.09.2021_72",
-  "BS_OTC_RECO_23.07.2021_39")
-
-NEE2021_CH4 <- NEE2021_CH4 %>% 
-  filter(!Series %in% faulty_CH4_2021)%>%
-  separate(Series, sep = "_", into = c("PlotID", "Treatment", "Cover", "Date", "FluxID"))%>%
-  mutate(Transect = substring(PlotID,1,1),
-         Habitat = substring(PlotID, 2,3))%>%
-  unite(PlotID, PlotID:Treatment, remove =FALSE )
-
 ## read in metadata
 metafiles_NEE2021 <- dir(path = "C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\2021\\Cfluxdata\\", 
                         pattern = "^NEEmetadata.*\\.csv$", full.names = TRUE, recursive = TRUE)
@@ -267,10 +196,6 @@ NEE2021_CO2_env<- left_join(NEE2021_CO2, NEE_envdata2021, by= c("FluxID", "Date"
          Date = as.Date(Date, "%d.%m.%Y"))%>%
   mutate(Habitat= dplyr::recode(Habitat, WGA = "WG", WGB = "WG"))
 
-NEE2021_CH4_env<- left_join(NEE2021_CH4, NEE_envdata2021, by= c("FluxID", "Date", "PlotID", "Transect", "Habitat", "Treatment", "Cover"))%>%
-  mutate(Hour = as.integer(substr(Starttime, 1,2)),
-         Date = as.Date(Date, "%d.%m.%Y"))%>%
-  mutate(Habitat= dplyr::recode(Habitat, WGA = "WG", WGB = "WG"))
 
 ########### 2019 NEE data
 
@@ -438,8 +363,10 @@ NEE2022_CH4_env<- left_join(NEE_CH4data, NEE_envdata2022, by= c("Date", "PlotID"
   mutate(Date = as.Date(Date, format="%d.%m.%Y"))%>%
   mutate(Hour = as.integer(substr(Starttime, 1,2)))
 
+
 #CH4
-NEE2021_CH4<-read.csv("C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\Cflux\\2021\\HMRoutput_NEE2021_CH4.csv")
+
+NEE2021_CH4<-read.csv("C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\Cflux\\2021\\HMR - HMRinput_NEE_2021_CH4.csv")
 
 ## FAULTY CH4 visually inspected fluxes 
 faulty_CH4_2021 <- c(
