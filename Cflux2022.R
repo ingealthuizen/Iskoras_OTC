@@ -254,6 +254,7 @@ metafiles_NEE2021 <- dir(path = "C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Dat
 NEE_envdata2021 <- map_df(set_names(metafiles_NEE2021), function(file) {
   file %>% 
     map_df(~ read.csv(file = file, header = TRUE, sep = ";", dec = ",", fill = T) %>% 
+             mutate(Habitat = recode(Habitat, "WGA" = "WG", "WGB"="WG"))%>%
              mutate(Transect = as.character(Transect),
                     FluxID = as.character(FluxID),
                     SoilTemp2 = dplyr::recode(SoilTemp2, '100.6' = 10.6L)))#correct typo on data
@@ -387,7 +388,7 @@ NEE_CO2_19_20_21_22_means_TOMST_EC_new%>%
 
 #write.csv(NEE_CO2_19_20_21_22_means_TOMST_EC_new, "C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\AnalysisR\\Thawgradient\\NEE_2019-2022.csv")
 
-#¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤ Calculate GPP ¤¤¤¤¤¤¤¤¤¤
+#B$B$B$B$B$B$B$B$B$B$B$B$B$B$B$B$B$B$B$B$B$B$B$B$B$B$B$B$B$B$B$B$B$ Calculate GPP B$B$B$B$B$B$B$B$B$B$
 NEE_CO2_19_20_21_22_means_TOMST_EC_new<- read.csv("C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\AnalysisR\\Thawgradient\\NEE_2019-2022.csv")
 
 RECO_CO2 <- NEE_CO2_19_20_21_22_means_TOMST_EC_new%>%
