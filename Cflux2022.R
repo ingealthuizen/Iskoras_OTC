@@ -311,14 +311,6 @@ NEE2022_CO2_env_combi<- NEE2022_CO2_env%>%
 
 NEE_CO2_19_20_21_22<- rbind(NEE2019_CO2_env_combi, NEE2020_CO2_env_combi, NEE2021_CO2_env_combi, NEE2022_CO2_env_combi)
 
-# count number of measurements
-NEE_CO2_19_20_21_222_means_TOMST_EC_new%>%
-  mutate(Date = ymd(Date),
-         Year = year(Date))%>%
-  filter(Cover == "RECO")%>%
-  filter(Method != "No flux")%>%
-  group_by(Year)%>%
-  count()
 
 # calculate mean PAR, Soiltemp and SoilMoist of flux measurement based on point measurements accompanying flux measurements 
 NEE_CO2_19_20_21_22_means<-NEE_CO2_19_20_21_22%>%
@@ -406,6 +398,7 @@ GPP_CO2 <- left_join(NEE_CO2, RECO_CO2, by = c("Date", "PlotID", "Transect", "Ha
 #write.csv(GPP_CO2, "C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\AnalysisR\\Thawgradient\\GPP_2019-2022.csv", row.names = FALSE)
 
 
+#¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤
 ################### CH4
 
 # read in Metadata NEE
