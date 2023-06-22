@@ -199,22 +199,55 @@ NEE2021_CO2_env<- left_join(NEE2021_CO2, NEE_envdata2021, by= c("FluxID", "Date"
 
 
 ########### 2019 NEE data
+### Read in HMR output files
+CO2files_NEE_2019 <- dir(path = "C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\Cflux\\2019", 
+                         pattern = "^HMR - HMRinput_.*\\.csv$", full.names = TRUE, recursive = TRUE)
 
-NEE2019_CO2<-read.csv("C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\2020\\LiCOR850\\HMRfiles\\HMR_NEEflux2019.csv")%>%
-  unite(PlotID, c(PlotID, Treatment), sep = "_", remove = FALSE)%>%
-  mutate(Cover = recode(Cover, ER = "RECO"))%>%
-  mutate(Date = as.Date(Date, "%d.%m.%Y"))%>%
-  select(Date, PlotID, Cover, Transect, Habitat, Treatment, f0:Method, Comment, LR.f0:LR.f0.up95)
+# Function to read in data
+NEE_CO2data_2019 <- map_df(set_names(CO2files_NEE_2019), function(file) {
+  file %>% 
+    set_names() %>% 
+    map_df(~ read.csv(file = file, header = TRUE, sep = ",", dec = "."))
+}, .id = "File")
 
-# 2019 metadata
+PlotID<- read.csv2("C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\2019NEEdata\\NEE_2019_IA.csv")%>%
+  mutate(PlotID = paste(PlotID, "_", Treatment, sep = ""),
+         Date = as.Date(Date, format="%d.%m.%Y"),
+         Cover = recode(Cover, ER = "RECO"))%>%
+  select(Series, PlotID, Transect, Habitat,  Treatment, Cover, Date )
+
+NEE2019_CO2 <- left_join(NEE_CO2data_2019, PlotID, by= c("Series"))%>%
+  distinct(f0, Series, .keep_all = TRUE)
+
 NEE_envdata2019<-read_xlsx("C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\2019NEEdata\\Chamber_fluxes_metaIA.xlsx")%>%  
   unite(PlotID, c(PlotID, Treatment), sep = "_", remove = FALSE)%>%
   mutate(Date = as.Date(Date))%>%
   select(Date, hour, PlotID, Cover, PAR1, PAR2, PAR3, Soiltemp1, Soiltemp2, SoilMoist1, SoilMoist2, SoilMoist3, Airtemp, Redo)
 
 NEE2019_CO2_env<- left_join(NEE2019_CO2, NEE_envdata2019, by= c("Date", "PlotID",  "Cover"))%>%
-  distinct(f0, .keep_all = TRUE)%>%
+  distinct(f0, Series, .keep_all = TRUE)%>%
   dplyr::rename(SoilTemp1 = Soiltemp1, SoilTemp2= Soiltemp2, Hour = hour )
+
+
+
+#NEE2019_CO2<-read.csv("C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\Cflux\2019\\HMR_NEEflux2019.csv")%>%
+#  unite(PlotID, c(PlotID, Treatment), sep = "_", remove = FALSE)%>%
+#  mutate(Cover = recode(Cover, ER = "RECO"))%>%
+#  mutate(Date = as.Date(Date, "%d.%m.%Y"),
+#         f0 = 10*f0,
+#         LR.f0 = 10*f0)%>% # f0 calculated with Volume 2.5L instead of 25L, correcting here
+#  select(Date, PlotID, Cover, Transect, Habitat, Treatment, f0:Method, Comment, LR.f0:LR.f0.up95)
+
+# 2019 metadata
+#NEE_envdata2019<-read_xlsx("C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\2019NEEdata\\Chamber_fluxes_metaIA.xlsx")%>%  
+#  unite(PlotID, c(PlotID, Treatment), sep = "_", remove = FALSE)%>%
+#  mutate(Cover = if_else(Series %in% c("a2", "d4"), 1, 2))
+#  mutate(Date = as.Date(Date))%>%
+#  select(Date, hour, PlotID, Cover, PAR1, PAR2, PAR3, Soiltemp1, Soiltemp2, SoilMoist1, SoilMoist2, SoilMoist3, Airtemp, Redo)
+
+#NEE2019_CO2_env<- left_join(NEE2019_CO2, NEE_envdata2019, by= c("Date", "PlotID",  "Cover"))%>%
+#  distinct(f0, .keep_all = TRUE)%>%
+#  dplyr::rename(SoilTemp1 = Soiltemp1, SoilTemp2= Soiltemp2, Hour = hour )
 
 
 #combine all NEE data
@@ -311,6 +344,7 @@ NEE_CO2_19_20_21_22_means_TOMST_EC_new<- read.csv("C:\\Users\\ialt\\OneDrive - N
 
 RECO_CO2 <- NEE_CO2_19_20_21_22_means_TOMST_EC_new%>%
   filter(Cover == "RECO")%>%
+  filter(CO2flux_final>0)%>%
   select(X,Date, PlotID, Transect, Habitat, Treatment, RECOflux = CO2flux_final )
 
 NEE_CO2 <- NEE_CO2_19_20_21_22_means_TOMST_EC_new%>%
