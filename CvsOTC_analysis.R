@@ -777,42 +777,46 @@ SR20202021_CO2_env_clean%>%
 ###########################################################################################################################################
 ##### NET ECOSYSTEM EXCHANGE 
 # NEE chamber  V = 2.5 L, A = 0.0625 m2, CH4 in ppb, C02 in ppm
-NEE2020_CO2<- read.csv("Cflux\\2020\\NEE2020_CO2_HMRoutput.csv", sep= ",")%>%
-  rename(FluxID = X, CO2.f0 = f0, CO2.LR = LR.f0, Method.CO2 = Method)%>%
-  mutate(Date = as.Date(Date, "%Y-%m-%d"))%>%
-  mutate(PlotID = dplyr::recode(PlotID, "3WGA_OTC" = "3WGB_OTC"))
+CO2files_NEE_2020 <- dir(path = "C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\Cflux\\2020", 
+                         pattern = "^HMR - HMRinput.*\\.csv$", full.names = TRUE, recursive = TRUE)
+
+# Function to read in data
+NEE_CO2data_2020 <- map_df(set_names(CO2files_NEE_2020), function(file) {
+  file %>% 
+    set_names() %>% 
+    map_df(~ read.csv(file = file, header = TRUE, sep = ",", dec = "."))
+}, .id = "File")
+
+NEE2020_CO2<- NEE_CO2data_2020%>%
+  separate(Series, sep = "_", c("PlotID", "Treatment", "Cover", "Date", "H2O"))%>%
+  mutate(Transect = str_sub(PlotID, 1, 1),
+         Habitat = str_sub(PlotID, 2,3),
+         Date =ymd(Date))%>%
+  unite(PlotID, c(PlotID, Treatment), sep = "_", remove = FALSE)
+
 
 # load environmental metadata
-meta.data1<- read.csv2("2020\\LiCOR850\\NEEmetadata_14072020.csv")
-meta.data2<- read.csv2("2020\\LiCOR850\\NEEmetadata2_14072020.csv")
-meta.data3<- read.csv2("2020\\LiCOR850\\NEEmetadata_15072020.csv")
-meta.data4<- read.csv2("2020\\LiCOR850\\NEEmetadata2_15072020.csv")
-meta.data5<- read.csv2("2020\\LiCOR850\\NEEmetadata_14082020.csv")
-meta.data6<- read.csv2("2020\\LiCOR850\\NEEmetadata_15082020.csv")
-meta.data7<- read.csv2("2020\\LiCOR850\\NEEmetadata_07092020.csv")
-meta.data8<- read.csv2("2020\\LiCOR850\\NEEmetadata2_07092020.csv")
-meta.data9<- read.csv2("2020\\LiCOR850\\NEEmetadata_08092020.csv")
-meta.data10<- read.csv2("2020\\LiCOR850\\NEEmetadata_09092020.csv")
-meta.data11<- read.csv2("2020\\LiCOR850\\NEEmetadata2_09092020.csv")
-meta.data12<- read.csv2("2020\\LiCOR850\\NEEmetadata_04102020.csv")
-meta.data13<- read.csv2("2020\\LiCOR850\\NEEmetadata_05102020.csv")
-#Li7810
-meta.data14<- read.csv2("2020\\LiCOR7810\\NEEmetadata_20062020.csv")
-meta.data15<- read.csv2("2020\\LiCOR7810\\NEEmetadata_21062020.csv")
+metafiles_NEE2020 <- dir(path = "C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\Cflux\\2020\\", 
+                         pattern = "^NEEmetadata.*\\.csv$", full.names = TRUE, recursive = TRUE)
 
-NEEenvdata2020<- rbind(meta.data1, meta.data2,meta.data3, meta.data4, meta.data5, meta.data6, meta.data7, meta.data8, meta.data9,  meta.data10, meta.data11, meta.data12, meta.data13, meta.data14, meta.data15)%>%
-  mutate(Date = as.Date(Date, "%d.%m.%Y"))
+# Function to combine metadata files into one dataframe
+NEE_envdata2020 <- map_df(set_names(metafiles_NEE2020), function(file) {
+  file %>% 
+    map_df(~ read.csv(file = file, header = TRUE, sep = ";", dec = ",", fill = T) %>% 
+             mutate(Transect = as.character(Transect),
+                    Habitat = dplyr::recode(Habitat, WGA = "WG", WGB = "WG"), 
+                    Date = as.Date(Date, "%d.%m.%Y")))
+}, .id = "File")
 
 # combine SR2021data with environmental data
-NEE2020_CO2_env<- left_join(NEE2020_CO2, NEEenvdata2020, by= c("Date", "PlotID", "Transect" , "Habitat", "Treatment", "Cover"))%>%
-  distinct(FluxID, .keep_all = TRUE)%>% # remove duplicated rows
+NEE2020_CO2_env<- left_join(NEE2020_CO2, NEE_envdata2020, by= c("Date", "PlotID", "Transect" , "Habitat", "Treatment", "Cover"))%>%
+  distinct(f0, .keep_all = TRUE)%>% # remove duplicated rows
   mutate(Hour = as.integer(substr(Starttime, 1,2)))%>%
-  mutate(Habitat= dplyr::recode(Habitat, WGA = "WG", WGB = "WG"))%>%
-  dplyr::select(-FluxID)
+  mutate(Habitat= dplyr::recode(Habitat, WGA = "WG", WGB = "WG"))
 
 
 ########## 2021 
-NEE2021_CO2<-read.csv("2021\\Cfluxdata\\HMRoutput_NEE2021_CO2.csv")%>%
+NEE2021_CO2<-read.csv("2021\\Cfluxdata\\HMR- HMRinput_NEE_2021_CO2.csv")%>%
   separate(Series, sep = "_", into = c("PlotID", "Treatment", "Cover", "Date", "FluxID"))%>%
   mutate(Transect = substring(PlotID,1,1),
          Habitat = substring(PlotID, 2,3))%>%
@@ -820,7 +824,7 @@ NEE2021_CO2<-read.csv("2021\\Cfluxdata\\HMRoutput_NEE2021_CO2.csv")%>%
   #dplyr::select(PlotID, Transect, Habitat, Treatment, Date, f0, LR.f0, Method, FluxID, Cover)%>%
   rename(CO2.f0 = f0, CO2.LR = LR.f0, Method.CO2 = Method)
 
-NEE2021_CH4<-read.csv("2021\\Cfluxdata\\HMRoutput_NEE2021_CH4.csv")%>%
+NEE2021_CH4<-read.csv("2021\\Cfluxdata\\HMR- HMRinput_NEE_2021_CH4.csv")%>%
   separate(Series, sep = "_", into = c("PlotID", "Treatment", "Cover", "Date", "FluxID"))%>%
   mutate(Transect = substring(PlotID,1,1),
          Habitat = substring(PlotID, 2,3))%>%
@@ -869,11 +873,11 @@ NEE2021_CH4_env<- left_join(NEE2021_CH4, NEEenvdata2021, by= c("FluxID", "Date",
 ## Add airtemp based on TOMSTloggerData for measurement hour
 NEE20202021_CO2_env_TOMST<-left_join(NEE20202021_CO2_env, TomstData_HourlyPlotID, by= c("Date", "Hour", "PlotID","Transect", "Habitat", "Treatment"))%>%
   mutate(Habitat = dplyr::recode(Habitat, M = "Thawslump", P= "Vegetated Palsa", S = "Soil Palsa", WG= "Vegetated Pond")) # recode Habitat
-NEE20202021_CO2_env_TOMST$Habitat <- factor(NEE20202021_CO2_env$Habitat, levels = c("Vegetated Palsa", "Soil Palsa", "Thawslump", "Vegetated Pond"))
+NEE20202021_CO2_env_TOMST$Habitat <- factor(NEE20202021_CO2_env_TOMST$Habitat, levels = c("Vegetated Palsa", "Soil Palsa", "Thawslump", "Vegetated Pond"))
 
 NEE2021_CH4_env_TOMST<-left_join(NEE2021_CH4_env, TomstData_HourlyPlotID, by= c("Date", "Hour", "PlotID","Transect", "Habitat", "Treatment"))%>%
   mutate(Habitat = dplyr::recode(Habitat, M = "Thawslump", P= "Vegetated Palsa", S = "Soil Palsa", WG= "Vegetated Pond")) # recode Habitat
-NEE2021_CH4_env_TOMST$Habitat <- factor(NEE2021_CH4_env$Habitat, levels = c("Vegetated Palsa", "Soil Palsa", "Thawslump", "Vegetated Pond"))
+NEE2021_CH4_env_TOMST$Habitat <- factor(NEE2021_CH4_env_TOMST$Habitat, levels = c("Vegetated Palsa", "Soil Palsa", "Thawslump", "Vegetated Pond"))
 
 # NEED TO CORRECT FLUXES WITH IBUTTON TEMPERATURE TOMSTDATA not available for all dates !!!
 #NEELi7810_notHMR<-read.csv("2020\\LiCOR7810\\NEEflux_2020_Li7810.csv")%>%
@@ -953,7 +957,7 @@ NEE2021_CH4_env_TOMST%>%
   facet_wrap(~Habitat, scales="free")
 
 # calculate GPP 
-RECO_CO2<-NEE20202021_CO2_env_TOMSTv%>%
+RECO_CO2<-NEE20202021_CO2_env_TOMST%>%
   filter(!grepl("R", PlotID))%>%
   filter(Cover== "RECO")%>%
   filter(Comment != "redo")%>%
@@ -1029,8 +1033,8 @@ pairs(em_out_category)
 
 #RECO
 # Take out S plots
-RECO_CO2_clean<-RECO_CO2%>% 
-  filter(Habitat != "Soil Palsa")
+RECO_CO2_clean<-RECO_CO2#%>% 
+#  filter(Habitat != "Soil Palsa")
 
 RECO_summary<-RECO_CO2_clean%>%
   group_by(Habitat, Treatment) %>%
