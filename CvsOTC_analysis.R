@@ -525,8 +525,8 @@ SR2020_CO2_env<-left_join(SR2020_CO2_env, TomstData_HourlyPlotID, by= c("Date", 
 # (0.08205*273.15) equals 22.4 L/mol, which is the standard molar volume at standard conditions (temp = 0 and 1 atm pressure)
 #!! for now recalculate flux with soiltemp as loggerID missing for some TOMSTloggers
 SR2020_CO2_env<- SR2020_CO2_env%>%
-  mutate(CO2flux = CO2.f0/(0.08205*(273.15+SoilTemp1)),
-         CO2flux.LR = CO2.LR/(0.08205*(273.15+SoilTemp1)))
+  mutate(CO2flux = CO2.f0/(0.08205*(273.15+AirTemperature)),
+         CO2flux.LR = CO2.LR/(0.08205*(273.15+AirTemperature)))
 
 # load HMR output, collar volume taken into account 
 SR2021_CO2<-read.csv("Cflux\\2021\\HMRoutput_SR2021_CO2.csv")%>%
@@ -574,8 +574,8 @@ SR2021_CO2_env<-left_join(SR2021_CO2_env, TomstData_HourlyPlotID, by= c("Date", 
 
 # Flux conversion HMR microL/m2/s > micromol/m2/s HMRoutput/(0.08205*(273.15+Air_temp))
 SR2021_CO2_env<- SR2021_CO2_env%>%
-  mutate(CO2flux = CO2.f0/(0.08205*(273.15+SoilTemp1)),
-         CO2flux.LR = CO2.LR/(0.08205*(273.15+SoilTemp1)))
+  mutate(CO2flux = CO2.f0/(0.08205*(273.15+AirTemperature)),
+         CO2flux.LR = CO2.LR/(0.08205*(273.15+AirTemperature)))
 
 # bind together 2020 and 2021 CO2 flux data
 SR20202021_CO2_env<- rbind(SR2020_CO2_env, SR2021_CO2_env)
@@ -591,8 +591,8 @@ SR2021_CH4_env<-left_join(SR2021_CH4_env, TomstData_HourlyPlotID, by= c("Date", 
 # Flux conversion HMR microL/m2/s > micromol/m2/s HMRoutput/(0.08205*(273.15+Air_temp))
 SR2021_CH4_env<- SR2021_CH4_env%>%
   filter(Method.CH4 != "No flux")%>%
-  mutate(CH4flux = CH4.f0/(0.08205*(273.15+SoilTemp1)),
-         CH4flux.LR = CH4.LR/(0.08205*(273.15+SoilTemp1)))
+  mutate(CH4flux = CH4.f0/(0.08205*(273.15+AirTemperature)),
+         CH4flux.LR = CH4.LR/(0.08205*(273.15+AirTemperature)))
 
 
 ########################################################################################################################################
@@ -602,7 +602,7 @@ SR20202021_CO2_env_clean<-SR20202021_CO2_env%>%
          Year = as.factor(lubridate::year(Date)))%>%
   filter(Comment != "redo")%>%
   filter(Habitat != "W")%>%
-  filter(Habitat != "S")%>%
+  #filter(Habitat != "S")%>%
   filter(CO2flux > 0)%>% # remove negative values
   mutate(Habitat =dplyr::recode(Habitat, M = "Thawslump", P= "Vegetated Palsa", S = "Soil Palsa", WG= "Vegetated Pond")) # recode Habitat
 SR20202021_CO2_env_clean$Habitat <- factor(SR20202021_CO2_env_clean$Habitat, levels = c("Vegetated Palsa", "Soil Palsa", "Thawslump", "Vegetated Pond"))
@@ -701,7 +701,7 @@ SR2021_CH4_env_clean<-SR2021_CH4_env%>%
   mutate(Month = as.factor(lubridate::month(Date)),
          Year = as.factor(lubridate::year(Date)))%>%
   filter(Habitat != "W")%>%
-  filter(Habitat != "S")%>%
+  #filter(Habitat != "S")%>%
   mutate(Habitat = dplyr::recode(Habitat, M = "Thawslump", P= "Vegetated Palsa", S = "Soil Palsa", WG= "Vegetated Pond")) # recode Habitat
 SR2021_CH4_env_clean$Habitat <- factor(SR2021_CH4_env_clean$Habitat, levels = c("Vegetated Palsa", "Soil Palsa", "Thawslump", "Vegetated Pond"))
 
@@ -741,11 +741,11 @@ pairs(em_out_category)
 
 SR2021_CH4_env_clean%>%
   #filter(CH4flux < 10)%>% # 33 measurements not plotted
-  ggplot(aes(Habitat, CH4flux, fill=Treatment))+
+  ggplot(aes(Habitat, CH4flux/1000, fill=Treatment))+
   scale_fill_manual(values= c("grey70", "grey30"), name = "Treatment", labels = c("C", "OTC"))+
   geom_boxplot()+
-  ylab(expression(Soil~Respiration~CH[4]~(nanomol/m^{2}/s))) + 
-  facet_wrap(~Habitat, scales="free")+
+  ylab(expression(Soil~Respiration~CH[4]~(micromol/m^{2}/s))) + 
+  #facet_wrap(~Habitat, scales="free")+
   theme_classic()+
   theme(legend.position = "bottom", axis.title = element_text(size = 14), axis.text = element_text(size =12), legend.text = element_text(size =11) )
 
@@ -857,22 +857,23 @@ NEE2021_CO2_env<- left_join(NEE2021_CO2, NEEenvdata2021, by= c("FluxID", "Date",
 # bind together 2020 and 2021 NEE CO2 data
 NEE20202021_CO2_env<- rbind(NEE2020_CO2_env, NEE2021_CO2_env)%>%
   mutate(Month = lubridate::month(Date),
-         Year = lubridate::year(Date))%>%
-  mutate(Habitat = dplyr::recode(Habitat, M = "Thawslump", P= "Vegetated Palsa", S = "Soil Palsa", WG= "Vegetated Pond")) # recode Habitat
-NEE20202021_CO2_env$Habitat <- factor(NEE20202021_CO2_env$Habitat, levels = c("Vegetated Palsa", "Soil Palsa", "Thawslump", "Vegetated Pond"))
-
+         Year = lubridate::year(Date))
 
 NEE2021_CH4_env<- left_join(NEE2021_CH4, NEEenvdata2021, by= c("FluxID", "Date", "PlotID", "Transect", "Habitat", "Treatment", "Cover"))%>%
   mutate(Hour = as.integer(substr(Starttime, 1,2)),
          Date = as.Date(Date, "%d.%m.%Y"))%>%
   mutate(Habitat= dplyr::recode(Habitat, WGA = "WG", WGB = "WG"))%>%
-  dplyr::select(-FluxID)%>%
-  mutate(Habitat = dplyr::recode(Habitat, M = "Thawslump", P= "Vegetated Palsa", S = "Soil Palsa", WG= "Vegetated Pond")) # recode Habitat
-NEE2021_CH4_env$Habitat <- factor(NEE2021_CH4_env$Habitat, levels = c("Vegetated Palsa", "Soil Palsa", "Thawslump", "Vegetated Pond"))
+  dplyr::select(-FluxID)
 
 
 ## Add airtemp based on TOMSTloggerData for measurement hour
-#NEE2020_CO2_env<-left_join(NEE2020_CO2_env, TomstData_HourlyPlotID, by= c("Date", "Hour", "PlotID", "Transect" , "Habitat", "Treatment"))
+NEE20202021_CO2_env_TOMST<-left_join(NEE20202021_CO2_env, TomstData_HourlyPlotID, by= c("Date", "Hour", "PlotID","Transect", "Habitat", "Treatment"))%>%
+  mutate(Habitat = dplyr::recode(Habitat, M = "Thawslump", P= "Vegetated Palsa", S = "Soil Palsa", WG= "Vegetated Pond")) # recode Habitat
+NEE20202021_CO2_env_TOMST$Habitat <- factor(NEE20202021_CO2_env$Habitat, levels = c("Vegetated Palsa", "Soil Palsa", "Thawslump", "Vegetated Pond"))
+
+NEE2021_CH4_env_TOMST<-left_join(NEE2021_CH4_env, TomstData_HourlyPlotID, by= c("Date", "Hour", "PlotID","Transect", "Habitat", "Treatment"))%>%
+  mutate(Habitat = dplyr::recode(Habitat, M = "Thawslump", P= "Vegetated Palsa", S = "Soil Palsa", WG= "Vegetated Pond")) # recode Habitat
+NEE2021_CH4_env_TOMST$Habitat <- factor(NEE2021_CH4_env$Habitat, levels = c("Vegetated Palsa", "Soil Palsa", "Thawslump", "Vegetated Pond"))
 
 # NEED TO CORRECT FLUXES WITH IBUTTON TEMPERATURE TOMSTDATA not available for all dates !!!
 #NEELi7810_notHMR<-read.csv("2020\\LiCOR7810\\NEEflux_2020_Li7810.csv")%>%
@@ -907,16 +908,16 @@ NEE2021_CH4_env$Habitat <- factor(NEE2021_CH4_env$Habitat, levels = c("Vegetated
 # Flux conversion HMR microL/m2/s > micromol/m2/s HMRoutput/(0.08205*(273.15+Air_temp))
 # (0.08205*273.15) equals 22.4 L/mol, which is the standard molar volume at standard conditions (temp = 0 and 1 atm pressure)
 # for now using soilTemp1 but better with either chamber ibutton data/ TOMST logger data or EC airtemp data
-NEE20202021_CO2_env<-NEE20202021_CO2_env%>%
-  mutate(CO2flux = CO2.f0/(0.08205*(273.15+SoilTemp1)),
-         CO2flux.LR = CO2.LR/(0.08205*(273.15+SoilTemp1)))
+NEE20202021_CO2_env_TOMST<-NEE20202021_CO2_env_TOMST%>%
+  mutate(CO2flux = CO2.f0/(0.08205*(273.15+AirTemperature)),
+         CO2flux.LR = CO2.LR/(0.08205*(273.15+AirTemperature)))
 
-NEE2021_CH4_env<- NEE2021_CH4_env%>%
-  mutate(CH4flux = CH4.f0/(0.08205*(273.15+SoilTemp1)),
-         CH4flux.LR = CH4.LR/(0.08205*(273.15+SoilTemp1)))
+NEE2021_CH4_env_TOMST<- NEE2021_CH4_env_TOMST%>%
+  mutate(CH4flux = CH4.f0/(0.08205*(273.15+AirTemperature)),
+         CH4flux.LR = CH4.LR/(0.08205*(273.15+AirTemperature)))
 
 # RECO
-NEE20202021_CO2_env%>%
+NEE20202021_CO2_env_TOMST%>%
   filter(Treatment %in% c("C", "OTC"))%>%
   filter(Habitat %in% c("Vegetated Palsa", "Soil Palsa", "Thawslump", "Vegetated Pond"))%>%
   filter(Cover == "RECO")%>%
@@ -927,7 +928,7 @@ NEE20202021_CO2_env%>%
   geom_boxplot()+
   facet_grid(~Habitat)
 
-NEE20202021_CO2_env%>%
+NEE20202021_CO2_env_TOMST%>%
   filter(Treatment %in% c("C", "OTC"))%>%
   filter(Habitat %in% c("Vegetated Palsa", "Soil Palsa", "Thawslump", "Vegetated Pond"))%>%
   filter(Cover == "RECO")%>%
@@ -940,7 +941,7 @@ NEE20202021_CO2_env%>%
   facet_grid(~Habitat)+
   theme_bw()
 
-NEE2021_CH4_env%>%
+NEE2021_CH4_env_TOMST%>%
   filter(Treatment %in% c("C", "OTC"))%>%
   filter(Habitat %in% c("Vegetated Palsa", "Soil Palsa", "Thawslump", "Vegetated Pond"))%>%
   filter(CH4flux < 25)%>%
@@ -952,7 +953,7 @@ NEE2021_CH4_env%>%
   facet_wrap(~Habitat, scales="free")
 
 # calculate GPP 
-RECO_CO2<-NEE20202021_CO2_env%>%
+RECO_CO2<-NEE20202021_CO2_env_TOMSTv%>%
   filter(!grepl("R", PlotID))%>%
   filter(Cover== "RECO")%>%
   filter(Comment != "redo")%>%
@@ -960,7 +961,7 @@ RECO_CO2<-NEE20202021_CO2_env%>%
   rename( CO2flux_RECO = CO2flux,  CO2flux.LR_RECO = CO2flux.LR )%>%
   dplyr::select(PlotID, Habitat, Treatment, Date, Year, Month, CO2flux_RECO, CO2flux.LR_RECO)
 
-NEE_CO2<-NEE20202021_CO2_env%>%
+NEE_CO2<-NEE20202021_CO2_env_TOMST%>%
   filter(!grepl("R", PlotID))%>%
   filter(Treatment %in% c("C",  "OTC"))%>%
   filter(Cover != "RECO")%>%
