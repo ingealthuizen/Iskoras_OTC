@@ -315,8 +315,10 @@ TomstData<-TomstData%>%
   filter(Treatment %in% c("C", "OTC"))%>%
   select(PlotID:LoggerID, Date, Date_Time, SoilTemperature:RawSoilmoisture, Soilmoisture_Volumetric)%>%
   mutate(Date = as.Date(Date),
-         DateTime = as.POSIXct(strptime(Date_Time, tz = "UTC", "%Y-%m-%dT%H:%M:%SZ")),
-         Hour = hour(DateTime))
+         DateTime_UTC = as.POSIXct(strptime(Date_Time, tz="UTC", "%Y-%m-%dT%H:%M:%SZ")),
+         DateTime = format(DateTime_UTC, tz="Europe/Berlin"),
+         Hour = hour(DateTime),
+         Soilmoisture_Volumetric= Soilmoisture_Volumetric*100)
 
 # summary of microclimate across summer season June-August
 Summersummary<-TomstData%>%
@@ -334,19 +336,25 @@ TomstData_HourlyPlotID<- TomstData%>%
             Soilmoisture_Volumetric = mean(Soilmoisture_Volumetric, na.rm = TRUE))%>%
             ungroup()
 
+TomstData_august<- TomstData%>%
+  filter(Date < "2022-09-01")%>%
+  filter(Date > "2022-07-31")
+
+write.csv(TomstData_august, "C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Manuscripts\\Jeongeun\\MicroClimate_august2022.csv")
+
 ##### DAILY
-# Summary Daily Per Transect and Habitat
-TomstData_MeanDailyTransect<-TomstData%>%
+# Summary Daily Per Habitat and Treatment
+TomstData_MeanDailyHabitat<-TomstData%>%
   gather(Climate_variable, value, SoilTemperature:Soilmoisture_Volumetric)%>%
   group_by(Habitat, Treatment, Date, Climate_variable)%>%
   summarise_at(vars(value), list(Min = min, Mean = mean, Max = max, Sd = sd, se =se))%>%
-  mutate(Habitat =recode(Habitat, M = "Thawslump", P= "Vegetated Palsa", S = "Soil Palsa", WG= "Vegetated Pond")) # recode Habitat
-TomstData_MeanDailyTransect$Habitat <- factor(TomstData_MeanDailyTransect$Habitat, levels = c("Vegetated Palsa", "Soil Palsa", "Thawslump", "Vegetated Pond"))
+  mutate(Habitat =recode(Habitat, M = "Thaw slump", P= "Vegetated Palsa", S = "Bare Soil Palsa", WG= "Vegetated Pond")) # recode Habitat
+TomstData_MeanDailyHabitat$Habitat <- factor(TomstData_MeanDailyHabitat$Habitat, levels = c("Vegetated Palsa", "Bare Soil Palsa", "Thaw slump", "Vegetated Pond"))
 
 # plot summer season hourly based on June-August data in 2021
-TomstData_MeanDailyTransect%>%
+TomstData_MeanDailyHabitat%>%
   filter(Date > "2021-05-01" & Date <"2021-11-01")%>%
-  filter(Climate_variable %in% c("AirTemperature", "SoilTemperature",  "Soilmoisture_Volumetric"))%>%
+  filter(Climate_variable %in% c("SoilTemperature", "Soilmoisture_Volumetric"))%>%
   ggplot(aes(Date, Mean, col= Habitat, linetype =Treatment))+
   geom_line()+
   #geom_ribbon(aes(ymin = Mean-se, ymax = Mean+se, fill = Habitat), alpha=0.3) +
@@ -357,6 +365,30 @@ TomstData_MeanDailyTransect%>%
   facet_grid(Climate_variable~Habitat, scales="free")+
   theme_bw()+
   theme(legend.position = "right", axis.title = element_text(size = 14), axis.text = element_text(size =12), legend.text = element_text(size =11) )
+
+# Dates thaw out for OTC vs Control
+
+# Calculate difference in soilmoisture and plot
+Soilmoist_diff<-TomstData%>%
+  filter(Date > "2021-05-01" & Date <"2021-11-01")%>%
+  select(Habitat, Treatment, Date, Soilmoisture_Volumetric)%>%
+  group_by(Habitat, Treatment, Date)%>%
+  drop_na(Soilmoisture_Volumetric)%>%
+  summarise_at(vars(Soilmoisture_Volumetric), list(Soilmoisture_Mean = mean))%>%
+  group_by(Date)%>%
+  pivot_wider(names_from = Treatment, values_from = Soilmoisture_Mean)%>%
+  mutate(diff = OTC - C)
+
+ggplot(Soilmoist_diff, aes(Date, diff, col= Habitat))+
+  geom_line(linewidth = 1)+
+  #geom_ribbon(aes(ymin = Mean-se, ymax = Mean+se, fill = Habitat), alpha=0.3) +
+  scale_color_manual(values= c("#66c2a5","#fc8d62", "#e5c494", "#8da0cb"), 
+                     name = "Habitat",
+                     labels = c("Thawslump","Vegetated Palsa","Bare Soil Palsa","Vegetated Pond" ))+
+  
+  theme_bw()+
+  theme(legend.position = "right", axis.title = element_text(size = 14), axis.text = element_text(size =12), legend.text = element_text(size =11) )
+
 
 # summary Hourly per Habitat
 TomstData_MeanHourlyHabitat<-TomstData%>%
@@ -383,7 +415,7 @@ TomstData_MeanHourlyHabitat%>%
 
 TomstData_MeanHourlyHabitat%>%
   group_by(Habitat, Treatment)%>%
-  filter(Climate_variable %in% c("SoilTemperature"))%>%
+  filter(Climate_variable %in% c("AirTemperature"))%>%
   summarise(max(Mean))
 
 # calculate min, max and mean for each Climatic variable measured by TOMST
