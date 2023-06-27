@@ -812,11 +812,14 @@ NEE_envdata2020 <- map_df(set_names(metafiles_NEE2020), function(file) {
 NEE2020_CO2_env<- left_join(NEE2020_CO2, NEE_envdata2020, by= c("Date", "PlotID", "Transect" , "Habitat", "Treatment", "Cover"))%>%
   distinct(f0, .keep_all = TRUE)%>% # remove duplicated rows
   mutate(Hour = as.integer(substr(Starttime, 1,2)))%>%
-  mutate(Habitat= dplyr::recode(Habitat, WGA = "WG", WGB = "WG"))
+  mutate(Habitat= dplyr::recode(Habitat, WGA = "WG", WGB = "WG"))%>%
+  select(-File.x, -H2O, -File.y)%>%
+  #dplyr::select(PlotID, Transect, Habitat, Treatment, Date, f0, LR.f0, Method, FluxID, Cover)%>%
+  rename(CO2.f0 = f0, CO2.LR = LR.f0, Method.CO2 = Method)
 
 
 ########## 2021 
-NEE2021_CO2<-read.csv("2021\\Cfluxdata\\HMR- HMRinput_NEE_2021_CO2.csv")%>%
+NEE2021_CO2<-read.csv("Cflux\\2021\\HMR - HMRinput_NEE_2021_CO2.csv")%>%
   separate(Series, sep = "_", into = c("PlotID", "Treatment", "Cover", "Date", "FluxID"))%>%
   mutate(Transect = substring(PlotID,1,1),
          Habitat = substring(PlotID, 2,3))%>%
@@ -824,7 +827,7 @@ NEE2021_CO2<-read.csv("2021\\Cfluxdata\\HMR- HMRinput_NEE_2021_CO2.csv")%>%
   #dplyr::select(PlotID, Transect, Habitat, Treatment, Date, f0, LR.f0, Method, FluxID, Cover)%>%
   rename(CO2.f0 = f0, CO2.LR = LR.f0, Method.CO2 = Method)
 
-NEE2021_CH4<-read.csv("2021\\Cfluxdata\\HMR- HMRinput_NEE_2021_CH4.csv")%>%
+NEE2021_CH4<-read.csv("Cflux\\2021\\HMR - HMRinput_NEE_2021_CH4.csv")%>%
   separate(Series, sep = "_", into = c("PlotID", "Treatment", "Cover", "Date", "FluxID"))%>%
   mutate(Transect = substring(PlotID,1,1),
          Habitat = substring(PlotID, 2,3))%>%
@@ -897,42 +900,47 @@ NEE2021_CH4_env_TOMST$Habitat <- factor(NEE2021_CH4_env_TOMST$Habitat, levels = 
 #  distinct(FluxID, .keep_all = TRUE)
 
 # match EC tower airtemp with fluxes
-#ECtower<-read.csv("Climate\\Mobileflux1_level1_30min.csv")%>%
-#  mutate(Date = as.Date(index, "%Y-%m-%d"),
-#         Hour = as.integer(substr(index, 12,13)))%>%
-#  group_by(Date, Hour)%>%
-#  summarise(ECairtemp = mean(air_temperature))%>%
- # dplyr::select(Date, Hour, ECairtemp)
+ECtower<-read.csv("Climate\\Mobileflux1_level1_30min.csv")%>%
+  mutate(Date = as.Date(index, "%Y-%m-%d"),
+         Hour = as.integer(substr(index, 12,13)))%>%
+  group_by(Date, Hour)%>%
+  summarise(ECairtemp = mean(air_temperature))%>%
+ dplyr::select(Date, Hour, ECairtemp)
 
-#NEE2020_CO2_env<- left_join(NEE2020_CO2_env, ECtower, by= c("Date", "Hour"))
-
+NEE20202021_CO2_env_TOMST_EC<- left_join(NEE20202021_CO2_env_TOMST, ECtower, by= c("Date", "Hour"))
+NEE2021_CH4_env_TOMST_EC<- left_join(NEE2021_CH4_env_TOMST, ECtower, by= c("Date", "Hour"))
 
 
 ##############
 # Flux conversion HMR microL/m2/s > micromol/m2/s HMRoutput/(0.08205*(273.15+Air_temp))
 # (0.08205*273.15) equals 22.4 L/mol, which is the standard molar volume at standard conditions (temp = 0 and 1 atm pressure)
 # for now using soilTemp1 but better with either chamber ibutton data/ TOMST logger data or EC airtemp data
-NEE20202021_CO2_env_TOMST<-NEE20202021_CO2_env_TOMST%>%
+NEE20202021_CO2_env_TOMST_EC<-NEE20202021_CO2_env_TOMST_EC%>%
   mutate(CO2flux = CO2.f0/(0.08205*(273.15+AirTemperature)),
-         CO2flux.LR = CO2.LR/(0.08205*(273.15+AirTemperature)))
+         CO2flux.LR = CO2.LR/(0.08205*(273.15+AirTemperature)),
+         CO2flux_EC = CO2.f0/(0.08205*(273.15+ECairtemp)))%>%
+  mutate(CO2flux_final = ifelse(is.na(CO2flux) == TRUE, CO2flux_EC, CO2flux))
 
-NEE2021_CH4_env_TOMST<- NEE2021_CH4_env_TOMST%>%
+NEE2021_CH4_env_TOMST_EC<- NEE2021_CH4_env_TOMST_EC%>%
   mutate(CH4flux = CH4.f0/(0.08205*(273.15+AirTemperature)),
-         CH4flux.LR = CH4.LR/(0.08205*(273.15+AirTemperature)))
+         CH4flux.LR = CH4.LR/(0.08205*(273.15+AirTemperature)),
+         CH4flux_EC = CH4.f0/(0.08205*(273.15+ECairtemp)))%>%
+  mutate(CH4flux_final = ifelse(is.na(CH4flux) == TRUE, CH4flux_EC, CH4flux))
+
 
 # RECO
-NEE20202021_CO2_env_TOMST%>%
+NEE20202021_CO2_env_TOMST_EC%>%
   filter(Treatment %in% c("C", "OTC"))%>%
   filter(Habitat %in% c("Vegetated Palsa", "Soil Palsa", "Thawslump", "Vegetated Pond"))%>%
   filter(Cover == "RECO")%>%
   filter(Comment != "redo")%>%
   filter(Method.CO2 != "No flux")%>%
-  filter(CO2flux > 0)%>%
+  filter(CO2flux_final > 0)%>%
   ggplot(aes(as.factor(Month), CO2flux, fill=Treatment))+ 
   geom_boxplot()+
   facet_grid(~Habitat)
 
-NEE20202021_CO2_env_TOMST%>%
+NEE20202021_CO2_env_TOMST_EC%>%
   filter(Treatment %in% c("C", "OTC"))%>%
   filter(Habitat %in% c("Vegetated Palsa", "Soil Palsa", "Thawslump", "Vegetated Pond"))%>%
   filter(Cover == "RECO")%>%
@@ -945,7 +953,7 @@ NEE20202021_CO2_env_TOMST%>%
   facet_grid(~Habitat)+
   theme_bw()
 
-NEE2021_CH4_env_TOMST%>%
+NEE2021_CH4_env_TOMST_EC%>%
   filter(Treatment %in% c("C", "OTC"))%>%
   filter(Habitat %in% c("Vegetated Palsa", "Soil Palsa", "Thawslump", "Vegetated Pond"))%>%
   filter(CH4flux < 25)%>%
@@ -957,15 +965,15 @@ NEE2021_CH4_env_TOMST%>%
   facet_wrap(~Habitat, scales="free")
 
 # calculate GPP 
-RECO_CO2<-NEE20202021_CO2_env_TOMST%>%
+RECO_CO2<-NEE20202021_CO2_env_TOMST_EC%>%
   filter(!grepl("R", PlotID))%>%
   filter(Cover== "RECO")%>%
   filter(Comment != "redo")%>%
   filter(CO2flux > 0)%>%
-  rename( CO2flux_RECO = CO2flux,  CO2flux.LR_RECO = CO2flux.LR )%>%
-  dplyr::select(PlotID, Habitat, Treatment, Date, Year, Month, CO2flux_RECO, CO2flux.LR_RECO)
+  rename( CO2flux_RECO = CO2flux_final)%>%
+  dplyr::select(PlotID, Habitat, Treatment, Date, Year, Month, CO2flux_RECO)
 
-NEE_CO2<-NEE20202021_CO2_env_TOMST%>%
+NEE_CO2<-NEE20202021_CO2_env_TOMST_EC%>%
   filter(!grepl("R", PlotID))%>%
   filter(Treatment %in% c("C",  "OTC"))%>%
   filter(Cover != "RECO")%>%
@@ -974,7 +982,7 @@ NEE_CO2<-NEE20202021_CO2_env_TOMST%>%
 # Recalculate PAR based on shading cover, 
 # need to check shading effect of covers
 GPP_CO2<-left_join(NEE_CO2, RECO_CO2, by=c("PlotID", "Habitat", "Treatment", "Date", "Year", "Month"))%>%
-  mutate(GPPflux = (CO2flux- CO2flux_RECO))%>%
+  mutate(GPPflux = (CO2flux_final- CO2flux_RECO))%>%
   drop_na(GPPflux)%>%
   group_by(PlotID, Transect, Habitat, Treatment, Cover, Date, Hour, Month, Year)%>%
   gather(PAR, value, PAR1:PAR3)%>%
@@ -1033,8 +1041,8 @@ pairs(em_out_category)
 
 #RECO
 # Take out S plots
-RECO_CO2_clean<-RECO_CO2#%>% 
-#  filter(Habitat != "Soil Palsa")
+RECO_CO2_clean<-RECO_CO2%>% 
+  filter(Habitat != "Soil Palsa")
 
 RECO_summary<-RECO_CO2_clean%>%
   group_by(Habitat, Treatment) %>%
@@ -1079,7 +1087,7 @@ pairs(em_out_category)
 
 
 ### GPP
-hist(log(GPP_CO2$GPPflux))
+hist(log(GPP_CO2$GPPflux*-1))
 
 GPP_CO2%>%
   ggplot(aes(Habitat, GPPflux, fill=Treatment))+
@@ -1136,21 +1144,43 @@ pairs(em_out_category)
 
 #### CH4 NEE
 # !!! NEED TO FIGURE OUT WHICH DISTRIBUTION TO USE
-NEE_CH4_clean<-NEE2021_CH4_env%>%
+NEE_CH4_clean<-NEE2021_CH4_env_TOMST_EC%>%
   filter(Habitat %in% c("Thawslump", "Vegetated Palsa", "Vegetated Pond"))%>%
   filter(Treatment %in% c("C", "OTC"))%>%
-  filter(CH4flux<20)%>% #remove 4 outliers
-  filter(CH4flux > -0.5)# remove 5 outlier
+  drop_na(CH4flux_final)%>%
+  filter(CH4flux_final<900)%>%
+  filter(CH4flux_final>-5)
+  
 
-ggplot(NEE_CH4_clean, aes(Treatment, CH4flux, fill=Treatment))+
+ggplot(NEE_CH4_clean, aes(Treatment, CH4flux_final, fill=Treatment))+
   geom_boxplot()+
   ylab(expression(Ecosystem~Exchange~CH[4]~(nanomol/m^{2}/s))) + 
   scale_fill_manual(values= c("grey70", "grey30"), name = "Treatment", labels = c("C", "OTC"))+
   facet_wrap(~Habitat, scales = "free")+
   theme_classic()
 
-ggplot(NEE_CH4_clean, aes(x=rank(CH4flux)))+
-  geom_histogram(position="identity", colour="grey40", alpha=0.2, bins = 7)
+ggplot(NEE_CH4_clean, aes(x=rank(CH4flux_final)))+
+  geom_histogram(position="identity", colour="grey40", alpha=0.2, bins = 10)
+
+CH4.rank<- aov( rank(CH4flux_final)~ Habitat * Treatment, data = NEE_CH4_clean,
+               contrasts = list(Habitat = 'contr.sum', Treatment = 'contr.sum' ))
+Anova(CH4.rank, type = 'III')
+
+res.CH4.rank = CH4.rank$resid
+qqnorm(  res.CH4.rank, pch = 20, main = "Log GPP Data",
+         cex.lab = 1, cex.axis = 0.7, cex.main = 1)
+qqline(res.CH4.rank)
+plot(CH4.rank, 1, main = "Log GPP Data")
+
+emmeans(CH4.rank, pairwise ~ Habitat | Treatment)
+em_out_category<-emmeans(CH4.rank,  ~ Treatment | Habitat) 
+em_out_category %>% 
+  pairs() %>% 
+  test(joint = TRUE)
+pairs(em_out_category)
+
+
+
 
 # summary on CH4 flux recalculated from nanomol to micromol (/1000) and multiplied by GWP of 100 years (84x) to compare to CO2
 CH4_summary<-NEE_CH4_clean%>%
