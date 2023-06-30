@@ -12,8 +12,11 @@ TomstData<-TomstData%>%
   filter(Treatment %in% c("C", "OTC"))%>%
   select(PlotID:LoggerID, Date, Date_Time, SoilTemperature:RawSoilmoisture, Soilmoisture_Volumetric)%>%
   mutate(Date = as.Date(Date),
-         DateTime = as.POSIXct(strptime(Date_Time, tz = "UTC", "%Y-%m-%dT%H:%M:%SZ")),
-         Hour = hour(DateTime))
+         DateTime_UTC = as.POSIXct(strptime(Date_Time, tz="UTC", "%Y-%m-%dT%H:%M:%SZ")),
+         DateTime = format(DateTime_UTC, tz="Europe/Berlin"),
+         Hour = hour(DateTime),
+         Soilmoisture_Volumetric= Soilmoisture_Volumetric*100)
+
 
 # hourly climate data per plot
 TomstData_HourlyPlotID<- TomstData%>%
@@ -23,6 +26,22 @@ TomstData_HourlyPlotID<- TomstData%>%
             AirTemperature = mean(AirTemperature, na.rm = TRUE),
             Soilmoisture_Volumetric = mean(Soilmoisture_Volumetric, na.rm = TRUE))%>%
   ungroup()
+
+
+meta<-read.csv2("C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\Cflux\\MetaData_2020_2022.csv")
+
+meta_mean<-meta%>%
+  mutate(Date = as.Date(Date, format= "%d.%m.%Y"),
+         Month = month(Date),
+         Year = year(Date))%>%
+  mutate(Habitat =dplyr::recode(Habitat, "WGB" = "WG", "WGA" = "WG"),
+         Thawdepth = dplyr::recode(Thawdepth, ">90" = "90"))%>%
+  mutate(Thawdepth = as.numeric(Thawdepth))%>%
+  group_by(Habitat, Year, Month)%>%
+  summarise(Thawdepth = mean(Thawdepth, na.rm = TRUE), 
+            Watertable1 = mean(Watertable1, na.rm = TRUE))
+
+write.csv(meta_mean, "C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Manuscripts\\ABCmeta.csv")
 
 ################################## NEEdata 2022 ############################################################################
 # read in Metadata NEE
@@ -739,7 +758,6 @@ SR2022_CO2_env_T<- SR2022_CO2_env_T%>%
 SR2022_CH4_env_T<- SR2022_CH4_env_T%>%
   mutate(CH4flux = f0/(0.08205*(273.15+AirTemperature)),
          CH4flux.LR = LR.f0/(0.08205*(273.15+AirTemperature)))
-
 
 ###Data cleaning SR data 2021
 # SR CO2
