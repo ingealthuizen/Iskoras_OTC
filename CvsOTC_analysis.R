@@ -286,18 +286,19 @@ NDVIdata<-read.csv2("VegetationData\\NDVI_Greenseeker.csv")%>%
   ungroup()
 
 NDVImean<- NDVIdata%>%
+  filter(Habitat != "S")%>%
   group_by(Month, Habitat, Treatment)%>%
   summarise(NDVI.se = se(NDVI),
             NDVI.mean = mean(NDVI))%>%
   ungroup()%>%
-  mutate(Habitat =recode(Habitat, M = "Thawslump", P= "Vegetated Palsa", S = "Soil Palsa", WG= "Vegetated Pond")) # recode Habitat
-NDVImean$Habitat <- factor(NDVImean$Habitat, levels = c("Vegetated Palsa", "Soil Palsa", "Thawslump", "Vegetated Pond"))
+  mutate(Habitat =recode(Habitat, M = "Thawslump", P= "Vegetated Palsa",  WG= "Vegetated Pond")) # recode Habitat
+NDVImean$Habitat <- factor(NDVImean$Habitat, levels = c("Vegetated Palsa", "Thawslump", "Vegetated Pond"))
 
 
 ggplot(NDVImean, aes(as.factor(Month), NDVI.mean, color= Habitat, shape= Treatment)) +
   geom_point(position = position_dodge(0.8), size=4) +
   geom_errorbar(aes(ymin=NDVI.mean-NDVI.se, ymax=NDVI.mean+NDVI.se), position = position_dodge(0.8), width=.4)+
-  scale_color_manual(values= c("#fc8d62", "#e5c494","#66c2a5", "#8da0cb"), 
+  scale_color_manual(values= c("#fc8d62", "#66c2a5", "#8da0cb"), 
                      name = "Habitat")+
   scale_shape_manual(values= c(19,17), name = "Treatment", labels = c("Control", "OTC"))+
   labs(x = "Month of the year", y= "NDVI")+
@@ -336,12 +337,6 @@ TomstData_HourlyPlotID<- TomstData%>%
             Soilmoisture_Volumetric = mean(Soilmoisture_Volumetric, na.rm = TRUE))%>%
             ungroup()
 
-TomstData_august<- TomstData%>%
-  filter(Date < "2022-09-01")%>%
-  filter(Date > "2022-07-31")
-
-write.csv(TomstData_august, "C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Manuscripts\\Jeongeun\\MicroClimate_august2022.csv")
-
 ##### DAILY
 # Summary Daily Per Habitat and Treatment
 TomstData_MeanDailyHabitat<-TomstData%>%
@@ -353,12 +348,13 @@ TomstData_MeanDailyHabitat$Habitat <- factor(TomstData_MeanDailyHabitat$Habitat,
 
 # plot summer season hourly based on June-August data in 2021
 TomstData_MeanDailyHabitat%>%
+  filter(Habitat != "Bare Soil Palsa")%>%
   filter(Date > "2021-05-01" & Date <"2021-11-01")%>%
   filter(Climate_variable %in% c("SoilTemperature", "Soilmoisture_Volumetric"))%>%
   ggplot(aes(Date, Mean, col= Habitat, linetype =Treatment))+
   geom_line()+
   #geom_ribbon(aes(ymin = Mean-se, ymax = Mean+se, fill = Habitat), alpha=0.3) +
-  scale_color_manual(values= c("#fc8d62", "#e5c494","#66c2a5", "#8da0cb"), 
+  scale_color_manual(values= c("#fc8d62", "#66c2a5", "#8da0cb"), 
                      name = "Habitat")+
   #scale_fill_manual(values= c("#fc8d62", "#e5c494","#66c2a5", "#8da0cb"), 
   #                  name = "Habitat")+
@@ -370,6 +366,7 @@ TomstData_MeanDailyHabitat%>%
 
 # Calculate difference in soilmoisture and plot
 Soilmoist_diff<-TomstData%>%
+  filter(Habitat != "S")%>%
   filter(Date > "2021-05-01" & Date <"2021-11-01")%>%
   select(Habitat, Treatment, Date, Soilmoisture_Volumetric)%>%
   group_by(Habitat, Treatment, Date)%>%
@@ -381,11 +378,10 @@ Soilmoist_diff<-TomstData%>%
 
 ggplot(Soilmoist_diff, aes(Date, diff, col= Habitat))+
   geom_line(linewidth = 1)+
-  #geom_ribbon(aes(ymin = Mean-se, ymax = Mean+se, fill = Habitat), alpha=0.3) +
-  scale_color_manual(values= c("#66c2a5","#fc8d62", "#e5c494", "#8da0cb"), 
+  #geom_ribbon(aes(ymin = Soilmoisture_Mean-se, ymax = Soilmoisture_Mean+se, fill = Habitat), alpha=0.3) +
+  scale_color_manual(values= c("#66c2a5","#fc8d62",  "#8da0cb"), 
                      name = "Habitat",
                      labels = c("Thawslump","Vegetated Palsa","Bare Soil Palsa","Vegetated Pond" ))+
-  
   theme_bw()+
   theme(legend.position = "right", axis.title = element_text(size = 14), axis.text = element_text(size =12), legend.text = element_text(size =11) )
 
@@ -396,18 +392,19 @@ TomstData_MeanHourlyHabitat<-TomstData%>%
   filter(Date > "2021-06-01" & Date <"2021-09-01")%>%
   group_by(Habitat, Treatment, Hour, Climate_variable)%>%
   summarise_at(vars(value), list(Min = min, Mean = mean, Max = max, Sd = sd, se =se))%>%
-  mutate(Habitat =recode(Habitat, M = "Thawslump", P= "Vegetated Palsa", S = "Soil Palsa", WG= "Vegetated Pond")) # recode Habitat
-TomstData_MeanHourlyHabitat$Habitat <- factor(TomstData_MeanHourlyHabitat$Habitat, levels = c("Vegetated Palsa", "Soil Palsa", "Thawslump", "Vegetated Pond"))
+  mutate(Habitat =recode(Habitat, M = "Thaw slump", P= "Vegetated Palsa", S = "Soil Palsa", WG= "Vegetated Pond")) # recode Habitat
+TomstData_MeanHourlyHabitat$Habitat <- factor(TomstData_MeanHourlyHabitat$Habitat, levels = c("Vegetated Palsa", "Bare Soil Palsa", "Thaw slump", "Vegetated Pond"))
 
 # plot summer season hourly based on June-August data in 2021
 TomstData_MeanHourlyHabitat%>%
+  filter(Habitat != "Bare Soil Palsa")%>%
   filter(Climate_variable %in% c("AirTemperature", "SoilTemperature"))%>%
   ggplot(aes(Hour, Mean, col= Habitat, linetype =Treatment))+
   geom_line()+
   geom_ribbon(aes(ymin = Mean-se, ymax = Mean+se, fill = Habitat), alpha=0.3) +
-  scale_color_manual(values= c("#fc8d62", "#e5c494","#66c2a5", "#8da0cb"), 
+  scale_color_manual(values= c("#fc8d62", "#66c2a5", "#8da0cb"), 
                      name = "Habitat")+
-  scale_fill_manual(values= c("#fc8d62", "#e5c494","#66c2a5", "#8da0cb"), 
+  scale_fill_manual(values= c("#fc8d62", "#66c2a5", "#8da0cb"), 
                      name = "Habitat")+
   facet_grid(Climate_variable~Habitat, scales="free")+
   theme_bw()+
@@ -604,8 +601,8 @@ SR20202021_CO2_env_clean<-SR20202021_CO2_env%>%
   filter(Habitat != "W")%>%
   #filter(Habitat != "S")%>%
   filter(CO2flux > 0)%>% # remove negative values
-  mutate(Habitat =dplyr::recode(Habitat, M = "Thawslump", P= "Vegetated Palsa", S = "Soil Palsa", WG= "Vegetated Pond")) # recode Habitat
-SR20202021_CO2_env_clean$Habitat <- factor(SR20202021_CO2_env_clean$Habitat, levels = c("Vegetated Palsa", "Soil Palsa", "Thawslump", "Vegetated Pond"))
+  mutate(Habitat =dplyr::recode(Habitat, M = "Thaw slump", P= "Vegetated Palsa", S = "Bare Soil Palsa", WG= "Vegetated Pond")) # recode Habitat
+SR20202021_CO2_env_clean$Habitat <- factor(SR20202021_CO2_env_clean$Habitat, levels = c("Vegetated Palsa", "Bare Soil Palsa", "Thaw slump", "Vegetated Pond"))
 
 # compute summary statistics
 SR20202021_CO2_env_clean%>%
@@ -650,6 +647,7 @@ pairs(em_out_category)
 
 # SR for each habitat and treatment over summer seasons 2020 and 2021 
 SR20202021_CO2_env_clean%>%
+  filter(Habitat != "Bare Soil Palsa")%>%
   ggplot(aes(Habitat, CO2flux, fill=Treatment))+
   scale_fill_manual(values= c("grey70", "grey30"), name = "Treatment", labels = c("C", "OTC"))+
   geom_boxplot()+
@@ -702,8 +700,8 @@ SR2021_CH4_env_clean<-SR2021_CH4_env%>%
          Year = as.factor(lubridate::year(Date)))%>%
   filter(Habitat != "W")%>%
   #filter(Habitat != "S")%>%
-  mutate(Habitat = dplyr::recode(Habitat, M = "Thawslump", P= "Vegetated Palsa", S = "Soil Palsa", WG= "Vegetated Pond")) # recode Habitat
-SR2021_CH4_env_clean$Habitat <- factor(SR2021_CH4_env_clean$Habitat, levels = c("Vegetated Palsa", "Soil Palsa", "Thawslump", "Vegetated Pond"))
+  mutate(Habitat = dplyr::recode(Habitat, M = "Thaw slump", P= "Vegetated Palsa", S = "Bare Soil Palsa", WG= "Vegetated Pond")) # recode Habitat
+SR2021_CH4_env_clean$Habitat <- factor(SR2021_CH4_env_clean$Habitat, levels = c("Vegetated Palsa", "Bare Soil Palsa", "Thaw slump", "Vegetated Pond"))
 
 # compute summary statistics
 SR2021_CH4_env_clean%>%
@@ -740,6 +738,7 @@ em_out_category %>%
 pairs(em_out_category)
 
 SR2021_CH4_env_clean%>%
+  filter(Habitat != "Bare Soil Palsa")%>%
   #filter(CH4flux < 10)%>% # 33 measurements not plotted
   ggplot(aes(Habitat, CH4flux/1000, fill=Treatment))+
   scale_fill_manual(values= c("grey70", "grey30"), name = "Treatment", labels = c("C", "OTC"))+
