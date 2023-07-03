@@ -874,12 +874,12 @@ NEE2021_CH4_env<- left_join(NEE2021_CH4, NEEenvdata2021, by= c("FluxID", "Date",
 
 ## Add airtemp based on TOMSTloggerData for measurement hour
 NEE20202021_CO2_env_TOMST<-left_join(NEE20202021_CO2_env, TomstData_HourlyPlotID, by= c("Date", "Hour", "PlotID","Transect", "Habitat", "Treatment"))%>%
-  mutate(Habitat = dplyr::recode(Habitat, M = "Thawslump", P= "Vegetated Palsa", S = "Soil Palsa", WG= "Vegetated Pond")) # recode Habitat
-NEE20202021_CO2_env_TOMST$Habitat <- factor(NEE20202021_CO2_env_TOMST$Habitat, levels = c("Vegetated Palsa", "Soil Palsa", "Thawslump", "Vegetated Pond"))
+  mutate(Habitat = dplyr::recode(Habitat, M = "Thaw slump", P= "Vegetated Palsa", S = "Bare Soil Palsa", WG= "Vegetated Pond")) # recode Habitat
+NEE20202021_CO2_env_TOMST$Habitat <- factor(NEE20202021_CO2_env_TOMST$Habitat, levels = c("Vegetated Palsa", "Bare Soil Palsa", "Thaw slump", "Vegetated Pond"))
 
 NEE2021_CH4_env_TOMST<-left_join(NEE2021_CH4_env, TomstData_HourlyPlotID, by= c("Date", "Hour", "PlotID","Transect", "Habitat", "Treatment"))%>%
-  mutate(Habitat = dplyr::recode(Habitat, M = "Thawslump", P= "Vegetated Palsa", S = "Soil Palsa", WG= "Vegetated Pond")) # recode Habitat
-NEE2021_CH4_env_TOMST$Habitat <- factor(NEE2021_CH4_env_TOMST$Habitat, levels = c("Vegetated Palsa", "Soil Palsa", "Thawslump", "Vegetated Pond"))
+  mutate(Habitat = dplyr::recode(Habitat, M = "Thaw slump", P= "Vegetated Palsa", S = "Bare Soil Palsa", WG= "Vegetated Pond")) # recode Habitat
+NEE2021_CH4_env_TOMST$Habitat <- factor(NEE2021_CH4_env_TOMST$Habitat, levels = c("Vegetated Palsa", "Bare Soil Palsa", "Thaw slump", "Vegetated Pond"))
 
 # NEED TO CORRECT FLUXES WITH IBUTTON TEMPERATURE TOMSTDATA not available for all dates !!!
 #NEELi7810_notHMR<-read.csv("2020\\LiCOR7810\\NEEflux_2020_Li7810.csv")%>%
@@ -1041,7 +1041,7 @@ pairs(em_out_category)
 #RECO
 # Take out S plots
 RECO_CO2_clean<-RECO_CO2%>% 
-  filter(Habitat != "Soil Palsa")
+  filter(Habitat != "Bare Soil Palsa")
 
 RECO_summary<-RECO_CO2_clean%>%
   group_by(Habitat, Treatment) %>%
