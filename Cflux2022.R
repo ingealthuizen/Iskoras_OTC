@@ -77,7 +77,7 @@ NEE_CO2data<- NEE_CO2data%>%
          Habitat = str_sub(PlotID, 2,3),
          FluxID = as.integer(FluxID))%>%
   unite(PlotID, c(PlotID, Treatment), sep = "_", remove = FALSE)%>%
-  mutate(PlotID =recode(PlotID, "2WG_OTC" = "2WGB_OTC")) 
+  mutate(PlotID = dplyr::recode(PlotID, "2WG_OTC" = "2WGB_OTC")) 
 
 NEE_CH4data <- map_df(set_names(CH4files_NEE), function(file) {
   file %>% 
@@ -91,7 +91,7 @@ NEE_CH4data<- NEE_CH4data%>%
          Habitat = str_sub(PlotID, 2,3),
          FluxID = as.integer(FluxID))%>%
   unite(PlotID, c(PlotID, Treatment), sep = "_", remove = FALSE)%>%
-  mutate(PlotID =recode(PlotID, "2WG_OTC" = "2WGB_OTC")) 
+  mutate(PlotID = dplyr::recode(PlotID, "2WG_OTC" = "2WGB_OTC")) 
 
 
 # combine NEE2022data with environmental data
@@ -197,7 +197,7 @@ NEE2021_CO2<- NEE2021_CO2%>%
   unite(PlotID, PlotID:Treatment, remove =FALSE )
 
 ## read in metadata
-metafiles_NEE2021 <- dir(path = "C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\2021\\Cfluxdata\\", 
+metafiles_NEE2021 <- dir(path = "C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\Cflux\\2021\\", 
                         pattern = "^NEEmetadata.*\\.csv$", full.names = TRUE, recursive = TRUE)
 
 NEE_envdata2021 <- map_df(set_names(metafiles_NEE2021), function(file) {
@@ -340,9 +340,12 @@ NEE_CO2_19_20_21_22_means_TOMST_EC_new<- NEE_CO2_19_20_21_22_means_TOMST_EC%>%
   mutate(CO2flux = f0/(0.08205*(273.15+AirTemperature)),
          CO2flux.LR = LR.f0/(0.08205*(273.15+AirTemperature)),
          CO2flux_EC = f0/(0.08205*(273.15+air_temperature)),
-         CO2flux.LR_EC = LR.f0/(0.08205*(273.15+air_temperature)))%>%
+         CO2flux.LR_EC = LR.f0/(0.08205*(273.15+air_temperature)),
+         CO2flux_soilTemp = f0/(0.08205*(273.15+SoilT_mean)))%>%
   mutate(CO2flux_final = ifelse(is.na(CO2flux) == TRUE, CO2flux_EC, CO2flux))%>%
+  mutate(CO2flux_final = ifelse(is.na(CO2flux_final) == TRUE, CO2flux_soilTemp, CO2flux_final))%>%
   mutate(Cover = recode(Cover, Reco ="RECO"))
+
 
 # count number of measurements
 NEE_CO2_19_20_21_22_means_TOMST_EC_new%>%
@@ -503,12 +506,13 @@ NEE2021_CH4 <- NEE2021_CH4 %>%
   unite(PlotID, PlotID:Treatment, remove =FALSE )
 
 ## read in metadata
-metafiles_NEE2021 <- dir(path = "C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\2021\\Cfluxdata\\", 
+metafiles_NEE2021 <- dir(path = "C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\Cflux\\2021\\", 
                          pattern = "^NEEmetadata.*\\.csv$", full.names = TRUE, recursive = TRUE)
 
 NEE_envdata2021 <- map_df(set_names(metafiles_NEE2021), function(file) {
   file %>% 
-    map_df(~ read.csv(file = file, header = TRUE, sep = ";", dec = ",", fill = T) %>% 
+    map_df(~ read.csv(file = file, header = TRUE, sep = ";", dec = ",", fill = T) %>%
+             mutate(Habitat= dplyr::recode(Habitat, WGA = "WG", WGB = "WG"))
              mutate(Transect = as.character(Transect),
                     FluxID = as.character(FluxID),
                     SoilTemp2 = dplyr::recode(SoilTemp2, '100.6' = 10.6L)))#correct typo on data
@@ -583,9 +587,12 @@ NEE_CH4_21_22_means_TOMST_EC_new<- NEE_CH4_21_22_means_TOMST_EC%>%
   mutate(CH4flux = f0/(0.08205*(273.15+AirTemperature)),
          CH4flux.LR = LR.f0/(0.08205*(273.15+AirTemperature)),
          CH4flux_EC = f0/(0.08205*(273.15+air_temperature)),
-         CH4flux.LR_EC = LR.f0/(0.08205*(273.15+air_temperature)))%>%
+         CH4flux.LR_EC = LR.f0/(0.08205*(273.15+air_temperature)),
+         CH4flux_soilTemp = f0/(0.08205*(273.15+SoilT_mean)))%>%
   mutate(CH4flux_final = ifelse(is.na(CH4flux) == TRUE, CH4flux_EC, CH4flux))%>%
+  mutate(CH4flux_final = ifelse(is.na(CH4flux_final) == TRUE, CH4flux_soilTemp, CH4flux_final))%>%
   mutate(Cover = recode(Cover, Reco ="RECO"))
+
 
 # count number of measurements
 NEE_CH4_21_22_means_TOMST_EC_new%>%
@@ -603,11 +610,6 @@ NEE_CH4_21_22_means_TOMST_EC_new%>%
 #write.csv(NEE_CH4_21_22_means_TOMST_EC_new, "C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\AnalysisR\\Thawgradient\\NEE_CH4_2021-2022.csv")
 
 #select(Date, PlotID, Transect, Habitat, Treatment, Cover, f0, f0.se, f0.p, Method, LR.f0. LR.f0.se, LR.f0.p, PAR1, PAR2, PAR3, SoilTemp1, SoilTemp2, SoilMoist1, SoilMoist2, SoilMoist3, Hour)
-
-
-
-
-
 
 
 # bind together 2020 and 2021 NEE CO2 data
@@ -738,26 +740,52 @@ SR_CH4data<- SR_CH4data%>%
   unite(PlotID, c(PlotID, Treatment), sep = "_", remove = FALSE)
 
 # combine NEE2022data with environmental data
-SR2022_CO2_env<- left_join(SR_CO2data, SR_envdata2022, by= c("Date", "PlotID", "Transect" , "Habitat", "Treatment", "FluxID"))%>%
+SR2022_CO2_env<- left_join(SR_CO2data, SR_envdata2022, by= c("Date", "PlotID", "Transect" , "Habitat", "Treatment", "FluxID", "Cover"))%>%
   mutate(Date = as.Date(Date, format="%d.%m.%Y"))%>%
   mutate(Hour = as.integer(substr(Starttime, 1,2)))
 
-SR2022_CH4_env<- left_join(SR_CH4data, SR_envdata2022, by= c("Date", "PlotID", "Transect" , "Habitat", "Treatment", "FluxID"))%>%
+SR2022_CH4_env<- left_join(SR_CH4data, SR_envdata2022, by= c("Date", "PlotID", "Transect" , "Habitat", "Treatment", "FluxID", "Cover"))%>%
   mutate(Date = as.Date(Date, format="%d.%m.%Y"))%>%
   mutate(Hour = as.integer(substr(Starttime, 1,2)))
+
+SR2022_CO2_env_new<-SR2022_CO2_env%>%
+  group_by(Date, PlotID, Transect, Habitat, Treatment, Cover, f0, f0.se, f0.p, Method, LR.f0, LR.f0.se, LR.f0.p)%>%
+  gather(key = soilT, value = temp, SoilTemp1 , SoilTemp2)%>%
+  mutate(SoilT_mean = mean(temp, na.rm = TRUE))%>%
+  gather(key = soilM, value = moisture, SoilMoist1 , SoilMoist2, SoilMoist3)%>%
+  mutate(SoilMoist_mean = mean(moisture, na.rm = TRUE))%>%
+  distinct(Date, PlotID, Transect, Habitat, Treatment, Cover, f0, f0.se, f0.p, Method, LR.f0, LR.f0.se, LR.f0.p, .keep_all = TRUE)%>%
+  select( -soilT, -temp, -soilM, -moisture)%>%
+  ungroup()
+
+SR2022_CH4_env_new<-SR2022_CH4_env%>%
+  group_by(Date, PlotID, Transect, Habitat, Treatment, Cover, f0, f0.se, f0.p, Method, LR.f0, LR.f0.se, LR.f0.p)%>%
+  gather(key = soilT, value = temp, SoilTemp1 , SoilTemp2)%>%
+  mutate(SoilT_mean = mean(temp, na.rm = TRUE))%>%
+  gather(key = soilM, value = moisture, SoilMoist1 , SoilMoist2, SoilMoist3)%>%
+  mutate(SoilMoist_mean = mean(moisture, na.rm = TRUE))%>%
+  distinct(Date, PlotID, Transect, Habitat, Treatment, Cover, f0, f0.se, f0.p, Method, LR.f0, LR.f0.se, LR.f0.p, .keep_all = TRUE)%>%
+  select( -soilT, -temp, -soilM, -moisture)%>%
+  ungroup()
+
 
 ## Add airtemp based on TOMSTloggerData for measurement hour
-SR2022_CO2_env_T<-left_join(SR2022_CO2_env, TomstData_HourlyPlotID, by= c("Date", "Hour", "PlotID", "Transect" , "Habitat", "Treatment"))
-SR2022_CH4_env_T<-left_join(SR2022_CH4_env, TomstData_HourlyPlotID, by= c("Date", "Hour", "PlotID", "Transect" , "Habitat", "Treatment"))
+SR2022_CO2_env_T<-left_join(SR2022_CO2_env_new, TomstData_HourlyPlotID, by= c("Date", "Hour", "PlotID", "Transect" , "Habitat", "Treatment"))
+SR2022_CH4_env_T<-left_join(SR2022_CH4_env_new, TomstData_HourlyPlotID, by= c("Date", "Hour", "PlotID", "Transect" , "Habitat", "Treatment"))
 
 # Flux conversion HMR microL/m2/s > micromol/m2/s HMRoutput/(0.08205*(273.15+Air_temp))
 SR2022_CO2_env_T<- SR2022_CO2_env_T%>%
   mutate(CO2flux = f0/(0.08205*(273.15+AirTemperature)),
-         CO2flux.LR = LR.f0/(0.08205*(273.15+AirTemperature)))
+         CO2flux.LR = LR.f0/(0.08205*(273.15+AirTemperature)),
+         CO2flux_soilTemp = f0/(0.08205*(273.15+SoilT_mean)))%>%
+  mutate(CO2flux_final = ifelse(is.na(CO2flux) == TRUE, CO2flux_soilTemp, CO2flux))
 
 SR2022_CH4_env_T<- SR2022_CH4_env_T%>%
   mutate(CH4flux = f0/(0.08205*(273.15+AirTemperature)),
-         CH4flux.LR = LR.f0/(0.08205*(273.15+AirTemperature)))
+         CH4flux.LR = LR.f0/(0.08205*(273.15+AirTemperature)),
+         CH4flux_soilTemp = f0/(0.08205*(273.15+SoilT_mean)))%>%
+  mutate(CH4flux_final = ifelse(is.na(CH4flux) == TRUE, CH4flux_soilTemp, CH4flux))
+
 
 ###Data cleaning SR data 2021
 # SR CO2
