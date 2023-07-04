@@ -835,26 +835,20 @@ NEE2021_CH4<-read.csv("Cflux\\2021\\HMR - HMRinput_NEE_2021_CH4.csv")%>%
   rename(CH4.f0 = f0, CH4.LR = LR.f0, Method.CH4 = Method)
 
 ## read in metadata
-NEEenvdata03062021<-read.csv2("2021\\Cfluxdata\\NEEmetadata_03062021.csv")
-NEEenvdata04062021<-read.csv2("2021\\Cfluxdata\\NEEmetadata_04062021.csv")
-NEEenvdata02072021<-read.csv2("2021\\Cfluxdata\\NEEmetadata_02072021.csv")%>%
-  dplyr::select(-X)# Check PAR ECtower
-NEEenvdata03072021<-read.csv2("2021\\Cfluxdata\\NEEmetadata_03072021.csv")
-NEEenvdata20072021<-read.csv2("2021\\Cfluxdata\\NEEmetadata_20072021.csv")
-NEEenvdata21072021<-read.csv2("2021\\Cfluxdata\\NEEmetadata_21072021.csv")
-NEEenvdata23072021<-read.csv2("2021\\Cfluxdata\\NEEmetadata_23072021.csv")
-NEEenvdata17082021<-read.csv2("2021\\Cfluxdata\\NEEmetadata_17082021.csv")
-NEEenvdata18082021<-read.csv2("2021\\Cfluxdata\\NEEmetadata_18082021.csv")
-NEEenvdata21082021<-read.csv2("2021\\Cfluxdata\\NEEmetadata_21082021.csv")
-NEEenvdata11092021<-read.csv2("2021\\Cfluxdata\\NEEmetadata_11092021.csv")
-NEEenvdata12092021<-read.csv2("2021\\Cfluxdata\\NEEmetadata_12092021.csv")
+metafiles_NEE2021 <- dir(path = "C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\Cflux\\2021\\", 
+                         pattern = "^NEEmetadata.*\\.csv$", full.names = TRUE, recursive = TRUE)
 
-NEEenvdata2021<- rbind(NEEenvdata03062021, NEEenvdata04062021, NEEenvdata02072021,NEEenvdata03072021, NEEenvdata20072021, NEEenvdata21072021, NEEenvdata23072021, NEEenvdata17082021, NEEenvdata18082021, NEEenvdata21082021, NEEenvdata11092021, NEEenvdata12092021)%>%
-  mutate(FluxID = as.character(FluxID))%>%
-  mutate(SoilTemp2 = dplyr::recode(SoilTemp2, '100.6' = 10.6L)) #correct typo on data
+NEE_envdata2021 <- map_df(set_names(metafiles_NEE2021), function(file) {
+  file %>% 
+    map_df(~ read.csv(file = file, header = TRUE, sep = ";", dec = ",", fill = T) %>% 
+             mutate(Habitat = recode(Habitat, "WGA" = "WG", "WGB"="WG"))%>%
+             mutate(Transect = as.character(Transect),
+                    FluxID = as.character(FluxID),
+                    SoilTemp2 = dplyr::recode(SoilTemp2, '100.6' = 10.6L)))#correct typo on data
+}, .id = "File")
 
 # link Environmental data and CO2fluxdata
-NEE2021_CO2_env<- left_join(NEE2021_CO2, NEEenvdata2021, by= c("FluxID", "Date", "PlotID", "Transect", "Habitat", "Treatment", "Cover"))%>%
+NEE2021_CO2_env<- left_join(NEE2021_CO2, NEE_envdata2021, by= c("FluxID", "Date", "PlotID", "Transect", "Habitat", "Treatment", "Cover"))%>%
   mutate(Hour = as.integer(substr(Starttime, 1,2)),
          Date = as.Date(Date, "%d.%m.%Y"))%>%
   mutate(Habitat= dplyr::recode(Habitat, WGA = "WG", WGB = "WG"))%>%
