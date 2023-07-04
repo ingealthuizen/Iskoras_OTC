@@ -847,19 +847,20 @@ NEE_envdata2021 <- map_df(set_names(metafiles_NEE2021), function(file) {
                     SoilTemp2 = dplyr::recode(SoilTemp2, '100.6' = 10.6L)))#correct typo on data
 }, .id = "File")
 
+
 # link Environmental data and CO2fluxdata
 NEE2021_CO2_env<- left_join(NEE2021_CO2, NEE_envdata2021, by= c("FluxID", "Date", "PlotID", "Transect", "Habitat", "Treatment", "Cover"))%>%
   mutate(Hour = as.integer(substr(Starttime, 1,2)),
          Date = as.Date(Date, "%d.%m.%Y"))%>%
   mutate(Habitat= dplyr::recode(Habitat, WGA = "WG", WGB = "WG"))%>%
-  dplyr::select(-FluxID)
+  dplyr::select(-FluxID, -X, -File)
 
 # bind together 2020 and 2021 NEE CO2 data
 NEE20202021_CO2_env<- rbind(NEE2020_CO2_env, NEE2021_CO2_env)%>%
   mutate(Month = lubridate::month(Date),
          Year = lubridate::year(Date))
 
-NEE2021_CH4_env<- left_join(NEE2021_CH4, NEEenvdata2021, by= c("FluxID", "Date", "PlotID", "Transect", "Habitat", "Treatment", "Cover"))%>%
+NEE2021_CH4_env<- left_join(NEE2021_CH4, NEE_envdata2021, by= c("FluxID", "Date", "PlotID", "Transect", "Habitat", "Treatment", "Cover"))%>%
   mutate(Hour = as.integer(substr(Starttime, 1,2)),
          Date = as.Date(Date, "%d.%m.%Y"))%>%
   mutate(Habitat= dplyr::recode(Habitat, WGA = "WG", WGB = "WG"))%>%
@@ -920,42 +921,6 @@ NEE2021_CH4_env_TOMST_EC<- NEE2021_CH4_env_TOMST_EC%>%
          CH4flux_EC = CH4.f0/(0.08205*(273.15+ECairtemp)))%>%
   mutate(CH4flux_final = ifelse(is.na(CH4flux) == TRUE, CH4flux_EC, CH4flux))
 
-
-# RECO
-NEE20202021_CO2_env_TOMST_EC%>%
-  filter(Treatment %in% c("C", "OTC"))%>%
-  filter(Habitat %in% c("Vegetated Palsa", "Soil Palsa", "Thawslump", "Vegetated Pond"))%>%
-  filter(Cover == "RECO")%>%
-  filter(Comment != "redo")%>%
-  filter(Method.CO2 != "No flux")%>%
-  filter(CO2flux_final > 0)%>%
-  ggplot(aes(as.factor(Month), CO2flux, fill=Treatment))+ 
-  geom_boxplot()+
-  facet_grid(~Habitat)
-
-NEE20202021_CO2_env_TOMST_EC%>%
-  filter(Treatment %in% c("C", "OTC"))%>%
-  filter(Habitat %in% c("Vegetated Palsa", "Soil Palsa", "Thawslump", "Vegetated Pond"))%>%
-  filter(Cover == "RECO")%>%
-  filter(Comment != "redo")%>%
-  filter(Method.CO2 != "No flux")%>%
-  filter(CO2flux > 0)%>%
-  ggplot(aes(x=SoilTemp1+273.15, y=CO2flux, col=Habitat, shape= Treatment, linetype=Treatment))+
-  geom_point(na.rm= TRUE)+
-  geom_smooth(method = "nls", formula= y~A*exp(-308.56/I(x-227.13)), method.args = list(start=c(A=0)), se=FALSE, na.rm= TRUE)+
-  facet_grid(~Habitat)+
-  theme_bw()
-
-NEE2021_CH4_env_TOMST_EC%>%
-  filter(Treatment %in% c("C", "OTC"))%>%
-  filter(Habitat %in% c("Vegetated Palsa", "Soil Palsa", "Thawslump", "Vegetated Pond"))%>%
-  filter(CH4flux < 25)%>%
-  filter(CH4flux >-30)%>%
-  filter(Method.CH4 != "No flux")%>%
-  ggplot(aes(Habitat, CH4flux, fill=Treatment))+ 
-  geom_boxplot()+
-  geom_hline(yintercept = 0)+
-  facet_wrap(~Habitat, scales="free")
 
 # calculate GPP 
 RECO_CO2<-NEE20202021_CO2_env_TOMST_EC%>%
