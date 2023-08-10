@@ -36,8 +36,8 @@ data.scores.sites$sitename <- rownames(data.scores.sites)  # create a column of 
 data.scores.sites$Treatment <- VegComp2021$Treatment#  add the treatment variable 
 data.scores.sites$Habitat <- VegComp2021$Habitat #  add Habitat variable
 data.scores.sites<-data.scores.sites%>%
-  mutate(Habitat =recode(Habitat, M = "Thawslump", P= "Vegetated Palsa", WG= "Vegetated Pond")) # recode Habitat
-data.scores.sites$Habitat <- factor(data.scores.sites$Habitat, levels = c("Vegetated Palsa", "Thawslump", "Vegetated Pond"))
+  mutate(Habitat =recode(Habitat, M = "Thaw slump", P= "Vegetated Palsa", WG= "Vegetated Pond")) # recode Habitat
+data.scores.sites$Habitat <- factor(data.scores.sites$Habitat, levels = c("Vegetated Palsa", "Thaw slump", "Vegetated Pond"))
 
 species.scores <- as.data.frame(data.scores$species)
 species.scores$species <- rownames(species.scores)
@@ -203,7 +203,7 @@ PCAplot<- autoplot(TraitPCA, data = VegComp2021_Traits,  size = 4, fill= "Habita
                    loadings = TRUE, loadings.colour = 'black', loadings.label.colour = "black", 
                    loadings.label = TRUE, loadings.label.size = 5, loadings.label.vjust = -.6, loadings.label.hjust = 0.9)+
   #stat_ellipse(aes( col = Habitat.x), size = 1) +
-  scale_fill_manual(values= c("#fc8d62", "#66c2a5", "#8da0cb"), name = "Habitat", labels = c("Veg. Palsa", "Thawslump", "Veg. Pond"))+
+  scale_fill_manual(values= c("#fc8d62", "#66c2a5", "#8da0cb"), name = "Habitat", labels = c("Veg. Palsa", "Thaw slump", "Veg. Pond"))+
   scale_shape_manual(values= c(21, 24), guide= "none")+
   guides(fill=guide_legend(override.aes=list(shape=21)))+
   theme_classic()+
@@ -244,7 +244,7 @@ thawslumpPCA<- autoplot(TraitPCA_M, data = Vegetation_M,  size = 4, fill= "Habit
                         loadings = TRUE, loadings.colour = 'black', loadings.label.colour = "black",
                         loadings.label = TRUE, loadings.label.size = 5, loadings.label.vjust = -.6, loadings.label.hjust = 0.9)+
   scale_shape_manual(values= c(21, 24), name = "Treatment", labels = c("Control", "OTC"))+
-  scale_fill_manual(values= c( "#66c2a5"), name = "Habitat", labels = c("Thawslump"))+
+  scale_fill_manual(values= c( "#66c2a5"), name = "Habitat", labels = c("Thaw slump"))+
   guides(fill=guide_legend(override.aes=list(shape=21)))+
   theme_classic()
 thawslumpPCA
@@ -291,8 +291,8 @@ NDVImean<- NDVIdata%>%
   summarise(NDVI.se = se(NDVI),
             NDVI.mean = mean(NDVI))%>%
   ungroup()%>%
-  mutate(Habitat =recode(Habitat, M = "Thawslump", P= "Vegetated Palsa",  WG= "Vegetated Pond")) # recode Habitat
-NDVImean$Habitat <- factor(NDVImean$Habitat, levels = c("Vegetated Palsa", "Thawslump", "Vegetated Pond"))
+  mutate(Habitat =recode(Habitat, M = "Thaw slump", P= "Vegetated Palsa",  WG= "Vegetated Pond")) # recode Habitat
+NDVImean$Habitat <- factor(NDVImean$Habitat, levels = c("Vegetated Palsa", "Thaw slump", "Vegetated Pond"))
 
 
 ggplot(NDVImean, aes(as.factor(Month), NDVI.mean, color= Habitat, shape= Treatment)) +
@@ -381,7 +381,7 @@ ggplot(Soilmoist_diff, aes(Date, diff, col= Habitat))+
   #geom_ribbon(aes(ymin = Soilmoisture_Mean-se, ymax = Soilmoisture_Mean+se, fill = Habitat), alpha=0.3) +
   scale_color_manual(values= c("#66c2a5","#fc8d62",  "#8da0cb"), 
                      name = "Habitat",
-                     labels = c("Thawslump","Vegetated Palsa","Bare Soil Palsa","Vegetated Pond" ))+
+                     labels = c("Thaw slump","Vegetated Palsa","Bare Soil Palsa","Vegetated Pond" ))+
   theme_bw()+
   theme(legend.position = "right", axis.title = element_text(size = 14), axis.text = element_text(size =12), legend.text = element_text(size =11) )
 
@@ -389,7 +389,7 @@ ggplot(Soilmoist_diff, aes(Date, diff, col= Habitat))+
 # summary Hourly per Habitat
 TomstData_MeanHourlyHabitat<-TomstData%>%
   gather(Climate_variable, value, SoilTemperature:Soilmoisture_Volumetric)%>%
-  filter(Date > "2021-06-01" & Date <"2021-09-01")%>%
+  filter(Date > "2021-05-31" & Date <"2021-09-01")%>%
   group_by(Habitat, Treatment, Hour, Climate_variable)%>%
   summarise_at(vars(value), list(Min = min, Mean = mean, Max = max, Sd = sd, se =se))%>%
   mutate(Habitat =recode(Habitat, M = "Thaw slump", P= "Vegetated Palsa", S = "Soil Palsa", WG= "Vegetated Pond")) # recode Habitat
@@ -841,7 +841,7 @@ metafiles_NEE2021 <- dir(path = "C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Dat
 NEE_envdata2021 <- map_df(set_names(metafiles_NEE2021), function(file) {
   file %>% 
     map_df(~ read.csv(file = file, header = TRUE, sep = ";", dec = ",", fill = T) %>% 
-             mutate(Habitat = recode(Habitat, "WGA" = "WG", "WGB"="WG"))%>%
+             mutate(Habitat = dplyr::recode(Habitat, "WGA" = "WG", "WGB"="WG"))%>%
              mutate(Transect = as.character(Transect),
                     FluxID = as.character(FluxID),
                     SoilTemp2 = dplyr::recode(SoilTemp2, '100.6' = 10.6L)))#correct typo on data
@@ -1065,23 +1065,6 @@ GPP_CO2%>%
   facet_grid(~Habitat)+
   theme_classic()
 
-GPP_summary<-GPP_CO2%>%
-  group_by(Habitat, Treatment) %>%
-  summarise(
-    count = n(),
-    mean = round(mean(GPPflux, na.rm = TRUE), 2),
-    median = round(median(GPPflux, na.rm = TRUE), 2),
-    sd = round(sd(GPPflux, na.rm = TRUE), 2),
-    cv = round(sd/mean, 2)) %>%
-  mutate(flux = "GPP",
-         GHG = "CO2")%>%
-  ungroup()
-#unbalanced might be problem
-
-fluxsummary<-rbind(GPP_summary, RECO_summary)
-ggplot(fluxsummary, aes(Habitat))
-
-
 GPP.log<- aov( log(-1*GPPflux)~ Habitat * Treatment, data = GPP_CO2,
                 contrasts = list(Habitat = 'contr.sum', Treatment = 'contr.sum' ))
 Anova(GPP.log, type = 'III')
@@ -1103,7 +1086,7 @@ pairs(em_out_category)
 #### CH4 NEE
 # !!! NEED TO FIGURE OUT WHICH DISTRIBUTION TO USE
 NEE_CH4_clean<-NEE2021_CH4_env_TOMST_EC%>%
-  filter(Habitat %in% c("Thawslump", "Vegetated Palsa", "Vegetated Pond"))%>%
+  filter(Habitat %in% c("Thaw slump", "Vegetated Palsa", "Vegetated Pond"))%>%
   filter(Treatment %in% c("C", "OTC"))%>%
   drop_na(CH4flux_final)%>%
   filter(CH4flux_final<900)%>%
@@ -1239,22 +1222,49 @@ library(lmerTest)
 library(DHARMa)
 library(MuMIn)
 
-
-hist(log(GPP_NDVI_CWM$GPPflux))
-fitGPP <- lmer(log(GPPflux) ~ scale(PAR.mean) + SoilTemp.mean + NDVI + VH + (1|PlotID) ,  data = GPP_NDVI_CWM)
+# first correction of GPP bayesian hierarchical model?
+fitGPP <- lmer(GPPflux ~ NDVI + VH + LA + SLA + LDMC + (1|PlotID) ,  data = GPP_NDVI_CWM)
 summary(fitGPP)
 anova(fitGPP)
 MuMIn::r.squaredGLMM(fitGPP)
 simulationOutput <- simulateResiduals(fittedModel = fitGPP, plot = F)
 plot(simulationOutput)
 
-hist(log(GPP_NDVI_CWM$CO2flux_RECO))
-fitReco <- lmer(log(CO2flux_RECO) ~ SoilTemp.mean + NDVI + (1|PlotID) ,  data = GPP_NDVI_CWM)
+fitReco <- lmer(CO2flux_RECO ~ NDVI + VH + LA + SLA + LDMC + (1|PlotID) ,  data = GPP_NDVI_CWM)
 summary(fitReco)
 anova(fitReco)
 MuMIn::r.squaredGLMM(fitReco)
 simulationOutput <- simulateResiduals(fittedModel = fitReco, plot = F)
 plot(simulationOutput)
+
+fitNEE<-lmer(CO2flux_final ~ NDVI + VH + LA + SLA + LDMC + (1|PlotID) ,  data = GPP_NDVI_CWM)
+summary(fitNEE)
+anova(fitNEE)
+MuMIn::r.squaredGLMM(fitNEE)
+simulationOutput <- simulateResiduals(fittedModel = fitNEE, plot = F)
+plot(simulationOutput)
+
+
+#CH4
+library(lubridate)
+NEE_CH4<-NEE_CH4_clean%>%
+  mutate(Month = lubridate::month(Date),
+         Year = lubridate::year(Date))
+
+CH4_NDVI<- left_join(NEE_CH4, NDVIdata, by=c("PlotID", "Treatment", "Transect", "Year", "Month"))%>%
+  dplyr::select(-Habitat.y)
+
+CH4_NDVI_CWM<-left_join(CH4_NDVI, CWMtraits_wide, by= c("PlotID", "Treatment"))%>%
+  drop_na(NDVI)
+
+
+fitCH4<-lmer(CH4flux_final ~ NDVI + VH + LA + SLA + LDMC + (1|PlotID) ,  data = CH4_NDVI_CWM)
+summary(fitCH4)
+anova(fitCH4)
+MuMIn::r.squaredGLMM(fitCH4)
+simulationOutput <- simulateResiduals(fittedModel = fitCH4, plot = F)
+plot(simulationOutput)
+
 
 # https://www.nature.com/articles/s42003-023-04626-3 
 # BC<rkner, P.-C. Advanced bayesian multilevel modeling with the R Package brms. R J. 10, 395b
