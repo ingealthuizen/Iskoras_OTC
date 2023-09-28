@@ -2,6 +2,7 @@
 setwd("C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\")
 library(tidyverse)
 library(ggplot2)
+library(lubridate)
 library(RColorBrewer)
 #library(readxl)
 library(vegan)
@@ -894,7 +895,7 @@ NEE2021_CH4_env_TOMST$Habitat <- factor(NEE2021_CH4_env_TOMST$Habitat, levels = 
 #  distinct(FluxID, .keep_all = TRUE)
 
 # match EC tower airtemp with fluxes
-ECtower<-read.csv("Climate\\Mobileflux1_level1_30min.csv")%>%
+ECtower<-read.csv("Climate\\Mobileflux1_level1_30min_forInge.csv")%>%
   mutate(Date = as.Date(index, "%Y-%m-%d"),
          Hour = as.integer(substr(index, 12,13)))%>%
   group_by(Date, Hour)%>%
