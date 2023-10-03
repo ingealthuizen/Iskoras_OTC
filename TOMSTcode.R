@@ -2,15 +2,16 @@
 # load TOMSTloggerID information
 library(tidyverse)
 library(lubridate)
-#install.packages(myClim)
+#library(myClim)
 
 #library(here)
-setwd("C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\")
+#setwd("C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\")
 
-TomstID<-read.csv2("Climate\\TOMST\\TOMSTloggerID2023.csv")
+TomstID<-read.csv2("C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\Climate\\TOMST\\TOMSTloggerID2023.csv")%>%
+  mutate(locality_id ="Iskorars")
 
 ### Read in tomst logger files
-files <- dir(path = "Climate\\TOMST\\TOMST2023", 
+files <- dir(path = "C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\Climate\\TOMST\\TOMSTdata", 
              pattern = "^data.*\\.csv$", full.names = TRUE, recursive = TRUE)
 
 # Function to read in data
@@ -38,6 +39,19 @@ TomstLoggerData<- left_join(TomstID, data, by= "LoggerID")%>%
   mutate( LoggerID = as.factor(LoggerID))%>%
   filter(Date > "2020-06-25") # remove all data from before installation of loggers in field
   
+#### remove duplicated data for replaced loggers
+# loggerID 846 replaced with 839  2023-06-11 11:00:00 no data between end of Sept to June
+# loggerID 827 replaced with 837  2023-06-11 11:00:00 
+# no data available for these plots between end of 23 Sept 2022 to 11 June 2023
+# loggerID 822 removed june 2023
+# loggerID 813 removed june 2023
+# loggerID 803 removed june 2021
+
+TomstLoggerData<-TomstLoggerData%>%
+  filter(!LoggerID %in% c("94202837","94202839") | Date_Time > "2023-06-11 11:00:00")%>%
+  filter(!LoggerID %in% c("94202822","94202813") | Date_Time < "2023-06-10 11:00:00")
+
+
 ### SOilmoisture correction
 #based on appendix A of Wild 2019 (https://www-sciencedirect-com.pva.uib.no/science/article/pii/S0168192318304118#sec0095) and https://www.tomst.com/tms/tacr/TMS3calibr1-11.xlsm
 
@@ -78,9 +92,16 @@ soilmoist_correct <- function(rawsoilmoist, soil_temp, soilclass){
   return(volmoistcorr)
 }
 
+# Apply soil moisture calculation for peat soils
+# recode SoilMoistureCorrect to NA if soil is frozen < 0 degrees SoilTemperature
 TomstData_SoilMoistureCorrect<-TomstLoggerData%>%
   select(-V10)%>%
-  mutate(Soilmoisture_Volumetric = soilmoist_correct(RawSoilmoisture, SoilTemperature, "peat"))
+  mutate(Soilmoisture_Volumetric = soilmoist_correct(RawSoilmoisture, SoilTemperature, "peat"))%>%
+  mutate(Soilmoisture_Volumetric = ifelse(SoilTemperature < 0, NA, Soilmoisture_Volumetric))
+
+
+TomstData_SoilMoistureCorrect<-
+
 
 # check data 
 TomstData_SoilMoistureCorrect %>% 
