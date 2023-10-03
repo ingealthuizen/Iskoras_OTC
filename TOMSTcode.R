@@ -100,9 +100,6 @@ TomstData_SoilMoistureCorrect<-TomstLoggerData%>%
   mutate(Soilmoisture_Volumetric = ifelse(SoilTemperature < 0, NA, Soilmoisture_Volumetric))
 
 
-TomstData_SoilMoistureCorrect<-
-
-
 # check data 
 TomstData_SoilMoistureCorrect %>% 
   filter(Treatment %in% c("C", "OTC"))%>%
@@ -139,7 +136,9 @@ TomstData_SoilMoistureCorrect %>%
 #Data Cleaning
 TomstData_Clean<-TomstData_SoilMoistureCorrect%>%
   filter(SoilTemperature > -30)%>% # filter bad measurements from 3WGB_C logger
-  filter(SoilTemperature < 80) # filter out bad measurements from 3WGB_C logger
+  filter(SoilTemperature < 80)%>% # filter out bad measurements from 3WGB_C logger
+  filter(!PlotID == "BS_C" | SoilTemperature < 30)%>%
+  filter(!PlotID == "AS_C" | SoilTemperature < 20)
 
 # summary
 summer_microclimate2020<-TomstData_Clean%>%
