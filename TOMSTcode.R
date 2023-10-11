@@ -25,18 +25,18 @@ temp <- map_df(set_names(files), function(file) {
 data <- temp %>% 
   # rename column names
   rename("ID" = "V1", "Date_Time" = "V2", "Time_zone" = "V3", "SoilTemperature" = "V4", "GroundTemperature" = "V5", "AirTemperature" = "V6", "RawSoilmoisture" = "V7", "Shake" = "V8", "ErrorFlag" = "V9") %>% 
-  mutate(Date_Time = as.POSIXct(Date_Time, format="%Y.%m.%d %H:%M"),
-         Date = as.Date(Date_Time)) %>% 
-  # Soil moisture calibration
-  #mutate(SoilMoisture = a * RawSoilmoisture^2 + b * RawSoilmoisture + c) %>% 
-  # get logger ID -> not needed anymore, have whole filename now!!!
-  mutate(
-    LoggerID = gsub(".*data_([^_]+)[_].*", "\\1", File), 
-    LoggerID = as.integer(LoggerID)) 
+  mutate(DateTime_UTC = as.POSIXct(Date_Time, format= "%Y.%m.%d %H:%M", tz= "UTC"),
+         DateTime_local = as.POSIXlt(DateTime_UTC, tz="Europe/Berlin"),
+         LoggerID = gsub(".*data_([^_]+)[_].*", "\\1", File), 
+         LoggerID = as.integer(LoggerID)) 
 
 # bind data to tomstID location
+## adjust for different timezone than UTC  
 TomstLoggerData<- left_join(TomstID, data, by= "LoggerID")%>%
-  mutate( LoggerID = as.factor(LoggerID))%>%
+  select(-V10)%>%
+  mutate(Date = as.Date(DateTime_local),
+         Hour = hour(DateTime_local),
+         LoggerID = as.factor(LoggerID))%>%
   filter(Date > "2020-06-25") # remove all data from before installation of loggers in field
   
 #### remove duplicated data for replaced loggers
@@ -50,7 +50,6 @@ TomstLoggerData<- left_join(TomstID, data, by= "LoggerID")%>%
 TomstLoggerData<-TomstLoggerData%>%
   filter(!LoggerID %in% c("94202837","94202839") | Date_Time > "2023-06-11 11:00:00")%>%
   filter(!LoggerID %in% c("94202822","94202813") | Date_Time < "2023-06-10 11:00:00")
-
 
 ### SOilmoisture correction
 #based on appendix A of Wild 2019 (https://www-sciencedirect-com.pva.uib.no/science/article/pii/S0168192318304118#sec0095) and https://www.tomst.com/tms/tacr/TMS3calibr1-11.xlsm
@@ -95,29 +94,29 @@ soilmoist_correct <- function(rawsoilmoist, soil_temp, soilclass){
 # Apply soil moisture calculation for peat soils
 # recode SoilMoistureCorrect to NA if soil is frozen < 0 degrees SoilTemperature
 TomstData_SoilMoistureCorrect<-TomstLoggerData%>%
-  select(-V10)%>%
   mutate(Soilmoisture_Volumetric = soilmoist_correct(RawSoilmoisture, SoilTemperature, "peat"))%>%
-  mutate(Soilmoisture_Volumetric = ifelse(SoilTemperature < 0, NA, Soilmoisture_Volumetric))
+  mutate(Soilmoisture_Volumetric= Soilmoisture_Volumetric*100)%>%
+  mutate(Soilmoisture_Volumetric = ifelse(SoilTemperature < 0, NA, Soilmoisture_Volumetric)) # soilmoisture NA if soil frozen 0 degrees C
 
 
 # check data 
 TomstData_SoilMoistureCorrect %>% 
   filter(Treatment %in% c("C", "OTC"))%>%
-  ggplot(aes(x = Date_Time, y = Soilmoisture_Volumetric, colour = as.factor(Habitat))) +
+  ggplot(aes(x = DateTime_UTC, y = Soilmoisture_Volumetric, colour = as.factor(Treatment))) +
   geom_line() +
-  facet_grid(Transect~ Treatment, scales = "free") +
+  facet_grid(Habitat ~ Transect, scales = "free") +
   theme_classic()
 
 TomstData_SoilMoistureCorrect %>% 
   filter(Treatment %in% c("C", "OTC"))%>%
-  ggplot(aes(x = Date_Time, y = SoilTemperature, colour = as.factor(Habitat))) +
+  ggplot(aes(x = DateTime_UTC, y = SoilTemperature, colour = as.factor(Treatment))) +
   geom_line() +
-  facet_grid(Transect~ Treatment, scales = "free") +
+  facet_grid(Habitat~ Transect, scales = "free") +
   theme_classic()
 
 TomstData_SoilMoistureCorrect %>%
   filter(Treatment %in% c("C", "OTC"))%>%
-  ggplot(aes(x = Date_Time, y = GroundTemperature, colour = as.factor(Habitat))) +
+  ggplot(aes(x = DateTime_local, y = GroundTemperature, colour = as.factor(Habitat))) +
   geom_line() +
   facet_grid(Transect~ Treatment, scales = "free") +
   theme_classic()
@@ -125,7 +124,7 @@ TomstData_SoilMoistureCorrect %>%
 TomstData_SoilMoistureCorrect %>% 
   filter(Treatment %in% c("C", "OTC"))%>%
   filter(Date == "2022-03-31")%>%
-  ggplot(aes(x = Date_Time, y = AirTemperature, colour = as.factor(Habitat))) +
+  ggplot(aes(x = DateTime_local, y = AirTemperature, colour = as.factor(Habitat))) +
   geom_line() +
   facet_grid(Transect~ Treatment, scales = "free") +
   theme_classic()
@@ -135,10 +134,9 @@ TomstData_SoilMoistureCorrect %>%
 
 #Data Cleaning
 TomstData_Clean<-TomstData_SoilMoistureCorrect%>%
-  filter(SoilTemperature > -30)%>% # filter bad measurements from 3WGB_C logger
-  filter(SoilTemperature < 80)%>% # filter out bad measurements from 3WGB_C logger
   filter(!PlotID == "BS_C" | SoilTemperature < 30)%>%
   filter(!PlotID == "AS_C" | SoilTemperature < 20)
+
 
 # summary
 summer_microclimate2020<-TomstData_Clean%>%
@@ -184,5 +182,10 @@ ggplot(winter_microclimate2020, aes(Habitat, value, fill= Treatment))+
 # correct for high soilmoisture values? rescale saturated moisture to 1?
 
 # Save file
-#write_csv(TomstData_Clean, "C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\AnalysisR\\TOMSTdata_SMcalculated.csv")
+write_csv(TomstData_Clean, "C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\AnalysisR\\TOMSTdata_SMcalculated2023.csv")
 
+TomstData_Clean2022<-TomstData_Clean%>%
+  mutate(Year = year(Date))%>%
+  filter(Year == 2022)
+
+write_csv(TomstData_Clean, "C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\AnalysisR\\TOMSTdata_SMcalculated_only2022.csv")
