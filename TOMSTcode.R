@@ -98,7 +98,6 @@ TomstData_SoilMoistureCorrect<-TomstLoggerData%>%
   mutate(Soilmoisture_Volumetric= Soilmoisture_Volumetric*100)%>%
   mutate(Soilmoisture_Volumetric = ifelse(SoilTemperature < 0, NA, Soilmoisture_Volumetric)) # soilmoisture NA if soil frozen 0 degrees C
 
-
 # check data 
 TomstData_SoilMoistureCorrect %>% 
   filter(Treatment %in% c("C", "OTC"))%>%
@@ -137,6 +136,18 @@ TomstData_Clean<-TomstData_SoilMoistureCorrect%>%
   filter(!PlotID == "BS_C" | SoilTemperature < 30)%>%
   filter(!PlotID == "AS_C" | SoilTemperature < 20)
 
+Tomst2022<-TomstData_Clean%>%
+  mutate(Year = year(Date))%>%
+  filter(Year == 2022)%>%
+  filter(Treatment %in% c("C", "OTC"))
+
+Tomst2022 %>% 
+  ggplot(aes(x = DateTime_UTC, y = SoilTemperature, colour = as.factor(Treatment))) +
+  geom_line() +
+  facet_grid(Habitat~ Transect, scales = "free") +
+  theme_classic()
+
+#write_csv(Tomst2022, "C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Manuscripts\\Nematode\\TOMSTdata_SMcalculated2022.csv")
 
 # summary
 summer_microclimate2020<-TomstData_Clean%>%
@@ -182,10 +193,41 @@ ggplot(winter_microclimate2020, aes(Habitat, value, fill= Treatment))+
 # correct for high soilmoisture values? rescale saturated moisture to 1?
 
 # Save file
-write_csv(TomstData_Clean, "C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\AnalysisR\\TOMSTdata_SMcalculated2023.csv")
+#write_csv(TomstData_Clean, "C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\AnalysisR\\TOMSTdata_SMcalculated2023.csv")
 
-TomstData_Clean2022<-TomstData_Clean%>%
-  mutate(Year = year(Date))%>%
-  filter(Year == 2022)
 
-write_csv(TomstData_Clean, "C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\AnalysisR\\TOMSTdata_SMcalculated_only2022.csv")
+# SoilTemp Database submission
+Database_TOMST<-TomstLoggerData%>%
+  mutate(Raw_data_identifier = LoggerID,
+         Year = year(Date),
+         Month = month(Date),
+         Day = day(Date),
+         Time = strftime(DateTime_UTC, format="%H:%M"),
+         T1 = SoilTemperature,
+         T2 = GroundTemperature,
+         T3 = AirTemperature,
+         Soil_moisture_raw = RawSoilmoisture)%>%
+  select(Raw_data_identifier, Year, Month, Day, Time, T1, T2, T3, Soil_moisture_raw)
+
+#write_csv(Database_TOMST, "C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\Climate\\SoilTemp_Database_TOMST\\RAW-TIME-SERIES-DATA.csv")
+
+
+
+METADATA<-TomstLoggerData%>%
+  mutate(Raw_data_identifier = LoggerID,
+         Year = year(Date),
+         Month = month(Date),
+         Day = day(Date),
+         Time = strftime(DateTime_UTC, format="%H:%M"),
+         T1 = SoilTemperature,
+         T2 = GroundTemperature,
+         T3 = AirTemperature,
+         Soil_moisture_raw = RawSoilmoisture)%>%
+  select(Raw_data_identifier, PlotID, Habitat, Treatment, Year, Month, Day, Time, T1, T2, T3, Soil_moisture_raw)%>%
+  distinct(Raw_data_identifier, .keep_all = TRUE)%>%
+  gather(key = "Sensor_code", value = value , 9:12)
+
+#write_csv(METADATA, "C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\Climate\\SoilTemp_Database_TOMST\\METADATA.csv")
+
+
+
