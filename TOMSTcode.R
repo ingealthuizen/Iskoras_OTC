@@ -136,6 +136,10 @@ TomstData_Clean<-TomstData_SoilMoistureCorrect%>%
   filter(!PlotID == "BS_C" | SoilTemperature < 30)%>%
   filter(!PlotID == "AS_C" | SoilTemperature < 20)
 
+# Save file
+#write_csv(TomstData_Clean, "C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\AnalysisR\\TOMSTdata_SMcalculated2023.csv")
+
+
 Tomst2022<-TomstData_Clean%>%
   mutate(Year = year(Date))%>%
   filter(Year == 2022)%>%
@@ -192,8 +196,7 @@ ggplot(winter_microclimate2020, aes(Habitat, value, fill= Treatment))+
 
 # correct for high soilmoisture values? rescale saturated moisture to 1?
 
-# Save file
-#write_csv(TomstData_Clean, "C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\AnalysisR\\TOMSTdata_SMcalculated2023.csv")
+
 
 
 # SoilTemp Database submission
