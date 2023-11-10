@@ -9,13 +9,9 @@ se <- function(x) sd(x)/sqrt(length(x))
 ## TOMST data 
 TomstData<-read.csv("C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\AnalysisR\\TOMSTdata_SMcalculated2023.csv")
 TomstData<-TomstData%>%
+  mutate(Date = as.Date(Date))%>%
   filter(Treatment %in% c("C", "OTC"))%>%
-  select(PlotID:LoggerID, Date, Date_Time, SoilTemperature:RawSoilmoisture, Soilmoisture_Volumetric)%>%
-  mutate(Date = as.Date(Date),
-         DateTime_UTC = as.POSIXct(strptime(Date_Time, tz="UTC", "%Y-%m-%dT%H:%M:%SZ")),
-         DateTime = format(DateTime_UTC, tz="Europe/Berlin"),
-         Hour = hour(DateTime),
-         Soilmoisture_Volumetric= Soilmoisture_Volumetric*100)
+  select(PlotID:LoggerID, Date, Date_Time, Hour, SoilTemperature:RawSoilmoisture, Soilmoisture_Volumetric)
 
 
 # hourly climate data per plot
@@ -770,22 +766,52 @@ SR2022_CH4_env_new<-SR2022_CH4_env%>%
 
 
 ## Add airtemp based on TOMSTloggerData for measurement hour
-SR2022_CO2_env_T<-left_join(SR2022_CO2_env_new, TomstData_HourlyPlotID, by= c("Date", "Hour", "PlotID", "Transect" , "Habitat", "Treatment"))
-SR2022_CH4_env_T<-left_join(SR2022_CH4_env_new, TomstData_HourlyPlotID, by= c("Date", "Hour", "PlotID", "Transect" , "Habitat", "Treatment"))
+SR2022_CO2_env<-SR2022_CO2_env_new%>%
+  filter(Habitat !="W")
+
+SR2022_CO2_env_TOMST<-left_join(SR2022_CO2_env, TomstData_HourlyPlotID, by= c("Date", "Hour", "PlotID", "Transect" , "Habitat", "Treatment"))
+
+SR2022_CH4_env<-SR2022_CH4_env_new%>%
+  filter(Habitat !="W")
+
+SR2022_CH4_env_TOMST<-left_join(SR2022_CH4_env, TomstData_HourlyPlotID, by= c("Date", "Hour", "PlotID", "Transect" , "Habitat", "Treatment"))
+
+# use date from TOMST loggers at thaw slump also for thaw pond
+W_SR2022_CO2_env_new<-SR2022_CO2_env_new%>%
+  filter(Habitat =="W")%>%
+  mutate(Habitat_Tmatch = "M")
+
+W_SR2022_CO2_env_TOMST<-left_join(W_SR2022_CO2_env_new, TomstData_HourlyPlotID, by= c("Date", "Hour", "Transect" , "Habitat_Tmatch" = "Habitat", "Treatment"))%>%
+  mutate(PlotID = PlotID.x)%>%
+  select(-PlotID.y, -PlotID.x, -Habitat_Tmatch)
+
+W_SR2022_CH4_env_new<-SR2022_CH4_env_new%>%
+  filter(Habitat =="W")%>%
+  mutate(Habitat_Tmatch = "M")
+
+W_SR2022_CH4_env_TOMST<-left_join(W_SR2022_CH4_env_new, TomstData_HourlyPlotID, by= c("Date", "Hour", "Transect" , "Habitat_Tmatch" = "Habitat", "Treatment"))%>%
+  mutate(PlotID = PlotID.x)%>%
+  select(-PlotID.y, -PlotID.x, -Habitat_Tmatch)
+
+SR2022_CO2_env_TOMST<- rbind(SR2022_CO2_env_TOMST, W_SR2022_CO2_env_TOMST)
+SR2022_CH4_env_TOMST<- rbind(SR2022_CH4_env_TOMST, W_SR2022_CH4_env_TOMST)
+
 
 # Flux conversion HMR microL/m2/s > micromol/m2/s HMRoutput/(0.08205*(273.15+Air_temp))
-SR2022_CO2_env_T<- SR2022_CO2_env_T%>%
+SR2022_CO2_env_TOMST<- SR2022_CO2_env_TOMST%>%
   mutate(CO2flux = f0/(0.08205*(273.15+AirTemperature)),
          CO2flux.LR = LR.f0/(0.08205*(273.15+AirTemperature)),
          CO2flux_soilTemp = f0/(0.08205*(273.15+SoilT_mean)))%>%
   mutate(CO2flux_final = ifelse(is.na(CO2flux) == TRUE, CO2flux_soilTemp, CO2flux))
 
-SR2022_CH4_env_T<- SR2022_CH4_env_T%>%
+SR2022_CH4_env_TOMST<- SR2022_CH4_env_TOMST%>%
   mutate(CH4flux = f0/(0.08205*(273.15+AirTemperature)),
          CH4flux.LR = LR.f0/(0.08205*(273.15+AirTemperature)),
          CH4flux_soilTemp = f0/(0.08205*(273.15+SoilT_mean)))%>%
   mutate(CH4flux_final = ifelse(is.na(CH4flux) == TRUE, CH4flux_soilTemp, CH4flux))
 
+#write.csv(SR2022_CO2_env_TOMST, "C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Manuscripts\\Nematode\\SRdata_CO2_2022.csv")
+#write.csv(SR2022_CH4_env_TOMST, "C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Manuscripts\\Nematode\\SRdata_CH4_2022.csv")
 
 ###Data cleaning SR data 2021
 # SR CO2
