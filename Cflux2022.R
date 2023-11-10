@@ -28,7 +28,7 @@ TomstData_HourlyPlotID<- TomstData%>%
   ungroup()
 
 
-#meta<-read.csv2("C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\Cflux\\MetaData_2020_2022.csv")
+meta<-read.csv2("C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\Cflux\\MetaData_2020_2022.csv")
 
 meta_mean<-meta%>%
   mutate(Date = as.Date(Date, format= "%d.%m.%Y"),
@@ -558,7 +558,7 @@ NEE_CH4_21_22_means_TOMST<-left_join(NEE_CH4_21_22_means, TomstData_HourlyPlotID
 # read in ECtower data
 #ref par calculation: https://www.sciencedirect.com/science/article/pii/0002157176900807
 
-ECdata<-read.csv("C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\Climate\\Mobileflux1_level1_30min_forCasper_update2022.csv")%>%
+ECdata<-read.csv("C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\Climate\\Mobileflux1_level1_30min_forInge.csv")%>%
   separate(index, into = c("Date", "Time"), sep = " " )%>%
   mutate(Hour = as.integer(substring(Time, 1, 2)),
          Date = as.Date(Date),
