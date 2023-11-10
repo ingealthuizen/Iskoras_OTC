@@ -7,7 +7,7 @@ library(readxl)
 se <- function(x) sd(x)/sqrt(length(x))
 
 ## TOMST data 
-TomstData<-read.csv("C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\AnalysisR\\TOMSTdata_SMcalculated.csv")
+TomstData<-read.csv("C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\AnalysisR\\TOMSTdata_SMcalculated2023.csv")
 TomstData<-TomstData%>%
   filter(Treatment %in% c("C", "OTC"))%>%
   select(PlotID:LoggerID, Date, Date_Time, SoilTemperature:RawSoilmoisture, Soilmoisture_Volumetric)%>%
@@ -28,7 +28,7 @@ TomstData_HourlyPlotID<- TomstData%>%
   ungroup()
 
 
-meta<-read.csv2("C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\Cflux\\MetaData_2020_2022.csv")
+#meta<-read.csv2("C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\Cflux\\MetaData_2020_2022.csv")
 
 meta_mean<-meta%>%
   mutate(Date = as.Date(Date, format= "%d.%m.%Y"),
@@ -41,7 +41,7 @@ meta_mean<-meta%>%
   summarise(Thawdepth = mean(Thawdepth, na.rm = TRUE), 
             Watertable1 = mean(Watertable1, na.rm = TRUE))
 
-write.csv(meta_mean, "C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Manuscripts\\ABCmeta.csv")
+#write.csv(meta_mean, "C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Manuscripts\\ABCmeta.csv")
 
 ################################## NEEdata 2022 ############################################################################
 # read in Metadata NEE
@@ -378,7 +378,7 @@ GPP_CO2 <- left_join(NEE_CO2, RECO_CO2, by = c("Date", "PlotID", "Transect", "Ha
   mutate(GPPflux = (-1*NEEflux) + RECOflux) # GPP = NEE + RECO, multiple NEE by -1 to get positive numbers
 
 write.csv(GPP_CO2, "C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\AnalysisR\\Thawgradient\\GPP_2019-2022.csv", row.names = FALSE)
-
+read.csv("C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\AnalysisR\\Thawgradient\\GPP_2019-2022.csv")
 
 #¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤
 ################### CH4
