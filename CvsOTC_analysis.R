@@ -140,7 +140,8 @@ CWMplot<- CWMtraits%>%
   scale_shape_manual(values= c(19, 17), name = "Treatment", labels = c("C", "OTC"))+
   facet_grid(Trait~., scales = "free")+
   theme_bw()+
-  theme(legend.position = "bottom")
+  theme(legend.position = "bottom", axis.title = element_text(size = 14), axis.text = element_text(size =12), legend.text = element_text(size =13), strip.text = element_text(size=13) )
+CWMplot
 
 # test differences between community weighted traitsB(
 # non-parametric test for Treatment in each separate Habitat
@@ -208,7 +209,7 @@ PCAplot<- autoplot(TraitPCA, data = VegComp2021_Traits,  size = 4, fill= "Habita
   scale_shape_manual(values= c(21, 24), guide= "none")+
   guides(fill=guide_legend(override.aes=list(shape=21)))+
   theme_classic()+
-  theme(legend.position = "bottom", axis.title = element_text(size = 14), axis.text = element_text(size =12), legend.text = element_text(size =11) )
+  theme(legend.position = "bottom", axis.title = element_text(size = 14), axis.text = element_text(size =13), legend.text = element_text(size =13) )
 PCAplot
 
 plot_grid(PCAplot, CWMplot, labels= c("A", "B" ))
@@ -298,7 +299,10 @@ NDVImean$Habitat <- factor(NDVImean$Habitat, levels = c("Vegetated Palsa", "Thaw
 
 ggplot(NDVImean, aes(as.factor(Month), NDVI.mean, color= Habitat, shape= Treatment)) +
   geom_point(position = position_dodge(0.8), size=4) +
-  geom_errorbar(aes(ymin=NDVI.mean-NDVI.se, ymax=NDVI.mean+NDVI.se), position = position_dodge(0.8), width=.4)+
+  geom_smooth(method = "loess", se = FALSE)+
+  geom_errorbar(aes(ymin=NDVI.mean-NDVI.se, ymax=NDVI.mean+NDVI.se), 
+                position = position_dodge(0.8), width=.4)+
+  
   scale_color_manual(values= c("#fc8d62", "#66c2a5", "#8da0cb"), 
                      name = "Habitat")+
   scale_shape_manual(values= c(19,17), name = "Treatment", labels = c("Control", "OTC"))+
@@ -311,15 +315,12 @@ ggplot(NDVImean, aes(as.factor(Month), NDVI.mean, color= Habitat, shape= Treatme
 ####### Abiotic conditions (TOMST loggers)
 #! NEED TO CHECK LOGGERID and LOCATION!!!
 library(lubridate)
-TomstData<-read.csv("AnalysisR\\TOMSTdata_SMcalculated.csv")
+TomstData<-read.csv("AnalysisR\\TOMSTdata_SMcalculated2023.csv")
 
 TomstData<-TomstData%>%
   filter(Treatment %in% c("C", "OTC"))%>%
-  select(PlotID:LoggerID, Date, Date_Time, SoilTemperature:RawSoilmoisture, Soilmoisture_Volumetric)%>%
+  select(PlotID:LoggerID, Date, Date_Time, Hour, SoilTemperature:RawSoilmoisture, Soilmoisture_Volumetric)%>%
   mutate(Date = as.Date(Date),
-         DateTime_UTC = as.POSIXct(strptime(Date_Time, tz="UTC", "%Y-%m-%dT%H:%M:%SZ")),
-         DateTime = format(DateTime_UTC, tz="Europe/Berlin"),
-         Hour = hour(DateTime),
          Soilmoisture_Volumetric= Soilmoisture_Volumetric*100)
 
 # summary of microclimate across summer season June-August
@@ -361,7 +362,7 @@ TomstData_MeanDailyHabitat%>%
   #                  name = "Habitat")+
   facet_grid(Climate_variable~Habitat, scales="free")+
   theme_bw()+
-  theme(legend.position = "right", axis.title = element_text(size = 14), axis.text = element_text(size =12), legend.text = element_text(size =11) )
+  theme(legend.position = "right", axis.title = element_text(size = 14), axis.text = element_text(size =12), legend.text = element_text(size =11), strip.text = element_text(size = 13) )
 
 # Dates thaw out for OTC vs Control
 
@@ -398,7 +399,7 @@ TomstData_MeanHourlyHabitat$Habitat <- factor(TomstData_MeanHourlyHabitat$Habita
 
 # plot summer season hourly based on June-August data in 2021
 TomstData_MeanHourlyHabitat%>%
-  filter(Habitat != "Bare Soil Palsa")%>%
+  filter(Habitat != "Soil Palsa")%>%
   filter(Climate_variable %in% c("AirTemperature", "SoilTemperature"))%>%
   ggplot(aes(Hour, Mean, col= Habitat, linetype =Treatment))+
   geom_line()+
@@ -409,7 +410,7 @@ TomstData_MeanHourlyHabitat%>%
                      name = "Habitat")+
   facet_grid(Climate_variable~Habitat, scales="free")+
   theme_bw()+
-  theme(legend.position = "right", axis.title = element_text(size = 14), axis.text = element_text(size =12), legend.text = element_text(size =11) )
+  theme(axis.title = element_text(size = 14), axis.text = element_text(size =12), legend.text = element_text(size =11), strip.text = element_text(size = 13), legend.position = "none" )
 
 TomstData_MeanHourlyHabitat%>%
   group_by(Habitat, Treatment)%>%
@@ -1202,12 +1203,19 @@ ggplot(GPP_NDVI_CWM, aes(NDVI, GPPflux))+
                      name = "Habitat")+
   scale_shape_manual(values= c(19,17), name = "Treatment", labels = c("Control", "OTC"))+
   geom_smooth(method = "lm", col="black", se=FALSE)+
+  ylab(expression(Gross~Primary~Production~CO[2]~(micromol/m^{2}/s))) + 
   theme_classic()+
   theme( axis.title = element_text(size = 14), axis.text = element_text(size =12), legend.text = element_text(size =11) )
 
 ggplot(GPP_NDVI_CWM, aes(VH, GPPflux))+
-  geom_point(aes(col=Habitat.x))+
-  geom_smooth(method = "lm")
+  geom_point(aes(col=Habitat.x, shape = Treatment))+
+  scale_color_manual(values= c("#fc8d62", "#66c2a5", "#8da0cb"), 
+                     name = "Habitat")+
+  scale_shape_manual(values= c(19,17), name = "Treatment", labels = c("Control", "OTC"))+
+  geom_smooth(method = "lm", col="black", se=FALSE)+
+  ylab(expression(Gross~Primary~Production~CO[2]~(micromol/m^{2}/s))) + 
+  theme_classic()+
+  theme( axis.title = element_text(size = 14), axis.text = element_text(size =12), legend.text = element_text(size =11) )
 
 ggplot(GPP_NDVI_CWM, aes(PAR.mean, GPPflux))+
   geom_point(aes(col=Habitat.x))+
