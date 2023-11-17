@@ -308,7 +308,7 @@ NEE_CO2_19_20_21_22_means_TOMST<-left_join(NEE_CO2_19_20_21_22_means, TomstData_
 # read in ECtower data
 #ref par calculation: https://www.sciencedirect.com/science/article/pii/0002157176900807
 
-ECdata<-read.csv("C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\Climate\\Mobileflux1_level1_30min_forCasper_update2022.csv")%>%
+ECdata<-read.csv("C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\Climate\\Mobileflux1_level1_30min_forInge.csv")%>%
   separate(index, into = c("Date", "Time"), sep = " " )%>%
   mutate(Hour = as.integer(substring(Time, 1, 2)),
          Date = as.Date(Date),
