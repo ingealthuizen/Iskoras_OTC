@@ -5,7 +5,7 @@ library(janitor)
 library(lubridate)
 library(ggplot2)
 
-setwd("C:\\Users\\ial008\\OneDrive - NORCE\\Iskoras\\Data\\soilgas")
+setwd("C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\soilgas")
 #### Read raw data files soilgas 2019 ####
 col_names <- c("Vial_ID", "Transect", "Plot", "Soil_depth", "Treatment", "Time_SECS", "Type", "Date", "CH4_ppm", "CO2_ppm", "N2O_ppm")
 raw_dataa <- read_xlsx("15 - 4a. jordgas.xlsx", skip = 12, range = "F4:P101", trim_ws = TRUE)
@@ -31,7 +31,7 @@ soilgas <-soilgas %>%
          !str_detect(Transect, "Std"))
 
 # read soilgas data 2017-2018
-soilgas_1718 <- read.csv("C:\\Users\\ial008\\OneDrive - NORCE\\Iskoras\\Data\\soilgas\\April_update_soilgas_2019.csv")%>%
+soilgas_1718 <- read.csv("C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\soilgas\\April_update_soilgas_2019.csv")%>%
   mutate(Transect = as.character(Transect),
          Soildepth = as.character(Soildepth),
          Habitat = recode(Plot, "Vegetated palsa" = "P", "Soil palsa" = "S", "Thaw slump" = "M", "Thaw pond" = "W"),
@@ -39,7 +39,7 @@ soilgas_1718 <- read.csv("C:\\Users\\ial008\\OneDrive - NORCE\\Iskoras\\Data\\so
   select(-Plot)
 
 # read soilgas data 2019
-soilgas_19 <- read.csv2("C:\\Users\\ial008\\OneDrive - NORCE\\Iskoras\\Data\\soilgas\\Soilgas_2019.csv", fill = TRUE)%>%
+soilgas_19 <- read.csv2("C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\soilgas\\Soilgas_2019.csv", fill = TRUE)%>%
   mutate(Date = as.Date(Date, "%d.%m.%Y"))
          
 
@@ -49,7 +49,7 @@ soilgas_171819 <- bind_rows(soilgas_1718, soilgas_19)%>%
          Transect = as.factor(Transect))
 
 # soilgas data 2020
-soilgas_2020 <- read.csv2("C:\\Users\\ial008\\OneDrive - NORCE\\Iskoras\\Data\\2020\\Soilgas\\Soilgas_2020data.csv")%>%
+soilgas_2020 <- read.csv2("C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\2020\\Soilgas\\Soilgas_2020data.csv")%>%
   mutate(Date = as.Date(Date, "%d.%m.%Y"),
          Transect = as.factor(Transect),
          Soildepth = as.integer(Soildepth))%>%
@@ -149,7 +149,7 @@ ggplot(soilgas_17181920, aes(month, N2O_ppm, fill = year))+
 
 # some months multiple measurement days
 soilgas_mean <- soilgas_17181920%>%
-  group_by(Habitat, Soildepth, year, month)%>%
+  group_by(Habitat, Soildepth, month)%>%
   summarise(CO2 = mean(CO2_ppm, na.rm = TRUE),
             CO2_sd = sd(CO2_ppm, na.rm = TRUE),
             CH4 = mean(CH4_ppm, na.rm = TRUE),
@@ -159,27 +159,27 @@ soilgas_mean <- soilgas_17181920%>%
             n_observations = n())
 
 # interpolate concentration of different gasses at 30cm depth based on mean of 20 and 40cm data. 
-soilgas_30mean <- soilgas_mean%>%
-  filter(!Soildepth == "10")%>%
-  group_by(Habitat, year, month)%>%
-  summarise(CO2 = mean(CO2),
-            CH4 = mean(CH4),
-            N2O = mean(N2O))%>%
-  mutate(Soildepth = as.integer(30))%>%
-  ungroup()
+#soilgas_30mean <- soilgas_mean%>%
+#  filter(!Soildepth == "10")%>%
+#  group_by(Habitat, month)%>%
+#  summarise(CO2 = mean(CO2),
+#            CH4 = mean(CH4),
+  #          N2O = mean(N2O))%>%
+#  mutate(Soildepth = as.integer(30))%>%
+#  ungroup()
 
-soilgas_mean <- bind_rows(soilgas_mean, soilgas_30mean)%>%
-  mutate(Month = as.numeric(as.character(month)),
-         Habitat = as.factor(Habitat))%>%
-  ungroup()
+#soilgas_mean <- bind_rows(soilgas_mean, soilgas_30mean)%>%
+#  mutate(Month = as.numeric(as.character(month)),
+ #        Habitat = as.factor(Habitat))%>%
+ # ungroup()
 
 soilgas_mean$Habitat <- factor(soilgas_mean$Habitat, levels = c("P", "S", "M", "W"))
 
 ggplot(soilgas_mean)+
-  geom_point(aes(Soildepth, CO2, fill= year, shape = year), size = 2)+
+  geom_point(aes(Soildepth, CO2, fill= Habitat, shape = Habitat), size = 2)+
   scale_shape_manual(values = c( 21, 22, 24, 25))+
-  geom_line(aes(Soildepth, CO2, col = year))+
-  geom_errorbar(aes(x= Soildepth, y= CO2, ymin=CO2-CO2_sd, ymax=CO2+CO2_sd, col = year), width=.1, position=position_dodge(0.05))+
+  geom_line(aes(Soildepth, CO2, col=Habitat))+
+  geom_errorbar(aes(x= Soildepth, y= CO2, ymin=CO2-CO2_sd, ymax=CO2+CO2_sd, color=Habitat), width=.1, position=position_dodge(0.05))+
   geom_hline(yintercept=0 , linetype= "dashed")+
   scale_x_continuous(trans = "reverse")+
   facet_grid(month~Habitat, scales = "free_x")+
@@ -207,7 +207,7 @@ ggplot(soilgas_mean)+
 
 
 # Thawdepth data
-MetaData<-read.csv2("C:\\Users\\ial008\\OneDrive - NORCE\\Iskoras\\Data\\2020\\MetaData_2017-2020.csv")
+MetaData<-read.csv2("C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\2020\\MetaData_2017-2020.csv")
 MetaData<-MetaData%>%
   mutate(Habitat = recode(Habitat, "WGA" = "WG"),
          Habitat = recode(Habitat, "WGB" = "WG"),
