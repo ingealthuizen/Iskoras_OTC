@@ -147,13 +147,15 @@ plot_grid(Plot_Ibutton2, Plot_WvsWG_2,
 #TOMST data mid june 2020- sept 2023
 TomstData<-read.csv("C:\\Users\\ialt\\OneDrive - NORCE\\Iskoras\\Data\\AnalysisR\\TOMSTdata_SMcalculated2023.csv")
 
-TomstData<-TomstData%>%
-  filter(Treatment %in% c("C", "OTC"))%>%
-  select(PlotID:LoggerID, Date, Date_Time, SoilTemperature:RawSoilmoisture, Soilmoisture_Volumetric)%>%
-  mutate(Date = as.Date(Date))
+TomstData_control<-TomstData%>%
+  filter(Treatment %in% c("C"))%>%
+  select(PlotID:LoggerID, Date, DateTime_UTC, DateTime_local, Hour, SoilTemperature:RawSoilmoisture, Soilmoisture_Volumetric)%>%
+  mutate(Date = as.Date(Date))%>%
+  mutate(Habitat =recode(Habitat, M = "Thaw slump", P= "Vegetated Palsa", S = "Bare Soil Palsa", WG= "Vegetated Pond")) # recode Habitat
+TomstData_control$Habitat <- factor(TomstData_control$Habitat, levels = c("Vegetated Palsa", "Bare Soil Palsa", "Thaw slump", "Vegetated Pond"))
 
 # Hourly climate data per plot
-TomstData_HourlyPlotID<- TomstData%>%
+TomstData_HourlyPlotID<- TomstData_control%>%
   group_by(PlotID, Transect, Habitat, Treatment, Date, Hour)%>%
   summarise(SoilTemperature = mean(SoilTemperature, na.rm = TRUE), 
             GroundTemperature = mean(GroundTemperature, na.rm = TRUE),
@@ -163,41 +165,103 @@ TomstData_HourlyPlotID<- TomstData%>%
 
 ##### DAILY
 # Summary Daily Per Habitat and Treatment
-TomstData_MeanDailyHabitat<-TomstData%>%
+TomstData_MeanDailyHabitat<-TomstData_control%>%
   gather(Climate_variable, value, SoilTemperature:Soilmoisture_Volumetric)%>%
   group_by(Habitat, Treatment, Date, Climate_variable)%>%
-  summarise_at(vars(value), list(Min = min, Mean = mean, Max = max, sd = sd, se =se))%>%
-  mutate(Habitat =recode(Habitat, M = "Thaw slump", P= "Vegetated Palsa", S = "Bare Soil Palsa", WG= "Vegetated Pond")) # recode Habitat
-TomstData_MeanDailyHabitat$Habitat <- factor(TomstData_MeanDailyHabitat$Habitat, levels = c("Vegetated Palsa", "Bare Soil Palsa", "Thaw slump", "Vegetated Pond"))
+  summarise_at(vars(value), list(Min = min, Mean = mean, Max = max, sd = sd, se =se))#%>%
+  #mutate(Habitat =recode(Habitat, M = "Thaw slump", P= "Vegetated Palsa", S = "Bare Soil Palsa", WG= "Vegetated Pond")) # recode Habitat
+#TomstData_MeanDailyHabitat$Habitat <- factor(TomstData_MeanDailyHabitat$Habitat, levels = c("Vegetated Palsa", "Bare Soil Palsa", "Thaw slump", "Vegetated Pond"))
 
 
 # main figure 2 multiple year overview and zoom in to summer?
 # missing thaw pond (W) in this figure!
-TOMSTsoiltemp<-TomstData_MeanDailyHabitat%>%
-  filter(Treatment == "C")%>%
-  filter(Climate_variable %in% c("SoilTemperature"))%>%
-  #filter(Date > "2022-01-01" & Date <"2022-12-31")%>%
-  ggplot(aes(Date, Mean, col= Habitat))+
-  geom_line()+
-  #geom_ribbon(aes(ymin = Mean-sd, ymax = Mean+sd, fill = Habitat), alpha=0.3) +
-  #scale_color_manual(values= c("#fc8d62", "#66c2a5", "#8da0cb"), 
-  #                   name = "Habitat")+
-  #scale_fill_manual(values= c("#fc8d62", "#66c2a5", "#8da0cb"), 
-  #                 name = "Habitat")+
-  facet_wrap(~Climate_variable, scales="free")+
-  theme_bw()+
-  theme(legend.position = "bottom", axis.title = element_text(size = 14), axis.text = element_text(size =12), legend.text = element_text(size =11) )
-
 
 TOMSTairtemp<-TomstData_MeanDailyHabitat%>%
+  #filter(Date > "2021-05-01" & Date <"2022-04-30")%>%
   filter(Treatment == "C")%>%
   filter(Climate_variable %in% c("AirTemperature"))%>%
-  #filter(Date > "2022-01-01" & Date <"2022-12-31")%>%
   ggplot(aes(Date, Mean, col= Habitat))+
   geom_line()+
+  geom_ribbon(aes(ymin = Mean-se, ymax = Mean+se, fill = Habitat), alpha=0.3) +
+  scale_color_manual(values= c("#fc8d62", "#e5c494","#66c2a5", "#8da0cb"), 
+                     name = "Habitat")+
+  scale_fill_manual(values= c("#fc8d62","#e5c494", "#66c2a5", "#8da0cb"), name = "Habitat")+ 
+  geom_hline(yintercept = 0, linetype= "dashed")+
   facet_wrap(~Climate_variable, scales="free")+
-  theme_bw()+
-  theme(legend.position = "none", axis.title = element_text(size = 14), axis.text = element_text(size =12), legend.text = element_text(size =11) )
+  labs(y= expression('Air temperature ('*~degree*C*')'))+
+  theme_classic()+
+  theme(legend.position = c(0.9, 0.2), strip.text = element_blank(),
+        axis.title = element_text(size = 14), axis.text = element_text(size =12), legend.text = element_text(size =11))
+
+Airtemp_annual<- TomstData_control%>%
+  mutate(Month = month(Date),
+         Year = year(Date))%>%
+  filter(Year > 2021 & Year < 2023)%>%
+  group_by(Year, PlotID, Habitat, Treatment)%>%
+  summarise(AirTemperature = mean(AirTemperature, na.rm = TRUE))%>%
+  ggplot(aes(Treatment, AirTemperature, fill=Habitat))+
+  geom_boxplot()+
+  scale_fill_manual(values= c("#fc8d62","#e5c494", "#66c2a5", "#8da0cb"), name = "Habitat")+ 
+  labs(x= "Annual")+
+  theme_classic()+
+  theme(legend.position = "none", axis.text.x = element_blank(), axis.title.y = element_blank(),axis.title.x = element_text(size =12))
+
+Airtemp_summer<- TomstData_control%>%
+  mutate(Month = month(Date),
+         Year = year(Date))%>%
+  filter(Year > 2021 & Year < 2023)%>%
+  filter(Month > 5 & Month < 9)%>%
+  group_by(Year, PlotID, Habitat, Treatment)%>%
+  summarise(AirTemperature = mean(AirTemperature, na.rm = TRUE))%>%
+  ggplot(aes(Treatment, AirTemperature, fill=Habitat))+
+  geom_boxplot()+
+  scale_fill_manual(values= c("#fc8d62","#e5c494", "#66c2a5", "#8da0cb"), name = "Habitat")+ 
+  labs(x= "Summer")+
+    theme_classic()+
+  theme(legend.position = "none", axis.text.x = element_blank(),  axis.title.y = element_blank(), axis.title.x = element_text(size =12))
+
+TOMSTsoiltemp<-TomstData_MeanDailyHabitat%>%
+  filter(Climate_variable %in% c("SoilTemperature"))%>%
+  ggplot(aes(Date, Mean, col= Habitat))+
+  geom_line()+
+  geom_ribbon(aes(ymin = Mean-se, ymax = Mean+se, fill = Habitat), alpha=0.3) +
+  geom_hline(yintercept = 0, linetype= "dashed")+
+  scale_color_manual(values= c("#fc8d62", "#e5c494","#66c2a5", "#8da0cb"), 
+                     name = "Habitat")+
+  scale_fill_manual(values= c("#fc8d62","#e5c494", "#66c2a5", "#8da0cb"), name = "Habitat")+ 
+  facet_wrap(~Climate_variable, scales="free")+
+  labs(y= expression('Soil temperature ('*~degree*C*')'))+
+  theme_classic()+
+  theme(legend.position = "none", strip.text = element_blank(),
+        axis.title = element_text(size = 14), axis.text = element_text(size =12), legend.text = element_text(size =11) )
+
+Soiltemp_annual<- TomstData_control%>%
+  mutate(Month = month(Date),
+         Year = year(Date))%>%
+  filter(Year > 2021 & Year < 2023)%>%
+  group_by(Year, PlotID, Habitat, Treatment)%>%
+  summarise(SoilTemperature = mean(SoilTemperature, na.rm = TRUE))%>%
+  ggplot(aes(Treatment, SoilTemperature, fill=Habitat))+
+  geom_boxplot()+
+  scale_fill_manual(values= c("#fc8d62","#e5c494", "#66c2a5", "#8da0cb"), name = "Habitat")+
+  labs(x= "Annual")+
+  theme_classic()+
+  theme(legend.position = "none", axis.text.x = element_blank(), axis.title.y = element_blank(), axis.title.x = element_text(size =12))
+
+Soiltemp_summer<- TomstData_control%>%
+  mutate(Month = month(Date),
+         Year = year(Date))%>%
+  filter(Year > 2021 & Year < 2023)%>%
+  filter(Month > 5 & Month < 9)%>%
+  group_by(Year, PlotID, Habitat, Treatment)%>%
+  summarise(SoilTemperature = mean(SoilTemperature, na.rm = TRUE))%>%
+  ggplot(aes(Treatment, SoilTemperature, fill=Habitat))+
+  geom_boxplot()+
+  scale_fill_manual(values= c("#fc8d62","#e5c494", "#66c2a5", "#8da0cb"), name = "Habitat")+ 
+  labs(x= "Summer")+
+  theme_classic()+
+  theme(legend.position = "none", axis.text.x = element_blank(), axis.title.y = element_blank(), axis.title.x = element_text(size =12))
+
 
 library(cowplot)
-plot_grid(TOMSTairtemp, TOMSTsoiltemp, nrow = 2)
+plot_grid(TOMSTairtemp, Airtemp_annual, Airtemp_summer, TOMSTsoiltemp, Soiltemp_annual, Soiltemp_summer, nrow = 2, rel_widths = c(3,1,1))
