@@ -159,7 +159,7 @@ TomstData_control$Habitat <- factor(TomstData_control$Habitat, levels = c("Veget
 
 # Hourly climate data per plot
 TomstData_HourlyPlotID<- TomstData_control%>%
-  group_by(PlotID, Transect, Habitat, Treatment, Date, Hour)%>%
+  group_by(PlotID, Transect, Habitat, Treatment, DateTime_local, Date, Hour)%>%
   summarise(SoilTemperature = mean(SoilTemperature, na.rm = TRUE), 
             GroundTemperature = mean(GroundTemperature, na.rm = TRUE),
             AirTemperature = mean(AirTemperature, na.rm = TRUE),
@@ -167,8 +167,17 @@ TomstData_HourlyPlotID<- TomstData_control%>%
   ungroup()
 
 
-
 ##### DAILY
+# Daily climate data per plot
+TomstData_DailyPlotID<- TomstData_control%>%
+  group_by(PlotID, Transect, Habitat, Treatment, Date)%>%
+  summarise(SoilTemperature = mean(SoilTemperature, na.rm = TRUE), 
+            GroundTemperature = mean(GroundTemperature, na.rm = TRUE),
+            AirTemperature = mean(AirTemperature, na.rm = TRUE),
+            Soilmoisture_Volumetric = mean(Soilmoisture_Volumetric, na.rm = TRUE))%>%
+  ungroup()
+
+
 # Summary Daily Per Habitat and Treatment
 TomstData_MeanDailyHabitat<-TomstData_control%>%
   gather(Climate_variable, value, SoilTemperature:Soilmoisture_Volumetric)%>%
@@ -201,13 +210,13 @@ TOMSTairtemp<-TomstData_MeanDailyHabitat%>%
 Airtemp_annual<- TomstData_control%>%
   mutate(Month = month(Date),
          Year = year(Date))%>%
-  filter(Year > 2020 & Year < 2024)%>%
-  filter(PlotID != "3WGA_C" & Year > 2022)%>% # data missing from 10.06.2023
+  filter(Year > 2020 & Year < 2023)%>%
   group_by(Year, PlotID, Habitat, Treatment)%>%
   summarise(AirTemperature = mean(AirTemperature, na.rm = TRUE))
 
 Airtemp_annual_plot<- ggplot(Airtemp_annual, aes(Treatment, AirTemperature, fill=Habitat))+
-  geom_boxplot()+
+  geom_boxplot(outlier.shape = NA)+
+  stat_summary(fun=mean, geom="point", shape=4, size=2, position = position_dodge(width = 0.75))+
   scale_fill_manual(values= c("#fc8d62","#e5c494", "#66c2a5", "#8da0cb"), name = "Habitat")+ 
   labs(x= "Annual")+
   theme_classic()+
@@ -218,12 +227,13 @@ Airtemp_summer<- TomstData_control%>%
          Year = year(Date))%>%
   filter(Year > 2020 & Year < 2024)%>%
   filter(Month > 5 & Month < 9)%>%
-  filter(PlotID != "3WGA_C" & Year > 2022)%>% # data missing from 10.06.2023
+  filter(PlotID != "3WGA_C" | Year > 2022)%>% # data missing from 10.06.2023
   group_by(Year, PlotID, Habitat, Treatment)%>%
   summarise(AirTemperature = mean(AirTemperature, na.rm = TRUE))
 
 Airtemp_summer_plot<-ggplot(Airtemp_summer, aes(Treatment, AirTemperature, fill=Habitat))+
-  geom_boxplot()+
+  geom_boxplot(outlier.shape = NA)+
+  stat_summary(fun=mean, geom="point", shape=4, size=2, position = position_dodge(width = 0.75))+
   scale_fill_manual(values= c("#fc8d62","#e5c494", "#66c2a5", "#8da0cb"), name = "Habitat")+ 
   labs(x= "Summer")+
     theme_classic()+
@@ -247,13 +257,13 @@ TOMSTsoiltemp<-TomstData_MeanDailyHabitat%>%
 Soiltemp_annual<- TomstData_control%>%
   mutate(Month = month(Date),
          Year = year(Date))%>%
-  filter(Year > 2020 & Year < 2024)%>%
-  filter(PlotID != "3WGA_C" & Year > 2022)%>% # data missing from 10.06.2023
+  filter(Year > 2020 & Year < 2023)%>%
   group_by(Year, PlotID, Habitat, Treatment)%>%
   summarise(SoilTemperature = mean(SoilTemperature, na.rm = TRUE))
 
 Soiltemp_annual_plot<- ggplot(Soiltemp_annual, aes(Treatment, SoilTemperature, fill=Habitat))+
-    geom_boxplot()+
+    geom_boxplot(outlier.shape = NA)+
+    stat_summary(fun=mean, geom="point", shape=4, size=2, position = position_dodge(width = 0.75))+
     scale_fill_manual(values= c("#fc8d62","#e5c494", "#66c2a5", "#8da0cb"), name = "Habitat")+
     labs(x= "Annual")+
     theme_classic()+
@@ -263,14 +273,15 @@ Soiltemp_summer<- TomstData_control%>%
   mutate(Month = month(Date),
          Year = year(Date))%>%
   filter(Year > 2020 & Year < 2024)%>%
-  filter(PlotID != "3WGA_C" & Year > 2022)%>% # data missing from 10.06.2023
+  filter(PlotID != "3WGA_C" | Year > 2022)%>% # data missing from 10.06.2023
   filter(Month > 5 & Month < 9)%>%
   group_by(Year, PlotID, Habitat, Treatment)%>%
   summarise(SoilTemperature = mean(SoilTemperature, na.rm = TRUE))
 
 
 Soiltemp_summer_plot<- ggplot(Soiltemp_summer, aes(Treatment, SoilTemperature, fill=Habitat))+
-  geom_boxplot()+
+  geom_boxplot(outlier.shape = NA)+
+  stat_summary(fun=mean, geom="point", shape=4, size=2, position = position_dodge(width = 0.75))+
   scale_fill_manual(values= c("#fc8d62","#e5c494", "#66c2a5", "#8da0cb"), name = "Habitat")+ 
   labs(x= "Summer")+
   theme_classic()+
@@ -279,8 +290,11 @@ Soiltemp_summer_plot<- ggplot(Soiltemp_summer, aes(Treatment, SoilTemperature, f
 library(cowplot)
 plot_grid(TOMSTairtemp, Airtemp_annual_plot, Airtemp_summer_plot, TOMSTsoiltemp, Soiltemp_annual_plot, Soiltemp_summer_plot, nrow = 2, rel_widths = c(3,1,1))
 
-
-
+# test for significant differences between habitat microclimate
+                      
+library(lme4)
+AT_annual.lmer<-lmer(SoilTemperature ~ Habitat + (1|PlotID), data=Soiltemp_summer)
+summary(AT_annual.lmer)
 
 
 ### Soilgas data
