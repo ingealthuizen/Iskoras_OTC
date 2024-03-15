@@ -299,7 +299,6 @@ NDVImean$Habitat <- factor(NDVImean$Habitat, levels = c("Vegetated Palsa", "Thaw
 
 ggplot(NDVImean, aes(as.factor(Month), NDVI.mean, color= Habitat, shape= Treatment)) +
   geom_point(position = position_dodge(0.8), size=4) +
-  geom_smooth(method = "loess", se = FALSE)+
   geom_errorbar(aes(ymin=NDVI.mean-NDVI.se, ymax=NDVI.mean+NDVI.se), 
                 position = position_dodge(0.8), width=.4)+
   
@@ -320,13 +319,12 @@ TomstData<-read.csv("AnalysisR\\TOMSTdata_SMcalculated2023.csv")
 TomstData<-TomstData%>%
   filter(Treatment %in% c("C", "OTC"))%>%
   select(PlotID:LoggerID, Date, Date_Time, Hour, SoilTemperature:RawSoilmoisture, Soilmoisture_Volumetric)%>%
-  mutate(Date = as.Date(Date),
-         Soilmoisture_Volumetric= Soilmoisture_Volumetric*100)
+  mutate(Date = as.Date(Date))
 
 # summary of microclimate across summer season June-August
 Summersummary<-TomstData%>%
   gather(Climate_variable, value, SoilTemperature:Soilmoisture_Volumetric)%>%
-  filter(Date > "2021-07-01" & Date <"2021-09-01")%>%
+  filter(Date > "2022-05-31" & Date <"2022-09-01")%>%
   group_by(PlotID, Habitat, Treatment, Date, Climate_variable)%>%
   summarise_at(vars(value), list(Mean = mean, Sd = sd, se =se, Max = max, Min = min ))
 
@@ -658,20 +656,6 @@ SR20202021_CO2_env_clean%>%
   theme(legend.position = "bottom", axis.title = element_text(size = 14), axis.text = element_text(size =12), legend.text = element_text(size =11) )
 
 
-SR20202021_CO2_env_clean%>%
-  group_by(Habitat, Treatment)%>%
-  summarise(CO2flux.se = se(CO2flux),
-            CO2flux.sd = sd(CO2flux, na.rm=TRUE),
-            CO2flux.mean= mean(CO2flux, na.rm=TRUE))%>%
-  ggplot(aes(Habitat, CO2flux.mean, color= Habitat, shape= Treatment))+
-  geom_point(position = position_dodge(0.8), size=4 )+
-  geom_errorbar(aes(ymin=CO2flux.mean-CO2flux.sd, ymax=CO2flux.mean+CO2flux.sd), position = position_dodge(0.8), width=.4)+
-  scale_color_manual(values= c("#fc8d62", "#e5c494","#66c2a5", "#8da0cb"), 
-                     name = "Habitat")+
-  scale_shape_manual(values= c(19,17), name = "Treatment", labels = c("Control", "OTC"))+
-  theme_classic()+
-  theme(legend.position = "bottom", axis.title = element_text(size = 14), axis.text = element_text(size =12), legend.text = element_text(size =11) )
-
 # supplement include seasonal pattern
 SR20202021_CO2_env_clean%>%
   ggplot(aes(Month, CO2flux, fill=Treatment))+
@@ -746,7 +730,7 @@ SR2021_CH4_env_clean%>%
   scale_fill_manual(values= c("grey70", "grey30"), name = "Treatment", labels = c("C", "OTC"))+
   geom_boxplot()+
   ylab(expression(Soil~Respiration~CH[4]~(micromol/m^{2}/s))) + 
-  #facet_wrap(~Habitat, scales="free")+
+  facet_wrap(~Habitat, scales="free")+
   theme_classic()+
   theme(legend.position = "bottom", axis.title = element_text(size = 14), axis.text = element_text(size =12), legend.text = element_text(size =11) )
 
@@ -1123,8 +1107,6 @@ em_out_category %>%
 pairs(em_out_category)
 
 
-
-
 # summary on CH4 flux recalculated from nanomol to micromol (/1000) and multiplied by GWP of 100 years (84x) to compare to CO2
 CH4_summary<-NEE_CH4_clean%>%
   group_by(Habitat, Treatment) %>%
@@ -1252,6 +1234,24 @@ anova(fitNEE)
 MuMIn::r.squaredGLMM(fitNEE)
 simulationOutput <- simulateResiduals(fittedModel = fitNEE, plot = F)
 plot(simulationOutput)
+
+GPP_palsa<-GPP_NDVI_CWM%>%
+  filter(Habitat.x == "Vegetated Palsa")
+
+lm_palsaGPP<-lm(GPPflux ~ NDVI + VH + LA + SLA + LDMC,  data = GPP_palsa)
+summary(lm_palsaGPP)
+
+GPP_thawslump<-GPP_NDVI_CWM%>%
+  filter(Habitat.x == "Thaw slump")
+
+lm_thawslumpGPP<-lm(GPPflux ~ NDVI + VH + LA + SLA + LDMC,  data = GPP_thawslump)
+summary(lm_thawslumpGPP)
+
+GPP_pond<-GPP_NDVI_CWM%>%
+  filter(Habitat.x == "Vegetated Pond")
+
+lm_pondGPP<-lm(GPPflux ~ NDVI + VH + LA + SLA + LDMC,  data = GPP_pond)
+summary(lm_pondGPP)
 
 
 #CH4
