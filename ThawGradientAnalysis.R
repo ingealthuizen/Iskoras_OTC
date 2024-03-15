@@ -60,6 +60,8 @@ testWvsWG_20<-testWvsWG_20%>%
 cor.test(testWvsWG_2$WG, testWvsWG_2$W) # 0.957 correlation
 Plot_WvsWG_2<-ggplot(testWvsWG_2, aes(W, WG))+
   geom_point()+ 
+  geom_abline(intercept = 0, slope = 1, color="grey", 
+              linetype="dashed", linewidth=1)+
   geom_smooth(method = "lm", se =F)+
   theme_bw()
 
@@ -69,6 +71,8 @@ coef_lmW_WG_2<-coef(lmW_WG_2)
 cor.test(testWvsWG_10$WG, testWvsWG_10$W) # 0.998 correlation
 Plot_WvsWG_10<-ggplot(testWvsWG_10, aes(W, WG))+
   geom_point()+ 
+  geom_abline(intercept = 0, slope = 1, color="grey", 
+              linetype="dashed", linewidth=1)+
   geom_smooth(method = "lm", se =F)+
   theme_bw()
 
@@ -78,6 +82,8 @@ coef_lmW_WG_10<-coef(lmW_WG_10)
 cor.test(testWvsWG_20$WG, testWvsWG_20$W) # 0.998 correlation
 Plot_WvsWG_20<-ggplot(testWvsWG_20, aes(W, WG))+
   geom_point()+ 
+  geom_abline(intercept = 0, slope = 1, color="grey", 
+              linetype="dashed", linewidth=1)+
   geom_smooth(method = "lm", se =F)+
   theme_bw()
 
@@ -102,8 +108,10 @@ Plot_Ibutton2<-IbuttonData_MeanDailyHabitat%>%
   filter(Soildepth =="2cm")%>%
   ggplot(aes(Date, Temperature, col= Habitat))+
   geom_line()+
-  scale_color_viridis(discrete = TRUE, direction = -1)+
-  scale_fill_viridis(discrete = TRUE, direction = -1)+
+  scale_color_manual(values= c("#fc8d62", "#e5c494","#66c2a5", "#a6cee3", "#8da0cb"), 
+                     name = "Habitat")+
+  #scale_color_viridis(discrete = TRUE, direction = -1)+
+  #scale_fill_viridis(discrete = TRUE, direction = -1)+
   geom_rect(aes(xmin=ymd('2020-06-15'), 
                 xmax = ymd('2020-07-14'),
                 ymin = -Inf,
@@ -116,20 +124,22 @@ Plot_Ibutton10<-IbuttonData_MeanDailyHabitat%>%
   filter(Soildepth =="10cm")%>%
   ggplot(aes(Date, Temperature, col= Habitat))+
   geom_line()+
-  scale_color_viridis(discrete = TRUE, direction = -1)+
-  scale_fill_viridis(discrete = TRUE, direction = -1)+
+  scale_color_manual(values= c("#fc8d62", "#e5c494","#66c2a5", "#a6cee3", "#8da0cb"), 
+                     name = "Habitat")+
+  #scale_color_viridis(discrete = TRUE, direction = -1)+
+  #scale_fill_viridis(discrete = TRUE, direction = -1)+
   facet_wrap(~Soildepth)+
   theme_classic()+
   theme(legend.position = "none", axis.title = element_text(size = 14), axis.text = element_text(size =12), legend.text = element_text(size =11) )
 
-Plot_Ibutton20<-
-  
-IbuttonData_MeanDailyHabitat%>%
+Plot_Ibutton20<-IbuttonData_MeanDailyHabitat%>%
   filter(Soildepth =="20cm")%>%
   ggplot(aes(Date, Temperature, col= Habitat))+
   geom_line()+
-  scale_color_viridis(discrete = TRUE, direction = -1)+
-  scale_fill_viridis(discrete = TRUE, direction = -1)+
+  scale_color_manual(values= c("#fc8d62", "#e5c494","#66c2a5", "#a6cee3", "#8da0cb"), 
+                     name = "Habitat")+
+  #scale_color_viridis(discrete = TRUE, direction = -1)+
+  #scale_fill_viridis(discrete = TRUE, direction = -1)+
   geom_rect(aes(xmin=ymd('2020-04-01'), 
                 xmax = ymd('2020-08-01'),
                 ymin = -Inf,
@@ -194,9 +204,21 @@ TOMSTairtemp<-TomstData_MeanDailyHabitat%>%
   #filter(Date > "2021-05-01" & Date <"2022-04-30")%>%
   filter(Treatment == "C")%>%
   filter(Climate_variable %in% c("AirTemperature"))%>%
-  ggplot(aes(Date, Mean, col= Habitat))+
-  geom_line()+
-  geom_ribbon(aes(ymin = Mean-se, ymax = Mean+se, fill = Habitat), alpha=0.3) +
+  ggplot()+
+  geom_rect(aes(xmin=ymd('2021-06-01'), 
+                xmax = ymd('2021-08-31'),
+                ymin = -Inf,
+                ymax = Inf), fill = 'grey95', alpha = 0.1) +
+  geom_rect(aes(xmin=ymd('2022-06-01'), 
+                xmax = ymd('2022-08-31'),
+                ymin = -Inf,
+                ymax = Inf), fill = 'grey95', alpha = 0.1) +
+  geom_rect(aes(xmin=ymd('2023-06-01'), 
+                xmax = ymd('2023-08-31'),
+                ymin = -Inf,
+                ymax = Inf), fill = 'grey95', alpha = 0.1) +
+  geom_line((aes(Date, Mean, col= Habitat)))+
+  #geom_ribbon(aes(ymin = Mean-se, ymax = Mean+se, fill = Habitat), alpha=0.3) +
   scale_color_manual(values= c("#fc8d62", "#e5c494","#66c2a5", "#8da0cb"), 
                      name = "Habitat")+
   scale_fill_manual(values= c("#fc8d62","#e5c494", "#66c2a5", "#8da0cb"), name = "Habitat")+ 
@@ -204,46 +226,74 @@ TOMSTairtemp<-TomstData_MeanDailyHabitat%>%
   facet_wrap(~Climate_variable, scales="free")+
   labs(y= expression('Air temperature ('*~degree*C*')'))+
   theme_classic()+
-  theme(legend.position = c(0.9, 0.2), strip.text = element_blank(),
-        axis.title = element_text(size = 14), axis.text = element_text(size =12), legend.text = element_text(size =11))
+  theme(legend.position = "none", strip.text = element_blank(),
+        axis.title = element_text(size = 14), axis.text = element_text(size =12))
 
 Airtemp_annual<- TomstData_control%>%
   mutate(Month = month(Date),
          Year = year(Date))%>%
   filter(Year > 2020 & Year < 2023)%>%
-  group_by(Year, PlotID, Habitat, Treatment)%>%
+  group_by(Year, PlotID, Habitat, Transect, Treatment)%>%
   summarise(AirTemperature = mean(AirTemperature, na.rm = TRUE))
+
+# posthoc labels 
+AT_annual_test<- data.frame(Habitat=  c("Vegetated Palsa", "Bare Soil Palsa", "Thaw slump", "Vegetated Pond"),
+                            Treatment = c("C", "C","C","C"),
+                            yloc = c(4.5,4.5,4.5,4.5),
+                            label= c("a", "a", "b", "b"))
+AT_annual_test$Habitat <-factor(AT_annual_test$Habitat,levels = c("Vegetated Palsa", "Bare Soil Palsa", "Thaw slump", "Vegetated Pond"))
 
 Airtemp_annual_plot<- ggplot(Airtemp_annual, aes(Treatment, AirTemperature, fill=Habitat))+
   geom_boxplot(outlier.shape = NA)+
   stat_summary(fun=mean, geom="point", shape=4, size=2, position = position_dodge(width = 0.75))+
   scale_fill_manual(values= c("#fc8d62","#e5c494", "#66c2a5", "#8da0cb"), name = "Habitat")+ 
+  geom_text(data = AT_annual_test, aes(y = yloc, label = label), position = position_dodge(width = .75), size=6)+
   labs(x= "Annual")+
   theme_classic()+
-  theme(legend.position = "none", axis.text.x = element_blank(), axis.title.y = element_blank(),axis.title.x = element_text(size =12))
+  theme(legend.position = "none", axis.text.x = element_blank(), axis.title.y = element_blank(),axis.title = element_text(size = 14), axis.text = element_text(size =12))
 
 Airtemp_summer<- TomstData_control%>%
   mutate(Month = month(Date),
          Year = year(Date))%>%
   filter(Year > 2020 & Year < 2024)%>%
   filter(Month > 5 & Month < 9)%>%
-  filter(PlotID != "3WGA_C" | Year > 2022)%>% # data missing from 10.06.2023
-  group_by(Year, PlotID, Habitat, Treatment)%>%
+  filter(PlotID != "3WGA_C" | Year < 2023)%>% # data missing from 10.06.2023
+  group_by(Year, PlotID, Habitat, Transect, Treatment)%>%
   summarise(AirTemperature = mean(AirTemperature, na.rm = TRUE))
+
+# posthoc labels 
+AT_summer_test<- data.frame(Habitat=  c("Vegetated Palsa", "Bare Soil Palsa", "Thaw slump", "Vegetated Pond"),
+                            Treatment = c("C", "C","C","C"),
+                            yloc = c(13.5,13.5,13.5,13.5 ),
+                            label= c("ab", "a", "ab", "b"))
+AT_summer_test$Habitat <-factor(AT_summer_test$Habitat,levels = c("Vegetated Palsa", "Bare Soil Palsa", "Thaw slump", "Vegetated Pond"))
 
 Airtemp_summer_plot<-ggplot(Airtemp_summer, aes(Treatment, AirTemperature, fill=Habitat))+
   geom_boxplot(outlier.shape = NA)+
   stat_summary(fun=mean, geom="point", shape=4, size=2, position = position_dodge(width = 0.75))+
   scale_fill_manual(values= c("#fc8d62","#e5c494", "#66c2a5", "#8da0cb"), name = "Habitat")+ 
+  geom_text(data = AT_summer_test, aes(y = yloc, label = label), position = position_dodge(width = .75), size =6)+
   labs(x= "Summer")+
     theme_classic()+
-  theme(legend.position = "none", axis.text.x = element_blank(),  axis.title.y = element_blank(), axis.title.x = element_text(size =12))
+  theme(legend.position = "none", axis.text.x = element_blank(),  axis.title.y = element_blank(), axis.title = element_text(size = 14), axis.text = element_text(size =12))
 
 TOMSTsoiltemp<-TomstData_MeanDailyHabitat%>%
   filter(Climate_variable %in% c("SoilTemperature"))%>%
-  ggplot(aes(Date, Mean, col= Habitat))+
-  geom_line()+
-  geom_ribbon(aes(ymin = Mean-se, ymax = Mean+se, fill = Habitat), alpha=0.3) +
+  ggplot()+
+  geom_rect(aes(xmin=ymd('2021-06-01'), 
+                xmax = ymd('2021-08-31'),
+                ymin = -Inf,
+                ymax = Inf), fill = 'grey95', alpha = 0.1) +
+  geom_rect(aes(xmin=ymd('2022-06-01'), 
+                xmax = ymd('2022-08-31'),
+                ymin = -Inf,
+                ymax = Inf), fill = 'grey95', alpha = 0.1) +
+  geom_rect(aes(xmin=ymd('2023-06-01'), 
+                xmax = ymd('2023-08-31'),
+                ymin = -Inf,
+                ymax = Inf), fill = 'grey95', alpha = 0.1) +
+  geom_line((aes(Date, Mean, col= Habitat)))+
+  #geom_ribbon(aes(ymin = Mean-se, ymax = Mean+se, fill = Habitat), alpha=0.3) +
   geom_hline(yintercept = 0, linetype= "dashed")+
   scale_color_manual(values= c("#fc8d62", "#e5c494","#66c2a5", "#8da0cb"), 
                      name = "Habitat")+
@@ -251,50 +301,121 @@ TOMSTsoiltemp<-TomstData_MeanDailyHabitat%>%
   facet_wrap(~Climate_variable, scales="free")+
   labs(y= expression('Soil temperature ('*~degree*C*')'))+
   theme_classic()+
-  theme(legend.position = "none", strip.text = element_blank(),
+  theme(legend.position = "bottom", strip.text = element_blank(),
         axis.title = element_text(size = 14), axis.text = element_text(size =12), legend.text = element_text(size =11) )
 
 Soiltemp_annual<- TomstData_control%>%
   mutate(Month = month(Date),
          Year = year(Date))%>%
   filter(Year > 2020 & Year < 2023)%>%
-  group_by(Year, PlotID, Habitat, Treatment)%>%
+  group_by(Year, PlotID, Habitat, Transect, Treatment)%>%
   summarise(SoilTemperature = mean(SoilTemperature, na.rm = TRUE))
+
+# posthoc labels 
+ST_annual_test<- data.frame(Habitat=  c("Vegetated Palsa", "Bare Soil Palsa", "Thaw slump", "Vegetated Pond"),
+                            Treatment = c("C", "C","C","C"),
+                            yloc = c(4.5,4.5,4.5,4.5 ),
+                            label= c("a", "a", "b", "b"))
+ST_annual_test$Habitat <-factor(ST_annual_test$Habitat,levels = c("Vegetated Palsa", "Bare Soil Palsa", "Thaw slump", "Vegetated Pond"))
 
 Soiltemp_annual_plot<- ggplot(Soiltemp_annual, aes(Treatment, SoilTemperature, fill=Habitat))+
     geom_boxplot(outlier.shape = NA)+
     stat_summary(fun=mean, geom="point", shape=4, size=2, position = position_dodge(width = 0.75))+
     scale_fill_manual(values= c("#fc8d62","#e5c494", "#66c2a5", "#8da0cb"), name = "Habitat")+
+    geom_text(data = ST_annual_test, aes(y = yloc, label = label), position = position_dodge(width = .75), size =6)+
     labs(x= "Annual")+
     theme_classic()+
-    theme(legend.position = "none", axis.text.x = element_blank(), axis.title.y = element_blank(), axis.title.x = element_text(size =12))
+    theme(legend.position = "none", axis.text.x = element_blank(), axis.title.y = element_blank(), axis.title = element_text(size = 14), axis.text = element_text(size =12))
 
 Soiltemp_summer<- TomstData_control%>%
   mutate(Month = month(Date),
          Year = year(Date))%>%
   filter(Year > 2020 & Year < 2024)%>%
-  filter(PlotID != "3WGA_C" | Year > 2022)%>% # data missing from 10.06.2023
+  filter(PlotID != "3WGA_C" | Year < 2023)%>% # data missing from 10.06.2023
   filter(Month > 5 & Month < 9)%>%
-  group_by(Year, PlotID, Habitat, Treatment)%>%
+  group_by(Year, PlotID, Habitat, Transect, Treatment)%>%
   summarise(SoilTemperature = mean(SoilTemperature, na.rm = TRUE))
 
+# posthoc labels 
+ST_summer_test<- data.frame(Habitat=  c("Vegetated Palsa", "Bare Soil Palsa", "Thaw slump", "Vegetated Pond"),
+                            Treatment = c("C", "C","C","C"),
+                            yloc = c(13.5,13.5,13.5,13.5 ),
+                            label= c("a", "a", "b", "b"))
+ST_summer_test$Habitat <-factor(ST_summer_test$Habitat,levels = c("Vegetated Palsa", "Bare Soil Palsa", "Thaw slump", "Vegetated Pond"))
 
 Soiltemp_summer_plot<- ggplot(Soiltemp_summer, aes(Treatment, SoilTemperature, fill=Habitat))+
   geom_boxplot(outlier.shape = NA)+
   stat_summary(fun=mean, geom="point", shape=4, size=2, position = position_dodge(width = 0.75))+
   scale_fill_manual(values= c("#fc8d62","#e5c494", "#66c2a5", "#8da0cb"), name = "Habitat")+ 
+  geom_text(data = ST_summer_test, aes(y = yloc, label = label), position = position_dodge(width = .75), size =6)+
   labs(x= "Summer")+
   theme_classic()+
-  theme(legend.position = "none", axis.text.x = element_blank(), axis.title.y = element_blank(), axis.title.x = element_text(size =12))
+  theme(legend.position = "none", axis.text.x = element_blank(), axis.title.y = element_blank(), axis.title = element_text(size = 14), axis.text = element_text(size =12))
 
 library(cowplot)
-plot_grid(TOMSTairtemp, Airtemp_annual_plot, Airtemp_summer_plot, TOMSTsoiltemp, Soiltemp_annual_plot, Soiltemp_summer_plot, nrow = 2, rel_widths = c(3,1,1))
+plot_grid(TOMSTairtemp, Airtemp_annual_plot, Airtemp_summer_plot, TOMSTsoiltemp, Soiltemp_annual_plot, Soiltemp_summer_plot, nrow = 2, rel_widths = c(3,1,1), labels = c("A", "", "", "B", "", ""))
 
 # test for significant differences between habitat microclimate
-                      
+Airtemp_annual%>%
+  group_by(Habitat)%>%
+  summarise(AirTemperature = mean(AirTemperature, na.rm = TRUE))
+
+Airtemp_summer%>%
+  group_by(Habitat)%>%
+  summarise(AirTemperature = mean(AirTemperature, na.rm = TRUE))
+
+Soiltemp_annual%>%
+  group_by(Habitat)%>%
+  summarise(SoilTemperature = mean(SoilTemperature, na.rm = TRUE))
+
+Soiltemp_summer%>%
+  group_by(Habitat)%>%
+  summarise(SoilTemperature = mean(SoilTemperature, na.rm = TRUE))
+
+install.packages("lme4", type = "source")                      
 library(lme4)
-AT_annual.lmer<-lmer(SoilTemperature ~ Habitat + (1|PlotID), data=Soiltemp_summer)
-summary(AT_annual.lmer)
+library(lmerTest) # lmer fit with Transect as random factor gives singular fit
+library(emmeans)
+library(rstatix)
+AT_annual.lm <- lm(AirTemperature ~ Habitat, data=Airtemp_annual)
+AT_annual <- aov(AT_annual.lm)
+summary(AT_annual)
+TukeyHSD(AT_annual)
+
+AT_annual.lm <- lm(AirTemperature ~ Habitat, data=Airtemp_summer)
+AT_annual <- aov(AT_annual.lm)
+summary(AT_annual)
+TukeyHSD(AT_annual)
+
+ST_annual.lm <- lm(SoilTemperature ~ Habitat, data=Soiltemp_annual)
+ST_annual <- aov(ST_annual.lm)
+summary(ST_annual)
+TukeyHSD(ST_annual)
+
+ST_annual.lm <- lm(SoilTemperature ~ Habitat, data=Soiltemp_summer)
+ST_annual <- aov(ST_annual.lm)
+summary(ST_annual)
+TukeyHSD(ST_annual)
+
+# SoilMoisture
+TOMSTsoilmoist<-TomstData_MeanDailyHabitat%>%
+  #filter(Date > "2021-05-01" & Date <"2022-04-30")%>%
+  filter(Treatment == "C")%>%
+  filter(Climate_variable %in% c("Soilmoisture_Volumetric"))%>%
+  ggplot(aes(Date, Mean, col= Habitat))+
+  geom_line()+
+  #geom_ribbon(aes(ymin = Mean-se, ymax = Mean+se, fill = Habitat), alpha=0.3) +
+  scale_color_manual(values= c("#fc8d62", "#e5c494","#66c2a5", "#8da0cb"), 
+                     name = "Habitat")+
+  scale_fill_manual(values= c("#fc8d62","#e5c494", "#66c2a5", "#8da0cb"), name = "Habitat")+ 
+  geom_hline(yintercept = 0, linetype= "dashed")+
+  facet_wrap(~Climate_variable, scales="free")+
+  labs(y= expression('Air temperature ('*~degree*C*')'))+
+  theme_classic()+
+  theme(legend.position = "none", strip.text = element_blank(),
+        axis.title = element_text(size = 14), axis.text = element_text(size =12), legend.text = element_text(size =11))
 
 
 ### Soilgas data
+
+
